@@ -1,0 +1,32 @@
+# Build outputs
+packages/
+build/
+dist/
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+*.sublime-*
+
+# Temporary files
+*.tmp
+*.bak
+*.log
+
+# QML cache
+*.qmlc
+*.jsc
+
+# Local testing
+*.AppImage
+*.dmg
+*.exe
+*.zip

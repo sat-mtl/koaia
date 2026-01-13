@@ -1,0 +1,3 @@
+module koaia
+DarkStyle 1.0 DarkStyle.qml
+LightStyle 1.0 LightStyle.qml

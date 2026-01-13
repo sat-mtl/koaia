@@ -30,3 +30,4 @@ desktop.ini
 *.dmg
 *.exe
 *.zip
+build-local.sh

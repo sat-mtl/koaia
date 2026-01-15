@@ -41,7 +41,7 @@ jobs:
           release-tag: "continuous"
           platforms: "${{ matrix.platform }}"
           # Optional: QRC file for custom resources
-          qrc-file: "resources/resources.qrc"
+          # qrc-file: "resources/resources.qrc"
           # Optional: macOS code signing (requires secrets to be set in repository)
           macos-certificate-base64: ${{ secrets.MAC_CERT_B64 }}
           macos-certificate-password: ${{ secrets.MAC_CERT_PASSWORD }}

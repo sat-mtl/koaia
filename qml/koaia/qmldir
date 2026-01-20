@@ -1,3 +1,12 @@
 module koaia
 DarkStyle 1.0 DarkStyle.qml
 LightStyle 1.0 LightStyle.qml
+AmountSlider 1.0 Components/AmountSlider.qml
+ParameterSlider 1.0 Components/ParameterSlider.qml
+ShaderControls 1.0 Components/ShaderControls.qml
+StatusOverlay 1.0 Components/StatusOverlay.qml
+MainView 1.0 Views/MainView.qml
+AboutDialog 1.0 Components/AboutDialog.qml
+CustomLabel 1.0 Components/CustomLabel.qml
+CustomFrame 1.0 Components/CustomFrame.qml
+ProcessObjects 1.0 Models/ProcessObjects.qml

@@ -31,10 +31,10 @@ QtObject {
     property color sidebarTextColorInactive: "#8E8E93"
     property color sidebarHoverColor: "#D1D1D6"
     
-    property int windowWidth: 600 
-    property int windowHeight: 820
-    property int windowMinWidth: 600
-    property int windowMinHeight: 780
+    property int windowWidth: 1200 
+    property int windowHeight: 1200
+    property int windowMinWidth: 1200
+    property int windowMinHeight: 800
     property int padding: 16
     property int spacing: 12
     property int inputHeight: 36

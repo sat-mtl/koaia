@@ -323,9 +323,10 @@ Pane {
                         Layout.fillWidth: true
                         Layout.preferredHeight: 80
                         font.pixelSize: appStyle.fontSizeBody
+                        color: appStyle.textColor
                         wrapMode: TextArea.Wrap
                         background: Rectangle {
-                            color: "white"
+                            color: appStyle.backgroundColorSecondary
                             border.color: appStyle.borderColor
                             border.width: 1
                             radius: appStyle.borderRadius

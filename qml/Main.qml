@@ -57,6 +57,10 @@ ApplicationWindow {
         linkVisited: appStyle.secondaryColor
     }
 
+    property int currentViewIndex: 0
+    readonly property int mainViewIndex: 0
+    readonly property int logViewIndex: 1
+
     AboutDialog {
         id: aboutDialog
         parentWindow: mainWindow
@@ -97,16 +101,38 @@ ApplicationWindow {
                         cursorShape: Qt.PointingHandCursor
                     }
                 }
+                CustomButton {
+                    id: runButton
+                    text: "RUN"
+                    Layout.fillWidth: true
+                    Layout.topMargin: appStyle.spacing
+                    isActive: currentViewIndex === mainViewIndex
+                    onClicked: currentViewIndex = mainViewIndex
+                }
                 
+                CustomButton {
+                    id: logButton
+                    text: "LOGS"
+                    Layout.fillWidth: true
+                    Layout.topMargin: appStyle.spacing
+                    isActive: currentViewIndex === logViewIndex
+                    onClicked: currentViewIndex = logViewIndex
+                }
+
                 Item {
                     Layout.fillHeight: true
                 }
             }
         }
         
-        MainView {
+        StackLayout {
+            id: stackView
             Layout.fillWidth: true
             Layout.fillHeight: true
+            currentIndex: currentViewIndex
+            
+            MainView { }
+            LogView { }
         }
     }
 }

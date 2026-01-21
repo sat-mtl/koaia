@@ -6,7 +6,9 @@ ParameterSlider 1.0 Components/ParameterSlider.qml
 ShaderControls 1.0 Components/ShaderControls.qml
 StatusOverlay 1.0 Components/StatusOverlay.qml
 MainView 1.0 Views/MainView.qml
+LogView 1.0 Views/LogView.qml
 AboutDialog 1.0 Components/AboutDialog.qml
 CustomLabel 1.0 Components/CustomLabel.qml
 CustomFrame 1.0 Components/CustomFrame.qml
+CustomButton 1.0 Components/CustomButton.qml
 ProcessObjects 1.0 Models/ProcessObjects.qml

@@ -2,7 +2,7 @@ import QtQuick
 
 QtObject {
     // Primary accent
-    property color primaryColor: "#007AFF"
+    property color primaryColor: "#006B85"
     property color secondaryColor: "#5856D6"
     
     // Backgrounds

@@ -11,10 +11,22 @@ Dialog {
     property string appDetails: "Explore generative AI and create custom visual effects by combining input layers, filters, with a live preview and NDI streaming output."
     property string appWebsite: "https://gitlab.com/sat-mtl"
     property string logoPath: "../resources/images/koaia_logo.png"
-    property string satLogoPath: "../resources/images/sat_logo.png"
+    property string satLogoPathLight: "../resources/images/SAT_Noir.png"
+    property string satLogoPathDark: "../resources/images/SAT_Blanc_Transparent.png"
     property string satWebsite: "https://www.sat.qc.ca"
+    
+    property string satLogoPath: {
+        if (appStyle && appStyle.backgroundColor) { return appStyle.backgroundColor.r < 0.5 ? satLogoPathDark : satLogoPathLight } return satLogoPathDark
+    }
     property string ossiaLogoPath: "../resources/images/ossia_logo.png"
     property string ossiaWebsite: "https://ossia.io"
+    property string lab7LogoPathLight: "../resources/images/Lab7_NoirRouge_Transparent.png"
+    property string lab7LogoPathDark: "../resources/images/Lab7_BlancRouge.png"
+    property string lab7Website: "https://7doigts.com/lab"
+    
+    property string lab7LogoPath: {
+        if (appStyle && appStyle.backgroundColor) { return appStyle.backgroundColor.r < 0.5 ? lab7LogoPathDark : lab7LogoPathLight } return lab7LogoPathDark
+    }
     
     property var parentWindow: null
     
@@ -96,6 +108,18 @@ Dialog {
                     anchors.fill: parent
                     cursorShape: Qt.PointingHandCursor
                     onClicked: Qt.openUrlExternally(ossiaWebsite)
+                }
+            }
+
+            Image {
+                source: lab7LogoPath
+                fillMode: Image.PreserveAspectFit
+                Layout.preferredWidth: 180
+                Layout.preferredHeight: 90
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: Qt.openUrlExternally(lab7Website)
                 }
             }
         }

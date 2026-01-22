@@ -115,11 +115,11 @@ Pane {
                             "All Files (*)"
                         ]
                         onAccepted: {
-                            var filePath = selectedFile.toString()
-                            // Cross-platform file path handling
-                            if (filePath.startsWith("file://")) {
-                                filePath = filePath.substring(7)
+                            if (!selectedFile) {
+                                console.log("No file selected")
+                                return
                             }
+                            var filePath = new URL(selectedFile).pathname.substr(Qt.platform.os === "windows" ? 1 : 0);
                             imagePathField.text = filePath
                         }
                     }

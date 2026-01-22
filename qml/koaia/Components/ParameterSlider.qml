@@ -1,0 +1,41 @@
+import QtQuick
+import QtQuick.Controls
+import QtQuick.Layouts
+import Score.UI as UI
+import koaia
+
+RowLayout {
+    property string labelText: ""
+    property var port: null
+    property real from: 0
+    property real to: 1
+    property real initialValue: 0
+    property real stepSize: 0.01
+
+    Layout.fillWidth: true
+
+    Label {
+        text: labelText
+        Layout.preferredWidth: 80
+        font.pixelSize: appStyle.fontSizeBody
+    }
+
+    Slider {
+        id: slider
+        Layout.fillWidth: true
+        from: parent.from
+        to: parent.to
+        value: parent.initialValue
+        stepSize: parent.stepSize
+
+        UI.PortSource on value {
+            port: parent.port
+        }
+
+        Component.onCompleted: {
+            if (parent.port) {
+                Score.setValue(parent.port, value)
+            }
+        }
+    }
+}

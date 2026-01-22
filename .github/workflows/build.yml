@@ -1,10 +1,7 @@
-name: Custom app
+name: Build Koaia
 
 on:
-  push:
-    branches: [ main, master ]
-    tags:
-      - 'v*'
+  push: 
   pull_request:
     branches: [ main, master ]
   workflow_dispatch:
@@ -34,14 +31,20 @@ jobs:
       - name: Package custom ossia score app
         uses: ossia/actions/package-custom-app@master
         with:
-          app-name: "My Custom App"
+          app-name: "Koaia"
           qml-files: "qml"
           # Optional: Add your score file here
           score-file: "score/app.score"
           release-tag: "continuous"
           platforms: "${{ matrix.platform }}"
-          # Optional: QRC file for custom resources
-          qrc-file: "resources/resources.qrc"
+          # App metadata
+          app-organization: "SAT"
+          app-domain: "sat.qc.ca"
+          app-identifier: "ca.qc.sat.koaia"
+          app-description: "pose and blob detection software"
+          app-copyright: "Société des Arts Technologiques"
+          app-version: "1.0"
+          app-png: "qml/koaia/resources/images/koaia_logo.png" # TODO: change to koaia_logo.ico and icns
           # Optional: macOS code signing (requires secrets to be set in repository)
           macos-certificate-base64: ${{ secrets.MAC_CERT_B64 }}
           macos-certificate-password: ${{ secrets.MAC_CERT_PASSWORD }}

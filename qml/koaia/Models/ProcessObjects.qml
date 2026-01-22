@@ -54,10 +54,14 @@ QtObject {
 
     // StreamDiffusion
     property QtObject streamDiffusion_img2img: QtObject {
-        property var process_object: Score.find("StreamDiffusion img2img")
+        property var process_object: Score.find("StreamDiffusion")
+        property var prompt_positive: Score.inlet(process_object, 3)
+        property var prompt_negative: Score.inlet(process_object, 4)
+        property var engine: Score.inlet(process_object, 5)
         property var seed: Score.inlet(process_object, 6)
-        property var steps: Score.inlet(process_object, 7)
-        property var size: Score.inlet(process_object, 12)
+        property var guidance: Score.inlet(process_object, 7)
+        property var timesteps: Score.inlet(process_object, 8)
+        property var size: Score.inlet(process_object, 9)
     }
 
     // Prompt Composer

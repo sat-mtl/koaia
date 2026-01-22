@@ -131,7 +131,8 @@ ApplicationWindow {
             Layout.fillHeight: true
             currentIndex: currentViewIndex
             
-            MainView { }
+            MainView {
+            }
             LogView { }
         }
     }

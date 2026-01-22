@@ -10,6 +10,7 @@ Pane {
     id: mainView
     
     property bool isProcessing: false
+    onIsProcessingChanged: (isProcessing)? Score.play() : Score.stop()
 
     // Score process objects
     ProcessObjects {
@@ -64,15 +65,12 @@ Pane {
         }
     }
 
-    RowLayout {
-        anchors.fill: parent
-        anchors.margins: appStyle.padding
-        spacing: appStyle.spacing
-
         ScrollView {
             id: leftScroll
-            Layout.fillWidth: true
-            Layout.fillHeight: true
+            anchors.fill: parent
+            anchors.margins: appStyle.padding
+            spacing: appStyle.spacing
+
             clip: true
             contentWidth: availableWidth // viewport width?
 
@@ -351,7 +349,7 @@ Pane {
                             Layout.fillWidth: true
                             from: 1; to: 100; value: 35; stepSize: 1
                             font.pixelSize: appStyle.fontSizeBody
-                            UI.PortSource on value { port: processes.streamDiffusion_img2img.steps }
+                            UI.PortSource on value { port: processes.streamDiffusion_img2img.timesteps }
                         }
                     }
 
@@ -445,34 +443,41 @@ Pane {
             }
         }
 
-        ColumnLayout {
-            id: rightPreview
-            Layout.fillHeight: true
-            spacing: 8
 
-            CustomFrame {
-                process: "Video Mapper"
-                port: 0
-                showTexture: true
+    Window {
+        visible: true
+        title: "Input"
+        width: sizeCombo.currentDimensions[0]
+        height: sizeCombo.currentDimensions[1]
+        CustomFrame {
+            anchors.fill:  parent
+            process: "Video Mapper"
+            port: 0
+            showTexture: true
 
-                StatusOverlay {
-                    sliders: [
-                        {name: "Video", slider: imageAmountSlider.slider},
-                        {name: "Camera", slider: cameraAmountSlider.slider},
-                        {name: "Smoke", slider: smokeAmountSlider.slider},
-                        {name: "Voronoi", slider: voronoiAmountSlider.slider},
-                        {name: "Noise", slider: noiseAmountSlider.slider},
-                        {name: "Perlin", slider: perlinAmountSlider.slider},
-                        {name: "Shape", slider: shapeAmountSlider.slider}
-                    ]
-                }
+            StatusOverlay {
+                sliders: [
+                    {name: "Video", slider: imageAmountSlider.slider},
+                    {name: "Camera", slider: cameraAmountSlider.slider},
+                    {name: "Smoke", slider: smokeAmountSlider.slider},
+                    {name: "Voronoi", slider: voronoiAmountSlider.slider},
+                    {name: "Noise", slider: noiseAmountSlider.slider},
+                    {name: "Perlin", slider: perlinAmountSlider.slider},
+                    {name: "Shape", slider: shapeAmountSlider.slider}
+                ]
             }
-
-            CustomFrame {
-                process: "Video Mapper.1"
-                port: 0
-                showTexture: true
-            }
+        }
+    }
+    Window {
+        visible: true
+        title: "Preview"
+        width: sizeCombo.currentDimensions[0]
+        height: sizeCombo.currentDimensions[1]
+        CustomFrame {
+            anchors.fill:  parent
+            process: "Video Mapper.1"
+            port: 0
+            showTexture: true
         }
     }
 }

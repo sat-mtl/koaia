@@ -12,6 +12,7 @@ ApplicationWindow {
     minimumHeight: appStyle.windowMinHeight
     visible: true
     title: "koaia"
+    property var logger
 
     DarkStyle {
         id: dark_style
@@ -133,7 +134,8 @@ ApplicationWindow {
             
             MainView {
             }
-            LogView { }
+            LogView {
+            }
         }
     }
 }

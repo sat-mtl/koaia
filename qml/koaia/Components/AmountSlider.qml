@@ -41,8 +41,21 @@ RowLayout {
         onValueChanged: {
             if (root.enabled) {
                 root.value = value
+                if (root.port) {
+                    try {
+                        Score.setValue(root.port, value)
+                    } catch(e) {
+                        console.warn("Could not set value on port:", e)
+                    }
+                }
             } else {
                 value = 0.0
+                if (root.port) {
+                    try {
+                        Score.setValue(root.port, 0.0)
+                    } catch(e) {
+                    }
+                }
             }
         }
     }

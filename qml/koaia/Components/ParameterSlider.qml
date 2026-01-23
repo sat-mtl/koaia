@@ -37,5 +37,15 @@ RowLayout {
                 Score.setValue(parent.port, value)
             }
         }
+
+        onValueChanged: {
+            if (parent.port) {
+                try {
+                    Score.setValue(parent.port, value)
+                } catch(e) {
+                    console.warn("Could not set value on port:", e)
+                }
+            }
+        }
     }
 }

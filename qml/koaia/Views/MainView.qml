@@ -225,6 +225,36 @@ Pane {
 
                         RowLayout {
                             Layout.fillWidth: true
+                            Label { text: "Workflow"; Layout.preferredWidth: 100; font.pixelSize: appStyle.fontSizeBody }
+                            ComboBox {
+                                id: workflowCombo
+                                Layout.fillWidth: true
+                                model: ["SD_TXT2IMG", "SD_IMG2IMG", "SD_TXT2IMG_CONTROLNET", "SD_TXT2IMG_IPADAPTER", "SD_IMG2IMG_IPADAPTER", "STURBO_TXTZIMG", "SDTURBO_IMG2IMG", "SDXL_TXT2IMG", "SDXL_IMG2IMG", "V2V_TXT2IMG", "V2V_IMG2IMG"]
+                                currentIndex: 0
+                                font.pixelSize: appStyle.fontSizeBody
+                                UI.PortSource on currentIndex { port: processes.streamDiffusion.workflow }
+                                Component.onCompleted: if (processes.streamDiffusion.workflow) Score.setValue(processes.streamDiffusion.workflow, currentIndex)
+                                onCurrentIndexChanged: if (processes.streamDiffusion.workflow) Score.setValue(processes.streamDiffusion.workflow, currentIndex)
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Label { text: "Engine"; Layout.preferredWidth: 100; font.pixelSize: appStyle.fontSizeBody }
+                            TextField {
+                                id: enginePathField
+                                Layout.fillWidth: true
+                                font.pixelSize: appStyle.fontSizeBody
+                                text: "/home/artia-streamdiffusion/score-developer/src/addons/score-addon-librediffusion/3rdparty/librediffusion/engines_512_512"
+                                placeholderText: "Path to engine"
+                                UI.PortSource on text { port: processes.streamDiffusion.engines }
+                                Component.onCompleted: if (processes.streamDiffusion.engines) Score.setValue(processes.streamDiffusion.engines, text)
+                                onTextChanged: if (processes.streamDiffusion.engines) Score.setValue(processes.streamDiffusion.engines, text)
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
                             Label { text: "Weights"; font.pixelSize: appStyle.fontSizeBody }
                             ParameterSlider {
                                 Layout.fillWidth: true
@@ -242,21 +272,23 @@ Pane {
                             Layout.fillWidth: true
                             Label { text: "Seed"; font.pixelSize: appStyle.fontSizeBody }
                             SpinBox {
+                                id: seedSpinBox
                                 Layout.fillWidth: true
-                                from: 0; to: 9999999; value: 100; stepSize: 1
+                                from: 0; to: 9999999; value: 20; stepSize: 1
                                 font.pixelSize: appStyle.fontSizeBody
-                                UI.PortSource on value { port: processes.streamDiffusion_img2img.seed }
-                                Component.onCompleted: if (processes.streamDiffusion_img2img.seed) Score.setValue(processes.streamDiffusion_img2img.seed, value)
-                                onValueChanged: if (processes.streamDiffusion_img2img.seed) Score.setValue(processes.streamDiffusion_img2img.seed, value)
+                                UI.PortSource on value { port: processes.streamDiffusion.seed }
+                                Component.onCompleted: if (processes.streamDiffusion.seed) Score.setValue(processes.streamDiffusion.seed, value)
+                                onValueChanged: if (processes.streamDiffusion.seed) Score.setValue(processes.streamDiffusion.seed, value)
                             }
-                            Label { text: "Steps"; font.pixelSize: appStyle.fontSizeBody }
+                            Label { text: "Timesteps"; font.pixelSize: appStyle.fontSizeBody }
                             SpinBox {
+                                id: timestepsSpinBox
                                 Layout.fillWidth: true
-                                from: 1; to: 100; value: 35; stepSize: 1
+                                from: 1; to: 100; value: 20; stepSize: 1
                                 font.pixelSize: appStyle.fontSizeBody
-                                UI.PortSource on value { port: processes.streamDiffusion_img2img.steps }
-                                Component.onCompleted: if (processes.streamDiffusion_img2img.steps) Score.setValue(processes.streamDiffusion_img2img.steps, value)
-                                onValueChanged: if (processes.streamDiffusion_img2img.steps) Score.setValue(processes.streamDiffusion_img2img.steps, value)
+                                UI.PortSource on value { port: processes.streamDiffusion.timesteps }
+                                Component.onCompleted: if (processes.streamDiffusion.timesteps) Score.setValue(processes.streamDiffusion.timesteps, value)
+                                onValueChanged: if (processes.streamDiffusion.timesteps) Score.setValue(processes.streamDiffusion.timesteps, value)
                             }
                         }
 
@@ -266,89 +298,77 @@ Pane {
                             ParameterSlider {
                                 Layout.fillWidth: true
                                 labelText: ""
-                                port: processes.streamDiffusion_img2img.guidance
-                                from: 0
-                                to: 20
-                                initialValue: 7.5
-                            }
-                            Label { text: "CFG"; font.pixelSize: appStyle.fontSizeBody }
-                            ParameterSlider {
-                                Layout.fillWidth: true
-                                labelText: ""
-                                port: processes.streamDiffusion_img2img.cfg
+                                port: processes.streamDiffusion.guidance
                                 from: 0
                                 to: 20
                                 initialValue: 1.0
                             }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Label { text: "T1"; font.pixelSize: appStyle.fontSizeBody }
-                            ParameterSlider {
+                            Label { text: "Guidance type"; font.pixelSize: appStyle.fontSizeBody }
+                            ComboBox {
+                                id: guidanceTypeCombo
                                 Layout.fillWidth: true
-                                labelText: ""
-                                port: processes.streamDiffusion_img2img.t1
-                                from: 0
-                                to: 100
-                                initialValue: 50
-                            }
-                            Label { text: "T2"; font.pixelSize: appStyle.fontSizeBody }
-                            ParameterSlider {
-                                Layout.fillWidth: true
-                                labelText: ""
-                                port: processes.streamDiffusion_img2img.t2
-                                from: 0
-                                to: 100
-                                initialValue: 50
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Label { text: "T Count"; font.pixelSize: appStyle.fontSizeBody }
-                            SpinBox {
-                                Layout.fillWidth: true
-                                from: 1; to: 100; value: 1; stepSize: 1
+                                model: ["None", "Self", "Full", "Initialize"]
+                                currentIndex: 0
                                 font.pixelSize: appStyle.fontSizeBody
-                                UI.PortSource on value { port: processes.streamDiffusion_img2img.t_count }
-                                Component.onCompleted: if (processes.streamDiffusion_img2img.t_count) Score.setValue(processes.streamDiffusion_img2img.t_count, value)
-                                onValueChanged: if (processes.streamDiffusion_img2img.t_count) Score.setValue(processes.streamDiffusion_img2img.t_count, value)
+                                UI.PortSource on currentIndex { port: processes.streamDiffusion.guidance_type }
+                                Component.onCompleted: if (processes.streamDiffusion.guidance_type) Score.setValue(processes.streamDiffusion.guidance_type, currentIndex)
+                                onCurrentIndexChanged: if (processes.streamDiffusion.guidance_type) Score.setValue(processes.streamDiffusion.guidance_type, currentIndex)
                             }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Label { text: "Delta"; font.pixelSize: appStyle.fontSizeBody }
+                            ParameterSlider {
+                                Layout.fillWidth: true
+                                labelText: ""
+                                port: processes.streamDiffusion.delta
+                                from: 0
+                                to: 2
+                                initialValue: 1.0
+                                stepSize: 0.01
+                            }
+                        }
+
+                        RowLayout {
+                            Layout.fillWidth: true
                             Label { text: "Denoise Batch"; font.pixelSize: appStyle.fontSizeBody }
                             SpinBox {
+                                id: denoisingBatchSpinBox
                                 Layout.fillWidth: true
                                 from: 1; to: 100; value: 1; stepSize: 1
                                 font.pixelSize: appStyle.fontSizeBody
-                                UI.PortSource on value { port: processes.streamDiffusion_img2img.denoising_batch }
-                                Component.onCompleted: if (processes.streamDiffusion_img2img.denoising_batch) Score.setValue(processes.streamDiffusion_img2img.denoising_batch, value)
-                                onValueChanged: if (processes.streamDiffusion_img2img.denoising_batch) Score.setValue(processes.streamDiffusion_img2img.denoising_batch, value)
+                                UI.PortSource on value { port: processes.streamDiffusion.denoising_batch }
+                                Component.onCompleted: if (processes.streamDiffusion.denoising_batch) Score.setValue(processes.streamDiffusion.denoising_batch, value)
+                                onValueChanged: if (processes.streamDiffusion.denoising_batch) Score.setValue(processes.streamDiffusion.denoising_batch, value)
                             }
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
                             CheckBox {
+                                id: addNoiseCheckBox
                                 text: "Add Noise"
                                 checked: false
                                 font.pixelSize: appStyle.fontSizeBody
-                                UI.PortSource on checked { port: processes.streamDiffusion_img2img.add_noise }
-                                Component.onCompleted: if (processes.streamDiffusion_img2img.add_noise) Score.setValue(processes.streamDiffusion_img2img.add_noise, checked)
-                                onCheckedChanged: if (processes.streamDiffusion_img2img.add_noise) Score.setValue(processes.streamDiffusion_img2img.add_noise, checked)
+                                UI.PortSource on checked { port: processes.streamDiffusion.add_noise }
+                                Component.onCompleted: if (processes.streamDiffusion.add_noise) Score.setValue(processes.streamDiffusion.add_noise, checked)
+                                onCheckedChanged: if (processes.streamDiffusion.add_noise) Score.setValue(processes.streamDiffusion.add_noise, checked)
                             }
                             CheckBox {
+                                id: manualModeCheckBox
                                 text: "Manual Mode"
                                 checked: false
                                 font.pixelSize: appStyle.fontSizeBody
-                                UI.PortSource on checked { port: processes.streamDiffusion_img2img.manual_mode }
-                                Component.onCompleted: if (processes.streamDiffusion_img2img.manual_mode) Score.setValue(processes.streamDiffusion_img2img.manual_mode, checked)
-                                onCheckedChanged: if (processes.streamDiffusion_img2img.manual_mode) Score.setValue(processes.streamDiffusion_img2img.manual_mode, checked)
+                                UI.PortSource on checked { port: processes.streamDiffusion.manual_mode }
+                                Component.onCompleted: if (processes.streamDiffusion.manual_mode) Score.setValue(processes.streamDiffusion.manual_mode, checked)
+                                onCheckedChanged: if (processes.streamDiffusion.manual_mode) Score.setValue(processes.streamDiffusion.manual_mode, checked)
                             }
                         }
 
                         RowLayout {
                             Layout.fillWidth: true
-                            Label { text: "Size"; font.pixelSize: appStyle.fontSizeBody }
+                            Label { text: "Resolution"; font.pixelSize: appStyle.fontSizeBody }
                             ComboBox {
                                 id: sizeCombo
                                 Layout.fillWidth: true
@@ -357,12 +377,23 @@ Pane {
                                 property int currentDimension: baseSize
                                 property var currentDimensions: [currentDimension, currentDimension]
                                 onCurrentIndexChanged: currentDimension = baseSize * (currentIndex + 1)
-                                UI.PortSource on currentDimensions { port: processes.streamDiffusion_img2img.size }
-                                Component.onCompleted: if (processes.streamDiffusion_img2img.size) Score.setValue(processes.streamDiffusion_img2img.size, currentDimensions)
-                                onCurrentDimensionsChanged: if (processes.streamDiffusion_img2img.size) Score.setValue(processes.streamDiffusion_img2img.size, currentDimensions)
+                                UI.PortSource on currentDimensions { port: processes.streamDiffusion.resolution }
+                                Component.onCompleted: if (processes.streamDiffusion.resolution) Score.setValue(processes.streamDiffusion.resolution, currentDimensions)
+                                onCurrentDimensionsChanged: if (processes.streamDiffusion.resolution) Score.setValue(processes.streamDiffusion.resolution, currentDimensions)
                             }
                         }
                     }
+                }
+
+                Button {
+                    Layout.fillWidth: true
+                    Layout.topMargin: appStyle.spacing
+                    Layout.bottomMargin: appStyle.spacing
+                    text: isProcessing ? "Stop" : "Start"
+                    font.pixelSize: appStyle.fontSizeBody
+                    font.bold: true
+                    highlighted: isProcessing
+                    onClicked: isProcessing = !isProcessing
                 }
 
                 Section {
@@ -630,33 +661,19 @@ Pane {
                     }
                 }
 
-                Section {
-                    title: "Presets"
-                    description: "Save and load preset configurations for quick setup"
+               // Section {
+                //     title: "Presets"
+                //     description: "Save and load preset configurations for quick setup"
 
-                    RowLayout {
-                        Layout.fillWidth: true
-                        spacing: appStyle.spacing
+                //     RowLayout {
+                //         Layout.fillWidth: true
+                //         spacing: appStyle.spacing
 
-                        Button { text: "Load preset"; font.pixelSize: appStyle.fontSizeBody }
+                //         Button { text: "Load preset"; font.pixelSize: appStyle.fontSizeBody }
 
-                        Button {
-                            text: "Capture current state"
-                            font.pixelSize: appStyle.fontSizeBody
-                            onClicked: {
-                                mainView.grabToImage(function(result) {
-                                    if (result.saveToFile) {
-                                        // Use saveToFile if available (Qt 6.5+)
-                                        result.saveToFile("capture.png")
-                                    } else {
-                                        // Fallback for older Qt versions
-                                        result.save("capture.png")
-                                    }
-                                })
-                            }
-                        }
-                    }
-                }
+                //         Button { text: "Capture current state"; font.pixelSize: appStyle.fontSizeBody }
+                //     }
+                // }
 
                 // little bottom padding?
                 Item { height: appStyle.padding }

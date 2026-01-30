@@ -16,7 +16,8 @@ RowLayout {
 
     Label {
         text: labelText
-        Layout.preferredWidth: 80
+        Layout.preferredWidth: labelText ? 80 : 0
+        visible: labelText !== ""
         font.pixelSize: appStyle.fontSizeBody
     }
 

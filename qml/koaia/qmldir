@@ -7,6 +7,7 @@ ShaderControls 1.0 Components/ShaderControls.qml
 StatusOverlay 1.0 Components/StatusOverlay.qml
 MainView 1.0 Views/MainView.qml
 LogView 1.0 Views/LogView.qml
+ModelView 1.0 Views/ModelView.qml
 AboutDialog 1.0 Components/AboutDialog.qml
 CustomLabel 1.0 Components/CustomLabel.qml
 CustomFrame 1.0 Components/CustomFrame.qml

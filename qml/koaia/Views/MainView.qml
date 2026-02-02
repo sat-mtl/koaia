@@ -1,3 +1,4 @@
+import QtCore
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Controls
@@ -11,7 +12,22 @@ Pane {
     
     property bool isProcessing: false
     onIsProcessingChanged: (isProcessing)? Score.play() : Score.stop()
+    
+    Settings {
+        id: appSettings
+        category: "Koaia"
 
+        property string enginePath: ""
+    }
+    
+    Component.onCompleted: {
+      restoreSavedSettings();
+    }
+    
+    function restoreSavedSettings() {
+        enginePathField.text = appSettings.enginePath;
+    }
+    
     // Score process objects
     ProcessObjects {
         id: processes
@@ -229,7 +245,7 @@ Pane {
                             ComboBox {
                                 id: workflowCombo
                                 Layout.fillWidth: true
-                                model: ["SD_TXT2IMG", "SD_IMG2IMG", "SD_TXT2IMG_CONTROLNET", "SD_TXT2IMG_IPADAPTER", "SD_IMG2IMG_IPADAPTER", "STURBO_TXTZIMG", "SDTURBO_IMG2IMG", "SDXL_TXT2IMG", "SDXL_IMG2IMG", "V2V_TXT2IMG", "V2V_IMG2IMG"]
+                                model: ["SD_TXT2IMG", "SD_IMG2IMG", "SD_TXT2IMG_CONTROLNET", "SD_TXT2IMG_IPADAPTER", "SD_IMG2IMG_IPADAPTER", "STURBO_TXT2IMG", "SDTURBO_IMG2IMG", "SDXL_TXT2IMG", "SDXL_IMG2IMG", "V2V_TXT2IMG", "V2V_IMG2IMG"]
                                 currentIndex: 0
                                 font.pixelSize: appStyle.fontSizeBody
                                 UI.PortSource on currentIndex { port: processes.streamDiffusion.workflow }
@@ -245,14 +261,36 @@ Pane {
                                 id: enginePathField
                                 Layout.fillWidth: true
                                 font.pixelSize: appStyle.fontSizeBody
-                                text: "/home/artia-streamdiffusion/score-developer/src/addons/score-addon-librediffusion/3rdparty/librediffusion/engines_512_512"
-                                placeholderText: "Path to engine"
+                                text: ""
+                                placeholderText: "Path to engine folder"
                                 UI.PortSource on text { port: processes.streamDiffusion.engines }
                                 Component.onCompleted: if (processes.streamDiffusion.engines) Score.setValue(processes.streamDiffusion.engines, text)
-                                onTextChanged: if (processes.streamDiffusion.engines) Score.setValue(processes.streamDiffusion.engines, text)
+                                onTextChanged: {                                  
+                                  if (processes.streamDiffusion.engines) 
+                                    Score.setValue(processes.streamDiffusion.engines, text);
+                                  appSettings.enginePath = text;
+                                }
+                            }
+                            Button {
+                                text: "Browse"
+                                font.pixelSize: appStyle.fontSizeBody
+                                onClicked: engineFolderDialog.open()
                             }
                         }
 
+                        FolderDialog {
+                            id: engineFolderDialog
+                            title: "Select Engine Folder"
+                            onAccepted: {
+                                if (!selectedFolder) {
+                                    console.log("No folder selected")
+                                    return
+                                }
+                                var folderPath = new URL(selectedFolder).pathname.substr(Qt.platform.os === "windows" ? 1 : 0);
+                                enginePathField.text = folderPath
+                            }
+                        }
+/* JM: this has to be dynamic, with e.g. a Repeater
                         RowLayout {
                             Layout.fillWidth: true
                             Label { text: "Weights"; font.pixelSize: appStyle.fontSizeBody }
@@ -265,7 +303,7 @@ Pane {
                                 initialValue: 1.0
                             }
                         }
-
+*/
                         Label { text: "Parameters"; font.pixelSize: appStyle.fontSizeBody }
 
                         RowLayout {
@@ -333,14 +371,13 @@ Pane {
                         RowLayout {
                             Layout.fillWidth: true
                             Label { text: "Denoise Batch"; font.pixelSize: appStyle.fontSizeBody }
-                            SpinBox {
+                            CheckBox {
                                 id: denoisingBatchSpinBox
                                 Layout.fillWidth: true
-                                from: 1; to: 100; value: 1; stepSize: 1
                                 font.pixelSize: appStyle.fontSizeBody
-                                UI.PortSource on value { port: processes.streamDiffusion.denoising_batch }
-                                Component.onCompleted: if (processes.streamDiffusion.denoising_batch) Score.setValue(processes.streamDiffusion.denoising_batch, value)
-                                onValueChanged: if (processes.streamDiffusion.denoising_batch) Score.setValue(processes.streamDiffusion.denoising_batch, value)
+                                UI.PortSource on checked { port: processes.streamDiffusion.denoising_batch }
+                                Component.onCompleted: if (processes.streamDiffusion.denoising_batch) Score.setValue(processes.streamDiffusion.denoising_batch, checked)
+                                onCheckedChanged: if (processes.streamDiffusion.denoising_batch) Score.setValue(processes.streamDiffusion.denoising_batch, checked)
                             }
                         }
 
@@ -397,8 +434,8 @@ Pane {
                 }
 
                 Section {
-                    title: "Layering"
-                    description: "Control shader effects, noise patterns, and shape masks for compositing layers"
+                    title: "Noise layer"
+                    description: "Control shader effects, noise patterns."
 
                     // Shader
                     RowLayout {
@@ -459,6 +496,11 @@ Pane {
                         white_Noise: processes.white_Noise
                         simplex_Noise: processes.simplex_Noise
                     }
+                }
+                Section {
+                    title: "Shape layer"
+                    description: "Add a shape mask for compositing layers"
+
 
                     // Shape
                     RowLayout {
@@ -682,7 +724,7 @@ Pane {
 
 
     Window {
-        visible: true
+        visible: hasCuda
         title: "Input"
         width: sizeCombo.currentDimensions[0]
         height: sizeCombo.currentDimensions[1]
@@ -706,7 +748,7 @@ Pane {
         }
     }
     Window {
-        visible: true
+        visible: hasCuda
         title: "Preview"
         width: sizeCombo.currentDimensions[0]
         height: sizeCombo.currentDimensions[1]

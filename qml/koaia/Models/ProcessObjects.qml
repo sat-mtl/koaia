@@ -96,12 +96,14 @@ QtObject {
     }
 
     // StreamDiffusion
-    property QtObject streamDiffusion_img2img: QtObject {
-        property var process_object: Score.find("StreamDiffusion img2img")
-        property var prompt__: Score.inlet(process_object, 1)
-        property var model: Score.inlet(process_object, 3)
-        property var loRAs: Score.inlet(process_object, 4)
-        property var vAE: Score.inlet(process_object, 5)
+    property QtObject streamDiffusion: QtObject {
+        property var process_object: Score.find("StreamDiffusion")
+        property var video_input: Score.inlet(process_object, 0)
+        property var trigger: Score.inlet(process_object, 1)
+        property var workflow: Score.inlet(process_object, 2)
+        property var prompt_plus: Score.inlet(process_object, 3)
+        property var prompt_minus: Score.inlet(process_object, 4)
+        property var engines: Score.inlet(process_object, 5)
         property var seed: Score.inlet(process_object, 6)
         property var guidance: Score.inlet(process_object, 7)
         property var timesteps: Score.inlet(process_object, 8)
@@ -111,6 +113,8 @@ QtObject {
         property var denoising_batch: Score.inlet(process_object, 12)
         property var manual_mode: Score.inlet(process_object, 13)
         property var delta: Score.inlet(process_object, 14)
+        property var feed_prev_in: Score.inlet(process_object, 15)
+        property var feed_prev_oiut: Score.inlet(process_object, 16)
         property var out: Score.outlet(process_object, 0)
     }
 

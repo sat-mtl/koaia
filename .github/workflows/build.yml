@@ -41,7 +41,7 @@ jobs:
           app-organization: "SAT"
           app-domain: "sat.qc.ca"
           app-identifier: "ca.qc.sat.koaia"
-          app-description: "pose and blob detection software"
+          app-description: "A tool for exploring generative ai"
           app-copyright: "Société des Arts Technologiques"
           app-version: "1.0"
           app-png: "qml/koaia/resources/images/koaia_logo.png" 

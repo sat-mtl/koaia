@@ -44,7 +44,9 @@ jobs:
           app-description: "pose and blob detection software"
           app-copyright: "Société des Arts Technologiques"
           app-version: "1.0"
-          app-png: "qml/koaia/resources/images/koaia_logo.png" # TODO: change to koaia_logo.ico and icns
+          app-png: "qml/koaia/resources/images/koaia_logo.png" 
+          app-icns: "qml/koaia/resources/images/koaia_logo.icns"
+          app-ico: "qml/koaia/resources/images/koaia_logo.ico"
           # Optional: macOS code signing (requires secrets to be set in repository)
           macos-certificate-base64: ${{ secrets.MAC_CERT_B64 }}
           macos-certificate-password: ${{ secrets.MAC_CERT_PASSWORD }}
@@ -55,7 +57,7 @@ jobs:
       - name: Upload packages
         uses: actions/upload-artifact@v4
         with:
-          name: custom-app-${{ matrix.artifact-name }}
+          name: koaia-${{ matrix.artifact-name }}
           path: packages/
           retention-days: 30
 
@@ -70,7 +72,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: all-packages
-          pattern: custom-app-*
+          pattern: koaia-*
           merge-multiple: true
 
       - name: Create Release (on tags)

@@ -1,3 +1,4 @@
+import QtCore
 import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Controls
@@ -12,21 +13,26 @@ Pane {
         color: appStyle.backgroundColor
     }
 
+    // Library paths from Settings
+    Settings {
+        id: librarySettings
+        category: "Library"
+        property string rootPath: ""
+    }
+
+    // Computed paths based on Library root
+    readonly property string libraryRoot: librarySettings.rootPath
+    readonly property string uvPath: libraryRoot + "/packages/uv/uv"
+    readonly property string scriptPath: libraryRoot + "/packages/librediffusion/train-loras.py"
+    readonly property string scriptDir: libraryRoot + "/packages/librediffusion"
+
     property bool isSyncing: syncProcess.running
     property bool isBuilding: syncProcess.running || buildProcess.running
-
-    // Helper to get script directory
-    function getScriptDirectory() {
-        var path = scriptPathField.text
-        var lastSlash = path.lastIndexOf('/')
-        if (lastSlash === -1) lastSlash = path.lastIndexOf('\\')
-        return lastSlash > 0 ? path.substring(0, lastSlash) : "."
-    }
 
     // Sync process (runs uv sync first)
     UI.Process {
         id: syncProcess
-        program: "uv"
+        program: uvPath
         arguments: ["sync"]
 
         onLineReceived: (line, isError) => {
@@ -53,7 +59,7 @@ Pane {
 
         onProcessErrorChanged: {
             if (processError === UI.Process.FailedToStart) {
-                outputTextArea.append("[Error] Failed to start uv sync. Is 'uv' installed and in PATH?")
+                outputTextArea.append("[Error] Failed to start uv sync at: " + uvPath)
             }
         }
     }
@@ -61,7 +67,7 @@ Pane {
     // Build process
     UI.Process {
         id: buildProcess
-        program: "uv"
+        program: uvPath
 
         onLineReceived: (line, isError) => {
             if (isError) {
@@ -80,7 +86,7 @@ Pane {
 
         onProcessErrorChanged: {
             if (processError === UI.Process.FailedToStart) {
-                outputTextArea.append("[Error] Failed to start build process. Is 'uv' installed and in PATH?")
+                outputTextArea.append("[Error] Failed to start build process at: " + uvPath)
             } else if (processError === UI.Process.Crashed) {
                 outputTextArea.append("[Error] Build process crashed")
             }
@@ -166,38 +172,6 @@ Pane {
                 ColumnLayout {
                     width: parent.width
                     spacing: appStyle.spacing
-
-                    Section {
-                        title: "Script Configuration"
-                        description: "Path to the Python build script"
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Label { text: "Script Path"; Layout.preferredWidth: 100; font.pixelSize: appStyle.fontSizeBody }
-                            TextField {
-                                id: scriptPathField
-                                Layout.fillWidth: true
-                                font.pixelSize: appStyle.fontSizeBody
-                                placeholderText: "/path/to/build_engine.py"
-                            }
-                            Button {
-                                text: "Browse"
-                                font.pixelSize: appStyle.fontSizeBody
-                                onClicked: scriptFileDialog.open()
-                            }
-                        }
-
-                        FileDialog {
-                            id: scriptFileDialog
-                            title: "Select Python Script"
-                            nameFilters: ["Python Files (*.py)"]
-                            onAccepted: {
-                                if (!selectedFile) return
-                                var filePath = new URL(selectedFile).pathname.substr(Qt.platform.os === "windows" ? 1 : 0)
-                                scriptPathField.text = filePath
-                            }
-                        }
-                    }
 
                     Section {
                         title: "Model Configuration"
@@ -469,7 +443,7 @@ Pane {
                         highlighted: !isBuilding
 
                         function isValid() {
-                            return scriptPathField.text !== "" &&
+                            return libraryRoot !== "" &&
                                    modelSourceField.text !== "" &&
                                    outputPathField.text !== "" &&
                                    maxBatchSpinBox.value >= minBatchSpinBox.value &&
@@ -525,7 +499,9 @@ Pane {
                         font.family: "monospace"
                         font.pixelSize: appStyle.fontSizeSmall
                         color: appStyle.textColor
-                        text: "Ready to build. Configure options above and click 'Build Engine'.\n"
+                        text: libraryRoot !== ""
+                              ? "Ready to build. Configure options above and click 'Build Engine'.\n"
+                              : "Library path not configured. Please ensure packages are installed.\n"
 
                         background: Rectangle {
                             color: "transparent"
@@ -543,10 +519,8 @@ Pane {
         buildProcess.clearOutput()
         outputTextArea.text = ""
 
-        var scriptDir = getScriptDirectory()
-
         outputTextArea.append("[Syncing environment in " + scriptDir + "]")
-        outputTextArea.append("$ uv sync")
+        outputTextArea.append("$ " + uvPath + " sync")
         outputTextArea.append("----------------------------------------")
 
         // Set working directory and start sync
@@ -556,13 +530,10 @@ Pane {
 
     // Called after successful sync
     function runBuildProcess() {
-        var scriptDir = getScriptDirectory()
-        var scriptName = scriptPathField.text.substring(scriptDir.length + 1)
-
         // Build argument list with argparse-style flags
         var args = [
             "run",
-            scriptName,
+            "train-loras.py",
             "--type", modelTypeCombo.modelTypeArg,
             "--model", modelSourceField.text,
             "--output", outputPathField.text,
@@ -595,7 +566,7 @@ Pane {
         }
 
         // Log the command
-        var cmdLine = "uv " + args.join(" ")
+        var cmdLine = uvPath + " " + args.join(" ")
         outputTextArea.append("[Starting build]")
         outputTextArea.append("$ cd " + scriptDir + " && " + cmdLine)
         outputTextArea.append("----------------------------------------")

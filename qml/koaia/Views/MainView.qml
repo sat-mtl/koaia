@@ -848,7 +848,7 @@ Pane {
 
 
     Window {
-        visible: hasCuda
+        visible: mainView.visible
         title: "Input"
         width: sizeCombo.currentDimensions[0]
         height: sizeCombo.currentDimensions[1]
@@ -872,7 +872,7 @@ Pane {
         }
     }
     Window {
-        visible: hasCuda
+        visible: mainView.visible
         title: "Preview"
         width: sizeCombo.currentDimensions[0]
         height: sizeCombo.currentDimensions[1]

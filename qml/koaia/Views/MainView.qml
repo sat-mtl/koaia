@@ -17,15 +17,77 @@ Pane {
         id: appSettings
         category: "Koaia"
 
+        // Input section
+        property string videoPath: ""
+        property real videoAmount: 0.0
+        property real cameraAmount: 0.0
+
+        // AI Model section
+        property string prompt: "origami, hyperrealistic, 4k, abstract, geometry"
+        property int workflow: 0
         property string enginePath: ""
+        property int seed: 20
+        property string timesteps: "20"
+        property int guidanceType: 0
+        property bool denoisingBatch: false
+        property bool addNoise: false
+        property bool manualMode: false
+        property int resolution: 0
+
+        // Noise layer section
+        property int noiseShader: 0
+        property real smokeAmount: 0.0
+        property real voronoiAmount: 0.0
+        property real noiseAmount: 0.0
+        property real perlinAmount: 0.0
+
+        // Shape layer section
+        property int shapeType: 1
+        property real shapeAmount: 0.0
+        property real shapeBrightness: 0.1
+        property real shapeHue: 0.0
+        property int shapeX: 256
+        property int shapeY: 256
+        property bool shapeInvert: false
     }
-    
+
     Component.onCompleted: {
-      restoreSavedSettings();
+        restoreSavedSettings()
     }
-    
+
     function restoreSavedSettings() {
-        enginePathField.text = appSettings.enginePath;
+        // Input section
+        imagePathField.text = appSettings.videoPath
+        imageAmountSlider.slider.value = appSettings.videoAmount
+        cameraAmountSlider.slider.value = appSettings.cameraAmount
+
+        // AI Model section
+        promptTextField.text = appSettings.prompt
+        workflowCombo.currentIndex = appSettings.workflow
+        enginePathField.text = appSettings.enginePath
+        seedSpinBox.value = appSettings.seed
+        timestepsField.text = appSettings.timesteps
+        guidanceTypeCombo.currentIndex = appSettings.guidanceType
+        denoisingBatchSpinBox.checked = appSettings.denoisingBatch
+        addNoiseCheckBox.checked = appSettings.addNoise
+        manualModeCheckBox.checked = appSettings.manualMode
+        sizeCombo.currentIndex = appSettings.resolution
+
+        // Noise layer section
+        inputNoiseChooser.currentIndex = appSettings.noiseShader
+        smokeAmountSlider.slider.value = appSettings.smokeAmount
+        voronoiAmountSlider.slider.value = appSettings.voronoiAmount
+        noiseAmountSlider.slider.value = appSettings.noiseAmount
+        perlinAmountSlider.slider.value = appSettings.perlinAmount
+
+        // Shape layer section
+        shapeTypeCombo.currentIndex = appSettings.shapeType
+        shapeAmountSlider.slider.value = appSettings.shapeAmount
+        brightnessSlider.value = appSettings.shapeBrightness
+        hueSlider.value = appSettings.shapeHue
+        shapex.value = appSettings.shapeX
+        shapey.value = appSettings.shapeY
+        invertCheckBox.checked = appSettings.shapeInvert
     }
     
     // Score process objects
@@ -111,10 +173,11 @@ Pane {
                             Layout.fillWidth: true
                             font.pixelSize: appStyle.fontSizeBody
                             placeholderText: "/path/to/video.mp4"
-                            
+
                             property var videoProcess: processes.genai_inputvideo.process_object
-                            
+
                             onTextChanged: {
+                                appSettings.videoPath = text
                                 if (videoProcess && text !== "") {
                                     console.log("Setting video path to:", text)
                                     var wasPlaying = isProcessing
@@ -123,9 +186,9 @@ Pane {
                                         Score.stop()
                                         isProcessing = false
                                     }
-                                    
+
                                     videoProcess.path = text
-                                    
+
                                     if (wasPlaying) {
                                         Qt.callLater(function() {
                                             console.log("Restarting Score with new video...")
@@ -169,7 +232,7 @@ Pane {
                             value: imagePathField.text !== "" ? (imageAmountSlider.slider.value || 0.8) : 0.0
                             port: processes.video_Mixer.alpha7
                             enabled: imagePathField.text !== ""
-                            
+
                             Connections {
                                 target: imagePathField
                                 function onTextChanged() {
@@ -178,6 +241,10 @@ Pane {
                                     }
                                 }
                             }
+                            Connections {
+                                target: imageAmountSlider.slider
+                                function onValueChanged() { appSettings.videoAmount = imageAmountSlider.slider.value }
+                            }
                         }
                         AmountSlider {
                             id: cameraAmountSlider
@@ -185,6 +252,10 @@ Pane {
                             label: "Camera"
                             value: 0.0
                             port: processes.video_Mixer.alpha8
+                            Connections {
+                                target: cameraAmountSlider.slider
+                                function onValueChanged() { appSettings.cameraAmount = cameraAmountSlider.slider.value }
+                            }
                         }
                     }
                     
@@ -222,7 +293,10 @@ Pane {
                         }
                         UI.PortSource on text { port: processes.prompt_composer.keywords }
                         Component.onCompleted: if (processes.prompt_composer.keywords) Score.setValue(processes.prompt_composer.keywords, text)
-                        onTextChanged: if (processes.prompt_composer.keywords) Score.setValue(processes.prompt_composer.keywords, text)
+                        onTextChanged: {
+                            if (processes.prompt_composer.keywords) Score.setValue(processes.prompt_composer.keywords, text)
+                            appSettings.prompt = text
+                        }
                     }
 
                     // Advanced options toggle
@@ -250,7 +324,10 @@ Pane {
                                 font.pixelSize: appStyle.fontSizeBody
                                 UI.PortSource on currentIndex { port: processes.streamDiffusion.workflow }
                                 Component.onCompleted: if (processes.streamDiffusion.workflow) Score.setValue(processes.streamDiffusion.workflow, currentIndex)
-                                onCurrentIndexChanged: if (processes.streamDiffusion.workflow) Score.setValue(processes.streamDiffusion.workflow, currentIndex)
+                                onCurrentIndexChanged: {
+                                    if (processes.streamDiffusion.workflow) Score.setValue(processes.streamDiffusion.workflow, currentIndex)
+                                    appSettings.workflow = currentIndex
+                                }
                             }
                         }
 
@@ -304,8 +381,6 @@ Pane {
                             }
                         }
 */
-                        Label { text: "Parameters"; font.pixelSize: appStyle.fontSizeBody }
-
                         RowLayout {
                             Layout.fillWidth: true
                             Label { text: "Seed"; font.pixelSize: appStyle.fontSizeBody }
@@ -316,17 +391,24 @@ Pane {
                                 font.pixelSize: appStyle.fontSizeBody
                                 UI.PortSource on value { port: processes.streamDiffusion.seed }
                                 Component.onCompleted: if (processes.streamDiffusion.seed) Score.setValue(processes.streamDiffusion.seed, value)
-                                onValueChanged: if (processes.streamDiffusion.seed) Score.setValue(processes.streamDiffusion.seed, value)
+                                onValueChanged: {
+                                    if (processes.streamDiffusion.seed) Score.setValue(processes.streamDiffusion.seed, value)
+                                    appSettings.seed = value
+                                }
                             }
                             Label { text: "Timesteps"; font.pixelSize: appStyle.fontSizeBody }
-                            SpinBox {
-                                id: timestepsSpinBox
+                            TextField {
+                                id: timestepsField
                                 Layout.fillWidth: true
-                                from: 1; to: 100; value: 20; stepSize: 1
+                                text: "20"
+                                placeholderText: "e.g. 20 or 30,45"
                                 font.pixelSize: appStyle.fontSizeBody
-                                UI.PortSource on value { port: processes.streamDiffusion.timesteps }
-                                Component.onCompleted: if (processes.streamDiffusion.timesteps) Score.setValue(processes.streamDiffusion.timesteps, value)
-                                onValueChanged: if (processes.streamDiffusion.timesteps) Score.setValue(processes.streamDiffusion.timesteps, value)
+                                UI.PortSource on text { port: processes.streamDiffusion.timesteps }
+                                Component.onCompleted: if (processes.streamDiffusion.timesteps) Score.setValue(processes.streamDiffusion.timesteps, text)
+                                onTextChanged: {
+                                    if (processes.streamDiffusion.timesteps) Score.setValue(processes.streamDiffusion.timesteps, text)
+                                    appSettings.timesteps = text
+                                }
                             }
                         }
 
@@ -350,7 +432,10 @@ Pane {
                                 font.pixelSize: appStyle.fontSizeBody
                                 UI.PortSource on currentIndex { port: processes.streamDiffusion.guidance_type }
                                 Component.onCompleted: if (processes.streamDiffusion.guidance_type) Score.setValue(processes.streamDiffusion.guidance_type, currentIndex)
-                                onCurrentIndexChanged: if (processes.streamDiffusion.guidance_type) Score.setValue(processes.streamDiffusion.guidance_type, currentIndex)
+                                onCurrentIndexChanged: {
+                                    if (processes.streamDiffusion.guidance_type) Score.setValue(processes.streamDiffusion.guidance_type, currentIndex)
+                                    appSettings.guidanceType = currentIndex
+                                }
                             }
                         }
 
@@ -368,21 +453,20 @@ Pane {
                             }
                         }
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Label { text: "Denoise Batch"; font.pixelSize: appStyle.fontSizeBody }
-                            CheckBox {
-                                id: denoisingBatchSpinBox
-                                Layout.fillWidth: true
-                                font.pixelSize: appStyle.fontSizeBody
-                                UI.PortSource on checked { port: processes.streamDiffusion.denoising_batch }
-                                Component.onCompleted: if (processes.streamDiffusion.denoising_batch) Score.setValue(processes.streamDiffusion.denoising_batch, checked)
-                                onCheckedChanged: if (processes.streamDiffusion.denoising_batch) Score.setValue(processes.streamDiffusion.denoising_batch, checked)
-                            }
-                        }
 
                         RowLayout {
                             Layout.fillWidth: true
+                            CheckBox {
+                                id: denoisingBatchSpinBox
+                                text: "Denoise Batch"
+                                font.pixelSize: appStyle.fontSizeBody
+                                UI.PortSource on checked { port: processes.streamDiffusion.denoising_batch }
+                                Component.onCompleted: if (processes.streamDiffusion.denoising_batch) Score.setValue(processes.streamDiffusion.denoising_batch, checked)
+                                onCheckedChanged: {
+                                    if (processes.streamDiffusion.denoising_batch) Score.setValue(processes.streamDiffusion.denoising_batch, checked)
+                                    appSettings.denoisingBatch = checked
+                                }
+                            }
                             CheckBox {
                                 id: addNoiseCheckBox
                                 text: "Add Noise"
@@ -390,7 +474,10 @@ Pane {
                                 font.pixelSize: appStyle.fontSizeBody
                                 UI.PortSource on checked { port: processes.streamDiffusion.add_noise }
                                 Component.onCompleted: if (processes.streamDiffusion.add_noise) Score.setValue(processes.streamDiffusion.add_noise, checked)
-                                onCheckedChanged: if (processes.streamDiffusion.add_noise) Score.setValue(processes.streamDiffusion.add_noise, checked)
+                                onCheckedChanged: {
+                                    if (processes.streamDiffusion.add_noise) Score.setValue(processes.streamDiffusion.add_noise, checked)
+                                    appSettings.addNoise = checked
+                                }
                             }
                             CheckBox {
                                 id: manualModeCheckBox
@@ -399,7 +486,10 @@ Pane {
                                 font.pixelSize: appStyle.fontSizeBody
                                 UI.PortSource on checked { port: processes.streamDiffusion.manual_mode }
                                 Component.onCompleted: if (processes.streamDiffusion.manual_mode) Score.setValue(processes.streamDiffusion.manual_mode, checked)
-                                onCheckedChanged: if (processes.streamDiffusion.manual_mode) Score.setValue(processes.streamDiffusion.manual_mode, checked)
+                                onCheckedChanged: {
+                                    if (processes.streamDiffusion.manual_mode) Score.setValue(processes.streamDiffusion.manual_mode, checked)
+                                    appSettings.manualMode = checked
+                                }
                             }
                         }
 
@@ -413,7 +503,10 @@ Pane {
                                 property int baseSize: 512
                                 property int currentDimension: baseSize
                                 property var currentDimensions: [currentDimension, currentDimension]
-                                onCurrentIndexChanged: currentDimension = baseSize * (currentIndex + 1)
+                                onCurrentIndexChanged: {
+                                    currentDimension = baseSize * (currentIndex + 1)
+                                    appSettings.resolution = currentIndex
+                                }
                                 UI.PortSource on currentDimensions { port: processes.streamDiffusion.resolution }
                                 Component.onCompleted: if (processes.streamDiffusion.resolution) Score.setValue(processes.streamDiffusion.resolution, currentDimensions)
                                 onCurrentDimensionsChanged: if (processes.streamDiffusion.resolution) Score.setValue(processes.streamDiffusion.resolution, currentDimensions)
@@ -452,6 +545,7 @@ Pane {
                             model: ["Smoke", "Voronoi", "Noise", "Perlin"]
                             currentIndex: 0
                             font.pixelSize: appStyle.fontSizeBody
+                            onCurrentIndexChanged: appSettings.noiseShader = currentIndex
                         }
                         // Amount sliders (check in StatusOverlay)
                         AmountSlider {
@@ -461,6 +555,10 @@ Pane {
                             value: 0.0
                             port: processes.video_Mixer.alpha2
                             visible: inputNoiseChooser.currentIndex === 0
+                            Connections {
+                                target: smokeAmountSlider.slider
+                                function onValueChanged() { appSettings.smokeAmount = smokeAmountSlider.slider.value }
+                            }
                         }
                         AmountSlider {
                             id: voronoiAmountSlider
@@ -469,6 +567,10 @@ Pane {
                             value: 0.0
                             port: processes.video_Mixer.alpha3
                             visible: inputNoiseChooser.currentIndex === 1
+                            Connections {
+                                target: voronoiAmountSlider.slider
+                                function onValueChanged() { appSettings.voronoiAmount = voronoiAmountSlider.slider.value }
+                            }
                         }
                         AmountSlider {
                             id: noiseAmountSlider
@@ -477,6 +579,10 @@ Pane {
                             value: 0.0
                             port: processes.video_Mixer.alpha4
                             visible: inputNoiseChooser.currentIndex === 2
+                            Connections {
+                                target: noiseAmountSlider.slider
+                                function onValueChanged() { appSettings.noiseAmount = noiseAmountSlider.slider.value }
+                            }
                         }
                         AmountSlider {
                             id: perlinAmountSlider
@@ -485,6 +591,10 @@ Pane {
                             value: 0.0
                             port: processes.video_Mixer.alpha5
                             visible: inputNoiseChooser.currentIndex === 3
+                            Connections {
+                                target: perlinAmountSlider.slider
+                                function onValueChanged() { appSettings.perlinAmount = perlinAmountSlider.slider.value }
+                            }
                         }
                     }
 
@@ -518,7 +628,10 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                             UI.PortSource on currentIndex { port: processes.shape.maskShapeMode }
                             Component.onCompleted: if (processes.shape.maskShapeMode) Score.setValue(processes.shape.maskShapeMode, currentIndex)
-                            onCurrentIndexChanged: if (processes.shape.maskShapeMode) Score.setValue(processes.shape.maskShapeMode, currentIndex)
+                            onCurrentIndexChanged: {
+                                if (processes.shape.maskShapeMode) Score.setValue(processes.shape.maskShapeMode, currentIndex)
+                                appSettings.shapeType = currentIndex
+                            }
                         }
                         AmountSlider {
                             id: shapeAmountSlider
@@ -526,6 +639,10 @@ Pane {
                             label: "Amount"
                             value: 0.0
                             port: processes.video_Mixer.alpha1
+                            Connections {
+                                target: shapeAmountSlider.slider
+                                function onValueChanged() { appSettings.shapeAmount = shapeAmountSlider.slider.value }
+                            }
                         }
                     }
 
@@ -542,6 +659,7 @@ Pane {
                                 id: brightnessSlider
                                 Layout.fillWidth: true
                                 from: 0.1; to: 0.9; value: 0.1
+                                onValueChanged: appSettings.shapeBrightness = value
                             }
                         }
                         
@@ -568,6 +686,7 @@ Pane {
                                     anchors.fill: parent
                                     from: 0; to: 1; value: 0.0 // red
                                     background: Item {}
+                                    onValueChanged: appSettings.shapeHue = value
                                 }
                                 
                                 // saturation fixed at 70%
@@ -673,6 +792,7 @@ Pane {
                                     var newArr = [value / parent.maxDimension, shapey.value / parent.maxDimension]
                                     Score.setValue(processes.shape.center, newArr)
                                 }
+                                appSettings.shapeX = value
                             }
                         }
                         Label { text: "Y"; font.pixelSize: appStyle.fontSizeBody }
@@ -689,6 +809,7 @@ Pane {
                                     var newArr = [shapex.value / parent.maxDimension, value / parent.maxDimension]
                                     Score.setValue(processes.shape.center, newArr)
                                 }
+                                appSettings.shapeY = value
                             }
                         }
                         CheckBox {
@@ -698,7 +819,10 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                             UI.PortSource on checked { port: processes.shape.invertMask }
                             Component.onCompleted: if (processes.shape.invertMask) Score.setValue(processes.shape.invertMask, checked)
-                            onCheckedChanged: if (processes.shape.invertMask) Score.setValue(processes.shape.invertMask, checked)
+                            onCheckedChanged: {
+                                if (processes.shape.invertMask) Score.setValue(processes.shape.invertMask, checked)
+                                appSettings.shapeInvert = checked
+                            }
                         }
                     }
                 }

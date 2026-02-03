@@ -1,5 +1,6 @@
 <div align="center">
-  <h1>🎨 koaia </h1>
+  <img src="qml/koaia/resources/images/koaia_logo.png" alt="Koaia logo" width="80">
+
   <p>
     <a href="https://github.com/sat-mtl/koaia/actions/workflows/build.yml"><img src="https://img.shields.io/github/actions/workflow/status/sat-mtl/koaia/build.yml?style=flat-square&label=build" alt="Build"></a>
     <img src="https://img.shields.io/badge/Platform-Linux_|_Windows-blue?style=flat-square" alt="Platform">
@@ -9,14 +10,14 @@
   </p>
 </div>
 
-A GUI tool for exploring generative AI. Create custom visual effects by combining input layers, filters, and real-time generative AI models, with a live preview. (upcoming feeature: NDI/syphon/spout streaming input and output to stream to and from external applications.)
+Koaia is a GUI for exploring generative AI. Create custom visual effects by combining input layers, filters, and real-time generative AI models, with a live preview. 
 
 ## Features
 
 - 📷 Camera, video, filter, and shape mask input layers
 - ✍️ Prompt builder with real-time parameter control
 - 👁️ Live visual feedback and layering preview
-- 📡 NDI streaming output
+- 📡 NDI/syphon/spout streaming input and output (coming soon!)
 
 ## Workflow
 

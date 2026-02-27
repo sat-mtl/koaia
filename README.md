@@ -19,10 +19,6 @@ Koaia is a GUI for exploring generative AI. Create custom visual effects by comb
 - 👁️ Live visual feedback and layering preview
 - 📡 NDI/syphon/spout streaming input and output (coming soon!)
 
-## Workflow
-
-Start by adding input layers—load a video file or connect a camera. Apply filters like Voronoi or Smoke shaders, or add shape masks (triangle, circle, rectangle,..) to define regions. Use the prompt builder to write prompts and adjust generative AI parameters such as seed, steps, and size. Finally, preview your generated output.
-
 ## Credits
 
 Developed by the [Société des Arts Technologiques](https://sat.qc.ca), built on [ossia score](https://ossia.io), in collaboration with [LAB7](https://7doigts.com/lab).

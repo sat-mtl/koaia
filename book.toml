@@ -1,0 +1,14 @@
+[book]
+title = "Koaia"
+description = "Documentation for Koaia — a GUI for exploring generative AI"
+authors = ["Société des Arts Technologiques"]
+language = "en"
+
+[build]
+build-dir = "book"
+
+[output.html]
+default-theme = "auto"
+preferred-dark-theme = "navy"
+git-repository-url = "https://github.com/sat-mtl/koaia"
+site-url = "/koaia/"

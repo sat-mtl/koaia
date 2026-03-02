@@ -20,9 +20,12 @@ Pane {
         property string rootPath: ""
     }
 
+    readonly property bool isWin32: Qt.platform.os === "windows"
+
     // Computed paths based on Library root
     readonly property string libraryRoot: librarySettings.rootPath
-    readonly property string uvPath: libraryRoot + "/packages/uv/uv"
+
+    readonly property string uvPath: libraryRoot + "/packages/python-uv/uv"
     readonly property string scriptPath: libraryRoot + "/packages/librediffusion/train-loras.py"
     readonly property string scriptDir: libraryRoot + "/packages/librediffusion"
 
@@ -33,7 +36,7 @@ Pane {
     UI.Process {
         id: syncProcess
         program: uvPath
-        arguments: ["sync"]
+        arguments: isWin32? ["sync", "--cache-dir", "c:\\uv"] : ["sync"]
 
         onLineReceived: (line, isError) => {
             if (isError) {
@@ -81,6 +84,15 @@ Pane {
             if (!running) {
                 outputTextArea.append("\n----------------------------------------")
                 outputTextArea.append("[Build finished with exit code: " + exitCode + "]")
+                if(exitCode === 0) {
+
+                    var folderPath =  outputPathField.text;
+                    if(isWin32) {
+                        folderPath = folderPath.replace(/\\/g, '/');
+                    }
+
+                    Qt.openUrlExternally(Qt.resolvedUrl(folderPath));
+                }
             }
         }
 
@@ -157,7 +169,7 @@ Pane {
         }
 
         CustomLabel {
-            text: "Build TensorRT engines from Stable Diffusion models"
+            text: "Build TensorRT engines from Stable Diffusion models.\nNote that this is a long process: roughly fifteen minutes for a given model."
             font.pixelSize: appStyle.fontSizeBody
             color: appStyle.textColorSecondary
         }
@@ -165,7 +177,6 @@ Pane {
         // Configuration controls
         ScrollView {
             Layout.fillWidth: true
-            Layout.fillHeight: true
             clip: true
             contentWidth: availableWidth
 
@@ -183,7 +194,7 @@ Pane {
                             ComboBox {
                                 id: modelTypeCombo
                                 Layout.fillWidth: true
-                                model: ["SD 1.5", "SDXL"]
+                                model: ["SD 1.5 / Turbo", "SDXL"]
                                 currentIndex: 0
                                 font.pixelSize: appStyle.fontSizeBody
                                 property string modelTypeArg: currentIndex === 0 ? "sd15" : "sdxl"
@@ -209,7 +220,7 @@ Pane {
                                 id: outputPathField
                                 Layout.fillWidth: true
                                 font.pixelSize: appStyle.fontSizeBody
-                                text: "./engines"
+                                text: ""
                                 placeholderText: "Path to save engine files"
                             }
                             Button {
@@ -224,7 +235,7 @@ Pane {
                             title: "Select Output Folder"
                             onAccepted: {
                                 if (!selectedFolder) return
-                                var folderPath = new URL(selectedFolder).pathname.substr(Qt.platform.os === "windows" ? 1 : 0)
+                                var folderPath = new URL(selectedFolder).pathname.substr(isWin32 ? 1 : 0)
                                 outputPathField.text = folderPath
                             }
                         }
@@ -314,7 +325,7 @@ Pane {
                             property int currentLoraIndex: -1
                             onAccepted: {
                                 if (!selectedFile || currentLoraIndex < 0) return
-                                var filePath = new URL(selectedFile).pathname.substr(Qt.platform.os === "windows" ? 1 : 0)
+                                var filePath = new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0)
                                 loraListModel.setProperty(currentLoraIndex, "path", filePath)
                             }
                         }
@@ -525,15 +536,19 @@ Pane {
 
         // Set working directory and start sync
         syncProcess.workingDirectory = scriptDir
+        buildProcess.workingDirectory = scriptDir
         syncProcess.start()
     }
 
     // Called after successful sync
     function runBuildProcess() {
         // Build argument list with argparse-style flags
-        var args = [
+        var args = [];
+        if(isWin32)
+            args.push("--cache-dir", "c:\\uv");
+        args.push(
             "run",
-            "train-loras.py",
+            "train-lora.py",
             "--type", modelTypeCombo.modelTypeArg,
             "--model", modelSourceField.text,
             "--output", outputPathField.text,
@@ -544,7 +559,7 @@ Pane {
             "--max-resolution", maxResolutionSpinBox.value.toString(),
             "--opt-width", optWidthSpinBox.value.toString(),
             "--opt-height", optHeightSpinBox.value.toString()
-        ]
+        );
 
         // Add LoRAs with weights
         for (var i = 0; i < loraListModel.count; i++) {

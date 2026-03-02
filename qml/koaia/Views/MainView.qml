@@ -9,7 +9,9 @@ import koaia
 
 Pane {
     id: mainView
-    
+
+    readonly property bool isWin32: Qt.platform.os === "windows"
+
     property bool isProcessing: false
     onIsProcessingChanged: (isProcessing)? Score.play() : Score.stop()
     
@@ -217,7 +219,7 @@ Pane {
                                 console.log("No file selected")
                                 return
                             }
-                            var filePath = new URL(selectedFile).pathname.substr(Qt.platform.os === "windows" ? 1 : 0);
+                            var filePath = new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0);
                             imagePathField.text = filePath
                         }
                     }
@@ -363,7 +365,7 @@ Pane {
                                     console.log("No folder selected")
                                     return
                                 }
-                                var folderPath = new URL(selectedFolder).pathname.substr(Qt.platform.os === "windows" ? 1 : 0);
+                                var folderPath = new URL(selectedFolder).pathname.substr(isWin32 ? 1 : 0);
                                 enginePathField.text = folderPath
                             }
                         }

@@ -16,6 +16,7 @@ ApplicationWindow {
 
     // CUDA availability check
     readonly property bool hasCuda: System.availableCudaDevice() > 0
+    readonly property bool isWin32: Qt.platform.os === "windows"
 
     // Required packages
     readonly property var requiredPackages: [

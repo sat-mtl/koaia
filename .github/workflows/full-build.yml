@@ -51,6 +51,17 @@ jobs:
           score-file: "score/app.score"
           score-build-id: ${{ steps.score.outputs.artifact-id }}
           platforms: "${{ matrix.platform }}"
+          # App metadata
+          app-organization: "SAT"
+          app-domain: "sat.qc.ca"
+          app-identifier: "ca.qc.sat.koaia"
+          app-description: "A tool for exploring generative ai"
+          app-environment: environment
+          app-copyright: "Société des Arts Technologiques"
+          app-version: "1.0"
+          app-png: "qml/koaia/resources/images/koaia_logo.png"
+          app-icns: "qml/koaia/resources/images/koaia_logo.icns"
+          app-ico: "qml/koaia/resources/images/koaia_logo.ico"
           # Optional: macOS code signing (requires secrets to be set in repository)
           macos-certificate-base64: ${{ secrets.MAC_CERT_B64 }}
           macos-certificate-password: ${{ secrets.MAC_CERT_PASSWORD }}

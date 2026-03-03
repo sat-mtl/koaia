@@ -36,33 +36,33 @@ Pane {
     UI.Process {
         id: syncProcess
         program: uvPath
-        arguments: isWin32? ["sync", "--cache-dir", "c:\\uv"] : ["sync"]
+        arguments: isWin32 ? ["sync", "--cache-dir", "c:\\uv"] : ["sync"]
 
         onLineReceived: (line, isError) => {
             if (isError) {
-                outputTextArea.append("[sync stderr] " + line)
+                outputTextArea.append("[sync stderr] " + line);
             } else {
-                outputTextArea.append("[sync] " + line)
+                outputTextArea.append("[sync] " + line);
             }
         }
 
         onRunningChanged: {
             if (!running) {
                 if (exitCode === 0) {
-                    outputTextArea.append("[sync] Environment ready")
-                    outputTextArea.append("----------------------------------------")
+                    outputTextArea.append("[sync] Environment ready");
+                    outputTextArea.append("----------------------------------------");
                     // Now start the actual build
-                    runBuildProcess()
+                    runBuildProcess();
                 } else {
-                    outputTextArea.append("[sync] Failed with exit code: " + exitCode)
-                    outputTextArea.append("----------------------------------------")
+                    outputTextArea.append("[sync] Failed with exit code: " + exitCode);
+                    outputTextArea.append("----------------------------------------");
                 }
             }
         }
 
         onProcessErrorChanged: {
             if (processError === UI.Process.FailedToStart) {
-                outputTextArea.append("[Error] Failed to start uv sync at: " + uvPath)
+                outputTextArea.append("[Error] Failed to start uv sync at: " + uvPath);
             }
         }
     }
@@ -74,20 +74,19 @@ Pane {
 
         onLineReceived: (line, isError) => {
             if (isError) {
-                outputTextArea.append("[stderr] " + line)
+                outputTextArea.append("[stderr] " + line);
             } else {
-                outputTextArea.append(line)
+                outputTextArea.append(line);
             }
         }
 
         onRunningChanged: {
             if (!running) {
-                outputTextArea.append("\n----------------------------------------")
-                outputTextArea.append("[Build finished with exit code: " + exitCode + "]")
-                if(exitCode === 0) {
-
-                    var folderPath =  outputPathField.text;
-                    if(isWin32) {
+                outputTextArea.append("\n----------------------------------------");
+                outputTextArea.append("[Build finished with exit code: " + exitCode + "]");
+                if (exitCode === 0) {
+                    var folderPath = outputPathField.text;
+                    if (isWin32) {
                         folderPath = folderPath.replace(/\\/g, '/');
                     }
 
@@ -98,9 +97,9 @@ Pane {
 
         onProcessErrorChanged: {
             if (processError === UI.Process.FailedToStart) {
-                outputTextArea.append("[Error] Failed to start build process at: " + uvPath)
+                outputTextArea.append("[Error] Failed to start build process at: " + uvPath);
             } else if (processError === UI.Process.Crashed) {
-                outputTextArea.append("[Error] Build process crashed")
+                outputTextArea.append("[Error] Build process crashed");
             }
         }
     }
@@ -111,7 +110,7 @@ Pane {
     }
 
     // Section component (reused from MainView pattern)
-    component Section : ColumnLayout {
+    component Section: ColumnLayout {
         property string title: ""
         property string description: ""
         default property alias content: body.data
@@ -180,295 +179,394 @@ Pane {
             clip: true
             contentWidth: availableWidth
 
-                ColumnLayout {
-                    width: parent.width
-                    spacing: appStyle.spacing
+            ColumnLayout {
+                width: parent.width
+                spacing: appStyle.spacing
 
-                    Section {
-                        title: "Model Configuration"
-                        description: "Configure the base model and output location"
+                Section {
+                    title: "Model Configuration"
+                    description: "Configure the base model and output location"
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Label { text: "Model Type"; Layout.preferredWidth: 100; font.pixelSize: appStyle.fontSizeBody }
-                            ComboBox {
-                                id: modelTypeCombo
-                                Layout.fillWidth: true
-                                model: ["SD 1.5 / Turbo", "SDXL"]
-                                currentIndex: 0
-                                font.pixelSize: appStyle.fontSizeBody
-                                property string modelTypeArg: currentIndex === 0 ? "sd15" : "sdxl"
-                            }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label {
+                            text: "Model Type"
+                            Layout.preferredWidth: 100
+                            font.pixelSize: appStyle.fontSizeBody
                         }
-
-                        RowLayout {
+                        ComboBox {
+                            id: modelTypeCombo
                             Layout.fillWidth: true
-                            Label { text: "Model Source"; Layout.preferredWidth: 100; font.pixelSize: appStyle.fontSizeBody }
-                            TextField {
-                                id: modelSourceField
-                                Layout.fillWidth: true
-                                font.pixelSize: appStyle.fontSizeBody
-                                text: "SimianLuo/LCM_Dreamshaper_v7"
-                                placeholderText: "HuggingFace model ID or local path"
-                            }
-                        }
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Label { text: "Output Path"; Layout.preferredWidth: 100; font.pixelSize: appStyle.fontSizeBody }
-                            TextField {
-                                id: outputPathField
-                                Layout.fillWidth: true
-                                font.pixelSize: appStyle.fontSizeBody
-                                text: ""
-                                placeholderText: "Path to save engine files"
-                            }
-                            Button {
-                                text: "Browse"
-                                font.pixelSize: appStyle.fontSizeBody
-                                onClicked: outputFolderDialog.open()
-                            }
-                        }
-
-                        FolderDialog {
-                            id: outputFolderDialog
-                            title: "Select Output Folder"
-                            onAccepted: {
-                                if (!selectedFolder) return
-                                var folderPath = new URL(selectedFolder).pathname.substr(isWin32 ? 1 : 0)
-                                outputPathField.text = folderPath
-                            }
+                            model: ["SD 1.5 / Turbo", "SDXL"]
+                            currentIndex: 0
+                            font.pixelSize: appStyle.fontSizeBody
+                            property string modelTypeArg: currentIndex === 0 ? "sd15" : "sdxl"
                         }
                     }
 
-                    Section {
-                        title: "LoRA Files"
-                        description: "Optional LoRA weights to merge into the model (format: path or path:weight)"
-
-                        Repeater {
-                            model: loraListModel
-
-                            RowLayout {
-                                Layout.fillWidth: true
-                                required property int index
-                                required property string path
-                                required property real weight
-
-                                TextField {
-                                    Layout.fillWidth: true
-                                    font.pixelSize: appStyle.fontSizeBody
-                                    text: path
-                                    placeholderText: "/path/to/lora.safetensors"
-                                    onTextChanged: loraListModel.setProperty(index, "path", text)
-                                }
-                                Button {
-                                    text: "..."
-                                    font.pixelSize: appStyle.fontSizeBody
-                                    implicitWidth: 40
-                                    onClicked: {
-                                        loraFileDialog.currentLoraIndex = index
-                                        loraFileDialog.open()
-                                    }
-                                }
-                                Label {
-                                    text: "Weight"
-                                    font.pixelSize: appStyle.fontSizeSmall
-                                }
-                                SpinBox {
-                                    id: weightSpinBox
-                                    implicitWidth: 100
-                                    from: 0; to: 200; value: weight * 100; stepSize: 5
-                                    font.pixelSize: appStyle.fontSizeSmall
-                                    property real realValue: value / 100.0
-                                    textFromValue: function(value, locale) { return (value / 100.0).toFixed(2) }
-                                    valueFromText: function(text, locale) { return Math.round(parseFloat(text) * 100) }
-                                    onValueChanged: loraListModel.setProperty(index, "weight", realValue)
-                                }
-                                Button {
-                                    text: "X"
-                                    font.pixelSize: appStyle.fontSizeBody
-                                    implicitWidth: 40
-                                    onClicked: loraListModel.remove(index)
-                                }
-                            }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label {
+                            text: "Model Source"
+                            Layout.preferredWidth: 100
+                            font.pixelSize: appStyle.fontSizeBody
                         }
+                        TextField {
+                            id: modelSourceField
+                            Layout.fillWidth: true
+                            font.pixelSize: appStyle.fontSizeBody
+                            text: "SimianLuo/LCM_Dreamshaper_v7"
+                            placeholderText: "HuggingFace model ID or local path"
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label {
+                            text: "Output Path"
+                            Layout.preferredWidth: 100
+                            font.pixelSize: appStyle.fontSizeBody
+                            color: outputPathField.text !== "" ? palette.windowText : "red"
+                        }
+                        TextField {
+                            id: outputPathField
+                            Layout.fillWidth: true
+                            font.pixelSize: appStyle.fontSizeBody
+                            text: ""
+                            placeholderText: "Path to save engine files"
+                        }
+                        Button {
+                            text: "Browse"
+                            font.pixelSize: appStyle.fontSizeBody
+                            onClicked: outputFolderDialog.open()
+                        }
+                    }
+
+                    FolderDialog {
+                        id: outputFolderDialog
+                        title: "Select Output Folder"
+                        onAccepted: {
+                            if (!selectedFolder)
+                                return;
+                            var folderPath = new URL(selectedFolder).pathname.substr(isWin32 ? 1 : 0);
+                            outputPathField.text = folderPath;
+                        }
+                    }
+                }
+
+                Section {
+                    title: "LoRA Files"
+                    description: "Optional LoRA weights to merge into the model (format: path or path:weight)"
+
+                    Repeater {
+                        model: loraListModel
 
                         RowLayout {
                             Layout.fillWidth: true
-                            Button {
-                                text: "+ Add LoRA"
+                            required property int index
+                            required property string path
+                            required property real weight
+
+                            TextField {
+                                Layout.fillWidth: true
                                 font.pixelSize: appStyle.fontSizeBody
-                                onClicked: loraListModel.append({ "path": "", "weight": 1.0 })
+                                text: path
+                                placeholderText: "/path/to/lora.safetensors"
+                                onTextChanged: loraListModel.setProperty(index, "path", text)
                             }
-                            Item { Layout.fillWidth: true }
-                            Label {
-                                text: "Global Scale"
+                            Button {
+                                text: "..."
                                 font.pixelSize: appStyle.fontSizeBody
-                                visible: loraListModel.count > 0
+                                implicitWidth: 40
+                                onClicked: {
+                                    loraFileDialog.currentLoraIndex = index;
+                                    loraFileDialog.open();
+                                }
+                            }
+                            Label {
+                                text: "Weight"
+                                font.pixelSize: appStyle.fontSizeSmall
                             }
                             SpinBox {
-                                id: loraScaleSpinBox
-                                visible: loraListModel.count > 0
-                                implicitWidth: 100
-                                from: 0; to: 500; value: 250; stepSize: 10
+                                id: weightSpinBox
+                                editable: true
+                                Layout.minimumWidth: 150
+                                implicitWidth: 150
+                                from: 0
+                                to: 200
+                                value: weight * 100
+                                stepSize: 5
                                 font.pixelSize: appStyle.fontSizeSmall
                                 property real realValue: value / 100.0
-                                textFromValue: function(value, locale) { return (value / 100.0).toFixed(2) }
-                                valueFromText: function(text, locale) { return Math.round(parseFloat(text) * 100) }
+                                textFromValue: function (value, locale) {
+                                    return (value / 100.0).toFixed(2);
+                                }
+                                valueFromText: function (text, locale) {
+                                    return Math.round(parseFloat(text) * 100);
+                                }
+                                onValueChanged: loraListModel.setProperty(index, "weight", realValue)
                             }
-                        }
-
-                        FileDialog {
-                            id: loraFileDialog
-                            title: "Select LoRA File"
-                            nameFilters: ["SafeTensors Files (*.safetensors)", "All Files (*)"]
-                            property int currentLoraIndex: -1
-                            onAccepted: {
-                                if (!selectedFile || currentLoraIndex < 0) return
-                                var filePath = new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0)
-                                loraListModel.setProperty(currentLoraIndex, "path", filePath)
+                            Button {
+                                text: "X"
+                                font.pixelSize: appStyle.fontSizeBody
+                                implicitWidth: 40
+                                onClicked: loraListModel.remove(index)
                             }
-                        }
-
-                        Label {
-                            visible: loraListModel.count === 0
-                            text: "No LoRA files added"
-                            font.pixelSize: appStyle.fontSizeSmall
-                            color: appStyle.textColorSecondary
                         }
                     }
 
-                    Section {
-                        title: "Build Parameters"
-                        description: "TensorRT engine build configuration"
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            spacing: 20
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                Label { text: "Batch Size"; font.pixelSize: appStyle.fontSizeBody; font.bold: true }
-                                RowLayout {
-                                    Label { text: "Min"; font.pixelSize: appStyle.fontSizeBody; Layout.preferredWidth: 40 }
-                                    SpinBox {
-                                        id: minBatchSpinBox
-                                        Layout.fillWidth: true
-                                        from: 1; to: 16; value: 1
-                                        font.pixelSize: appStyle.fontSizeBody
-                                    }
-                                }
-                                RowLayout {
-                                    Label { text: "Opt"; font.pixelSize: appStyle.fontSizeBody; Layout.preferredWidth: 40 }
-                                    SpinBox {
-                                        id: optBatchSpinBox
-                                        Layout.fillWidth: true
-                                        from: 1; to: 16; value: 2
-                                        font.pixelSize: appStyle.fontSizeBody
-                                    }
-                                }
-                                RowLayout {
-                                    Label { text: "Max"; font.pixelSize: appStyle.fontSizeBody; Layout.preferredWidth: 40 }
-                                    SpinBox {
-                                        id: maxBatchSpinBox
-                                        Layout.fillWidth: true
-                                        from: 1; to: 16; value: 2
-                                        font.pixelSize: appStyle.fontSizeBody
-                                    }
-                                }
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                Label { text: "Resolution"; font.pixelSize: appStyle.fontSizeBody; font.bold: true }
-                                RowLayout {
-                                    Label { text: "Min"; font.pixelSize: appStyle.fontSizeBody; Layout.preferredWidth: 40 }
-                                    SpinBox {
-                                        id: minResolutionSpinBox
-                                        Layout.fillWidth: true
-                                        from: 256; to: 2048; value: 1024; stepSize: 64
-                                        font.pixelSize: appStyle.fontSizeBody
-                                    }
-                                }
-                                RowLayout {
-                                    Label { text: "Max"; font.pixelSize: appStyle.fontSizeBody; Layout.preferredWidth: 40 }
-                                    SpinBox {
-                                        id: maxResolutionSpinBox
-                                        Layout.fillWidth: true
-                                        from: 256; to: 2048; value: 1024; stepSize: 64
-                                        font.pixelSize: appStyle.fontSizeBody
-                                    }
-                                }
-                            }
-
-                            ColumnLayout {
-                                Layout.fillWidth: true
-                                Label { text: "Optimal Size"; font.pixelSize: appStyle.fontSizeBody; font.bold: true }
-                                RowLayout {
-                                    Label { text: "Width"; font.pixelSize: appStyle.fontSizeBody; Layout.preferredWidth: 40 }
-                                    SpinBox {
-                                        id: optWidthSpinBox
-                                        Layout.fillWidth: true
-                                        from: 256; to: 2048; value: 1024; stepSize: 64
-                                        font.pixelSize: appStyle.fontSizeBody
-                                    }
-                                }
-                                RowLayout {
-                                    Label { text: "Height"; font.pixelSize: appStyle.fontSizeBody; Layout.preferredWidth: 40 }
-                                    SpinBox {
-                                        id: optHeightSpinBox
-                                        Layout.fillWidth: true
-                                        from: 256; to: 2048; value: 1024; stepSize: 64
-                                        font.pixelSize: appStyle.fontSizeBody
-                                    }
-                                }
-                            }
-                        }
-
-                        Label {
-                            Layout.topMargin: 4
-                            text: {
-                                var errors = []
-                                if (maxBatchSpinBox.value < minBatchSpinBox.value)
-                                    errors.push("Max batch must be >= min batch")
-                                if (optBatchSpinBox.value < minBatchSpinBox.value || optBatchSpinBox.value > maxBatchSpinBox.value)
-                                    errors.push("Opt batch must be between min and max")
-                                if (maxResolutionSpinBox.value < minResolutionSpinBox.value)
-                                    errors.push("Max resolution must be >= min resolution")
-                                return errors.join("; ")
-                            }
-                            font.pixelSize: appStyle.fontSizeSmall
-                            color: "red"
-                            visible: text !== ""
-                        }
-                    }
-
-                    // Build button
-                    Button {
+                    RowLayout {
                         Layout.fillWidth: true
-                        Layout.topMargin: appStyle.spacing
-                        text: isBuilding ? "Stop Build" : "Build Engine"
-                        font.pixelSize: appStyle.fontSizeBody
-                        font.bold: true
-                        enabled: isBuilding || isValid()
-                        highlighted: !isBuilding
-
-                        function isValid() {
-                            return libraryRoot !== "" &&
-                                   modelSourceField.text !== "" &&
-                                   outputPathField.text !== "" &&
-                                   maxBatchSpinBox.value >= minBatchSpinBox.value &&
-                                   optBatchSpinBox.value >= minBatchSpinBox.value &&
-                                   optBatchSpinBox.value <= maxBatchSpinBox.value &&
-                                   maxResolutionSpinBox.value >= minResolutionSpinBox.value
+                        Button {
+                            text: "+ Add LoRA"
+                            font.pixelSize: appStyle.fontSizeBody
+                            onClicked: loraListModel.append({
+                                "path": "",
+                                "weight": 1.0
+                            })
                         }
-
-                        onClicked: isBuilding ? stopBuild() : startBuild()
+                        Item {
+                            Layout.fillWidth: true
+                        }
+                        Label {
+                            text: "Global Scale"
+                            font.pixelSize: appStyle.fontSizeBody
+                            visible: loraListModel.count > 0
+                        }
+                        SpinBox {
+                            id: loraScaleSpinBox
+                            editable: true
+                            visible: loraListModel.count > 0
+                            Layout.minimumWidth: 150
+                            implicitWidth: 150
+                            from: 0
+                            to: 500
+                            value: 250
+                            stepSize: 10
+                            font.pixelSize: appStyle.fontSizeSmall
+                            property real realValue: value / 100.0
+                            textFromValue: function (value, locale) {
+                                return (value / 100.0).toFixed(2);
+                            }
+                            valueFromText: function (text, locale) {
+                                return Math.round(parseFloat(text) * 100);
+                            }
+                        }
                     }
 
-                    Item { height: appStyle.padding }
+                    FileDialog {
+                        id: loraFileDialog
+                        title: "Select LoRA File"
+                        nameFilters: ["SafeTensors Files (*.safetensors)", "All Files (*)"]
+                        property int currentLoraIndex: -1
+                        onAccepted: {
+                            if (!selectedFile || currentLoraIndex < 0)
+                                return;
+                            var filePath = new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0);
+                            loraListModel.setProperty(currentLoraIndex, "path", filePath);
+                        }
+                    }
+
+                    Label {
+                        visible: loraListModel.count === 0
+                        text: "No LoRA files added"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: appStyle.textColorSecondary
+                    }
+                }
+
+                Section {
+                    title: "Build Parameters"
+                    description: "TensorRT engine build configuration"
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 20
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Label {
+                                text: "Batch Size"
+                                font.pixelSize: appStyle.fontSizeBody
+                                font.bold: true
+                            }
+                            RowLayout {
+                                Label {
+                                    text: "Min"
+                                    font.pixelSize: appStyle.fontSizeBody
+                                    Layout.preferredWidth: 40
+                                }
+                                SpinBox {
+                                    id: minBatchSpinBox
+                                    editable: true
+                                    Layout.fillWidth: true
+                                    from: 1
+                                    to: 16
+                                    value: 1
+                                    font.pixelSize: appStyle.fontSizeBody
+                                }
+                            }
+                            RowLayout {
+                                Label {
+                                    text: "Opt"
+                                    font.pixelSize: appStyle.fontSizeBody
+                                    Layout.preferredWidth: 40
+                                }
+                                SpinBox {
+                                    id: optBatchSpinBox
+                                    editable: true
+                                    Layout.fillWidth: true
+                                    from: 1
+                                    to: 16
+                                    value: 2
+                                    font.pixelSize: appStyle.fontSizeBody
+                                }
+                            }
+                            RowLayout {
+                                Label {
+                                    text: "Max"
+                                    font.pixelSize: appStyle.fontSizeBody
+                                    Layout.preferredWidth: 40
+                                }
+                                SpinBox {
+                                    id: maxBatchSpinBox
+                                    editable: true
+                                    Layout.fillWidth: true
+                                    from: 1
+                                    to: 16
+                                    value: 2
+                                    font.pixelSize: appStyle.fontSizeBody
+                                }
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Label {
+                                text: "Resolution"
+                                font.pixelSize: appStyle.fontSizeBody
+                                font.bold: true
+                            }
+                            RowLayout {
+                                Label {
+                                    text: "Min"
+                                    font.pixelSize: appStyle.fontSizeBody
+                                    Layout.preferredWidth: 40
+                                }
+                                SpinBox {
+                                    id: minResolutionSpinBox
+                                    editable: true
+                                    Layout.fillWidth: true
+                                    from: 256
+                                    to: 2048
+                                    value: 1024
+                                    stepSize: 64
+                                    font.pixelSize: appStyle.fontSizeBody
+                                }
+                            }
+                            RowLayout {
+                                Label {
+                                    text: "Max"
+                                    font.pixelSize: appStyle.fontSizeBody
+                                    Layout.preferredWidth: 40
+                                }
+                                SpinBox {
+                                    id: maxResolutionSpinBox
+                                    editable: true
+                                    Layout.fillWidth: true
+                                    from: 256
+                                    to: 2048
+                                    value: 1024
+                                    stepSize: 64
+                                    font.pixelSize: appStyle.fontSizeBody
+                                }
+                            }
+                        }
+
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            Label {
+                                text: "Optimal Size"
+                                font.pixelSize: appStyle.fontSizeBody
+                                font.bold: true
+                            }
+                            RowLayout {
+                                Label {
+                                    text: "Width"
+                                    font.pixelSize: appStyle.fontSizeBody
+                                    Layout.preferredWidth: 40
+                                }
+                                SpinBox {
+                                    id: optWidthSpinBox
+                                    editable: true
+                                    Layout.fillWidth: true
+                                    from: 256
+                                    to: 2048
+                                    value: 1024
+                                    stepSize: 64
+                                    font.pixelSize: appStyle.fontSizeBody
+                                }
+                            }
+                            RowLayout {
+                                Label {
+                                    text: "Height"
+                                    font.pixelSize: appStyle.fontSizeBody
+                                    Layout.preferredWidth: 40
+                                }
+                                SpinBox {
+                                    id: optHeightSpinBox
+                                    editable: true
+                                    Layout.fillWidth: true
+                                    from: 256
+                                    to: 2048
+                                    value: 1024
+                                    stepSize: 64
+                                    font.pixelSize: appStyle.fontSizeBody
+                                }
+                            }
+                        }
+                    }
+
+                    Label {
+                        Layout.topMargin: 4
+                        text: {
+                            var errors = [];
+                            if (maxBatchSpinBox.value < minBatchSpinBox.value)
+                                errors.push("Max batch must be >= min batch");
+                            if (optBatchSpinBox.value < minBatchSpinBox.value || optBatchSpinBox.value > maxBatchSpinBox.value)
+                                errors.push("Opt batch must be between min and max");
+                            if (maxResolutionSpinBox.value < minResolutionSpinBox.value)
+                                errors.push("Max resolution must be >= min resolution");
+                            return errors.join("; ");
+                        }
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: "red"
+                        visible: text !== ""
+                    }
+                }
+
+                // Build button
+                Button {
+                    Layout.fillWidth: true
+                    Layout.topMargin: appStyle.spacing
+                    text: isBuilding ? "Stop Build" : "Build Engine"
+                    font.pixelSize: appStyle.fontSizeBody
+                    font.bold: true
+                    enabled: isBuilding || isValid()
+                    highlighted: !isBuilding
+
+                    function isValid() {
+                        return libraryRoot !== "" && modelSourceField.text !== "" && outputPathField.text !== "" && maxBatchSpinBox.value >= minBatchSpinBox.value && optBatchSpinBox.value >= minBatchSpinBox.value && optBatchSpinBox.value <= maxBatchSpinBox.value && maxResolutionSpinBox.value >= minResolutionSpinBox.value;
+                    }
+
+                    onClicked: isBuilding ? stopBuild() : startBuild()
+                }
+
+                Item {
+                    height: appStyle.padding
                 }
             }
+        }
 
         // Output pane
         Rectangle {
@@ -491,7 +589,9 @@ Pane {
                         font.pixelSize: appStyle.fontSizeBody
                         font.bold: true
                     }
-                    Item { Layout.fillWidth: true }
+                    Item {
+                        Layout.fillWidth: true
+                    }
                     Button {
                         text: "Clear"
                         font.pixelSize: appStyle.fontSizeSmall
@@ -510,9 +610,7 @@ Pane {
                         font.family: "monospace"
                         font.pixelSize: appStyle.fontSizeSmall
                         color: appStyle.textColor
-                        text: libraryRoot !== ""
-                              ? "Ready to build. Configure options above and click 'Build Engine'.\n"
-                              : "Library path not configured. Please ensure packages are installed.\n"
+                        text: libraryRoot !== "" ? "Ready to build. Configure options above and click 'Build Engine'.\n" : "Library path not configured. Please ensure packages are installed.\n"
 
                         background: Rectangle {
                             color: "transparent"
@@ -526,79 +624,66 @@ Pane {
     // Start build: first sync, then run
     function startBuild() {
         // Clear previous output
-        syncProcess.clearOutput()
-        buildProcess.clearOutput()
-        outputTextArea.text = ""
+        syncProcess.clearOutput();
+        buildProcess.clearOutput();
+        outputTextArea.text = "";
 
-        outputTextArea.append("[Syncing environment in " + scriptDir + "]")
-        outputTextArea.append("$ " + uvPath + " sync")
-        outputTextArea.append("----------------------------------------")
+        outputTextArea.append("[Syncing environment in " + scriptDir + "]");
+        outputTextArea.append("$ " + uvPath + " sync");
+        outputTextArea.append("----------------------------------------");
 
         // Set working directory and start sync
-        syncProcess.workingDirectory = scriptDir
-        buildProcess.workingDirectory = scriptDir
-        syncProcess.start()
+        syncProcess.workingDirectory = scriptDir;
+        buildProcess.workingDirectory = scriptDir;
+        syncProcess.start();
     }
 
     // Called after successful sync
     function runBuildProcess() {
         // Build argument list with argparse-style flags
         var args = [];
-        if(isWin32)
+        if (isWin32)
             args.push("--cache-dir", "c:\\uv");
-        args.push(
-            "run",
-            "train-lora.py",
-            "--type", modelTypeCombo.modelTypeArg,
-            "--model", modelSourceField.text,
-            "--output", outputPathField.text,
-            "--min-batch", minBatchSpinBox.value.toString(),
-            "--max-batch", maxBatchSpinBox.value.toString(),
-            "--opt-batch", optBatchSpinBox.value.toString(),
-            "--min-resolution", minResolutionSpinBox.value.toString(),
-            "--max-resolution", maxResolutionSpinBox.value.toString(),
-            "--opt-width", optWidthSpinBox.value.toString(),
-            "--opt-height", optHeightSpinBox.value.toString()
-        );
+        args.push("run", "train-lora.py", "--type", modelTypeCombo.modelTypeArg, "--model", modelSourceField.text, "--output", outputPathField.text, "--min-batch", minBatchSpinBox.value.toString(), "--max-batch", maxBatchSpinBox.value.toString(), "--opt-batch", optBatchSpinBox.value.toString(), "--min-resolution", minResolutionSpinBox.value.toString(), "--max-resolution", maxResolutionSpinBox.value.toString(), "--opt-width", optWidthSpinBox.value.toString(), "--opt-height", optHeightSpinBox.value.toString());
 
         // Add LoRAs with weights
         for (var i = 0; i < loraListModel.count; i++) {
-            var lora = loraListModel.get(i)
+            var lora = loraListModel.get(i);
             if (lora.path !== "") {
-                var loraArg = lora.path
+                var loraArg = lora.path;
                 if (lora.weight !== 1.0) {
-                    loraArg += ":" + lora.weight.toFixed(2)
+                    loraArg += ":" + lora.weight.toFixed(2);
                 }
-                args.push("--lora")
-                args.push(loraArg)
+                args.push("--lora");
+                args.push(loraArg);
             }
         }
 
         // Add global LoRA scale if LoRAs are present
         if (loraListModel.count > 0) {
-            args.push("--lora-scale")
-            args.push(loraScaleSpinBox.realValue.toFixed(2))
+            args.push("--lora-scale");
+            args.push(loraScaleSpinBox.realValue.toFixed(2));
         }
 
         // Log the command
-        var cmdLine = uvPath + " " + args.join(" ")
-        outputTextArea.append("[Starting build]")
-        outputTextArea.append("$ cd " + scriptDir + " && " + cmdLine)
-        outputTextArea.append("----------------------------------------")
+        var cmdLine = uvPath + " " + args.join(" ");
+        outputTextArea.append("[Starting build]");
+        outputTextArea.append("$ cd " + scriptDir + " && " + cmdLine);
+        outputTextArea.append("----------------------------------------");
 
         // Set working directory, arguments and start
-        buildProcess.workingDirectory = scriptDir
-        buildProcess.arguments = args
-        buildProcess.start()
+        buildProcess.workingDirectory = scriptDir;
+        buildProcess.arguments = args;
+        buildProcess.start();
     }
 
     function stopBuild() {
-        outputTextArea.append("\n[Stopping...]")
+        outputTextArea.append("\n[Stopping...]");
         if (syncProcess.running) {
-            syncProcess.stop()
+            syncProcess.stop();
         }
         if (buildProcess.running) {
-            buildProcess.stop()
+            buildProcess.stop();
         }
     }
 }

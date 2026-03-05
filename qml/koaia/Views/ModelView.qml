@@ -17,13 +17,12 @@ Pane {
     Settings {
         id: librarySettings
         category: "Library"
-        property string rootPath: ""
     }
 
     readonly property bool isWin32: Qt.platform.os === "windows"
 
     // Computed paths based on Library root
-    readonly property string libraryRoot: librarySettings.rootPath
+    readonly property string libraryRoot: librarySettings.value("RootPath", "")
 
     readonly property string uvPath: libraryRoot + "/packages/python-uv/uv"
     readonly property string scriptPath: libraryRoot + "/packages/librediffusion/train-loras.py"

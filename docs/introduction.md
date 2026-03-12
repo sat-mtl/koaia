@@ -1,0 +1,16 @@
+Koaia is a real-time generative AI GUI for creating visual effects. Combine camera feeds, video, procedural noise, and shape masks with Stable Diffusion models—all with live preview and parameter control.
+
+
+
+<video src="images/koaia.mov" autoplay loop muted></video>
+
+*video  Input (left) and AI-generated output (right).*
+
+## Quick start
+
+1. Ensure you have an NVIDIA GPU with CUDA (8GB VRAM for SD 1.5, 12GB for SDXL)
+2. [Download](https://github.com/sat-mtl/koaia/releases) the build for your platform
+3. Build a TensorRT engine from a Stable Diffusion model in the MODEL tab
+4. Load the engine in the RUN tab and start generating
+
+For more details, see [Installation](installation.md) and [Usage](usage.md).

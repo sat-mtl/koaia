@@ -1,6 +1,4 @@
-Koaia is a real-time generative AI GUI for creating visual effects. Combine camera feeds, video, procedural noise, and shape masks with Stable Diffusion models—all with live preview and parameter control.
-
-
+Koaia is a real-time generative AI GUI for creating visual effects. Combine camera feeds, video, shaders, and shape masks with AI models - all with live preview and parameter control.
 
 <video src="images/koaia.mov" autoplay loop muted></video>
 

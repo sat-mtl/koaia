@@ -1,13 +1,13 @@
 # Usage
 
-The sidebar allows you to toggle between the active generation environment, the backend model configuration, and logger that will log debugging messages. 
+The sidebar allows you to toggle between the active generation environment, the backend model configuration, and logger that will log debugging messages.
 
 <img src="images/sidebar.png" alt="sidebar">
 
 
 ## The **RUN** tab
 
-This is where you manipulate live parameters to generate visuals. 
+This is where you manipulate live parameters to generate visuals.
 
 - [Input](#input)
 - [AI model](#ai-model)

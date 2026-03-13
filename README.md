@@ -10,7 +10,7 @@
   </p>
 </div>
 
-Koaia is a GUI for exploring generative AI. Create custom visual effects by combining input layers, filters, and real-time generative AI models, with a live preview. 
+Koaia is a GUI for exploring generative AI. Create custom visual effects by combining input layers, filters, and real-time generative AI models, with a live preview.
 
 ## Features
 

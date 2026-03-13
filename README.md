@@ -10,7 +10,7 @@
   </p>
 </div>
 
-Koaia is a GUI for exploring generative AI. Create custom visual effects by combining input layers, filters, and real-time generative AI models, with a live preview. 
+Koaia is a GUI for exploring generative AI. Create custom visual effects by combining input layers, filters, and real-time generative AI models, with a live preview.
 
 ## Features
 
@@ -18,6 +18,15 @@ Koaia is a GUI for exploring generative AI. Create custom visual effects by comb
 - ✍️ Prompt builder with real-time parameter control
 - 👁️ Live visual feedback and layering preview
 - 📡 NDI/syphon/spout streaming input and output (coming soon!)
+
+## Hardware Requirements
+
+- **GPU**: NVIDIA graphics card with CUDA support
+  - NVIDIA RTX2000 generation or newer
+  - Official drivers on Linux (Nouveau drivers not supported)
+- **VRAM**:
+  - 8GB minimum for Stable Diffusion 1.5
+  - 12GB minimum for SDXL
 
 ## Credits
 

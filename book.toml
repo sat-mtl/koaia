@@ -1,8 +1,9 @@
 [book]
-title = "Koaia"
+title = "Koaia documentation"
 description = "Documentation for Koaia — a GUI for exploring generative AI"
 authors = ["Société des Arts Technologiques"]
 language = "en"
+src = "docs"
 
 [build]
 build-dir = "book"

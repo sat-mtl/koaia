@@ -11,6 +11,7 @@ RowLayout {
     property real to: 1
     property real initialValue: 0
     property real stepSize: 0.01
+    property alias value: slider.value
 
     Layout.fillWidth: true
 

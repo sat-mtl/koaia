@@ -624,17 +624,6 @@ Pane {
                 }
             }
 
-            Button {
-                Layout.fillWidth: true
-                Layout.topMargin: appStyle.spacing
-                Layout.bottomMargin: appStyle.spacing
-                text: isProcessing ? "Stop" : "Start"
-                font.pixelSize: appStyle.fontSizeBody
-                font.bold: true
-                highlighted: isProcessing
-                onClicked: isProcessing = !isProcessing
-            }
-
             Section {
                 title: "Noise layer"
                 description: "Control shader effects, noise patterns."
@@ -1028,9 +1017,12 @@ Pane {
             spacing: appStyle.spacing
 
             Button {
-                text: "Open"
+                text: isProcessing ? "Stop" : "Start"
                 font.pixelSize: appStyle.fontSizeBody
-                onClicked: loadConfigDialog.open()
+                font.bold: true
+                highlighted: isProcessing
+                Layout.preferredWidth: 230
+                onClicked: isProcessing = !isProcessing
             }
 
             Label {
@@ -1040,6 +1032,12 @@ Pane {
                 font.pixelSize: appStyle.fontSizeSmall
                 color: isError ? "#FF3B30" : "#34C759"
                 elide: Text.ElideMiddle
+            }
+
+            Button {
+                text: "Open"
+                font.pixelSize: appStyle.fontSizeBody
+                onClicked: loadConfigDialog.open()
             }
 
             Button {
@@ -1138,6 +1136,9 @@ Pane {
         onAccepted: {
             var fileUrl = selectedFile.toString();
             console.log("[MainView] Loading config from:", fileUrl);
+
+            Score.stop();
+            isProcessing = false;
 
             ConfigManager.loadConfigFromFile(fileUrl, function(success, jsonText, error) {
                 if (!success) {

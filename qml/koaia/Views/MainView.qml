@@ -16,6 +16,8 @@ Pane {
     property bool isProcessing: false
     onIsProcessingChanged: (isProcessing) ? Score.play() : Score.stop()
 
+    property url currentConfigFile: ""
+
     Settings {
         id: appSettings
         category: "Koaia"
@@ -64,9 +66,24 @@ Pane {
         restoreSavedSettings();
     }
 
-    // SETTINGS RESTORE
-    // Called on startup and after every config load.
+    function doSave(fileUrl) {
+        mainView.forceActiveFocus()
+        var jsonConfig = ConfigManager.exportConfig(appSettings)
+        ConfigManager.saveConfigToFile(jsonConfig, fileUrl, function(success, error) {
+            configStatusLabel.isError = !success
+            configStatusLabel.text = success
+                ? "Saved: " + fileUrl.split("/").pop()
+                : "Save failed: " + (error || "unknown error")
+            if (success) {
+                currentConfigFile = fileUrl
+                console.log("[MainView] Config saved to:", fileUrl)
+            } else {
+                console.error("[MainView] Failed to save config:", error)
+            }
+        })
+    }
 
+    // Called on startup and after every config load.
     function restoreSavedSettings() {
         // Input section
         imagePathField.text = appSettings.videoPath;
@@ -163,8 +180,13 @@ Pane {
 
     ScrollView {
         id: leftScroll
-        anchors.fill: parent
-        anchors.margins: appStyle.padding
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: configToolbar.top
+        anchors.topMargin: appStyle.padding
+        anchors.leftMargin: appStyle.padding
+        anchors.rightMargin: appStyle.padding
         spacing: appStyle.spacing
 
         clip: true
@@ -249,17 +271,6 @@ Pane {
                         port: processes.video_Mixer.alpha7
                         enabled: imagePathField.text !== ""
 
-                        Connections {
-                            target: imagePathField
-                            function onTextChanged() {
-                                if (imagePathField.text === "") {
-                                    imageAmountSlider.value = 0.0;
-                                } else if (imageAmountSlider.value <= 0.01) {
-                                    // Default to 0.8 when first selecting a video
-                                    imageAmountSlider.value = 0.8;
-                                }
-                            }
-                        }
                         Connections {
                             target: imageAmountSlider.slider
                             function onValueChanged() {
@@ -991,41 +1002,57 @@ Pane {
                 }
             }
 
-            Section {
-                title: "Presets"
-                description: "Save and load configuration files for quick setup"
+        }
+    }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: appStyle.spacing
+    Rectangle {
+        id: configToolbar
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        implicitHeight: toolbarRow.implicitHeight + appStyle.padding * 2
+        color: appStyle.backgroundColor
 
-                    Button {
-                        text: "Load"
-                        font.pixelSize: appStyle.fontSizeBody
-                        onClicked: loadConfigDialog.open()
-                    }
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 1
+            color: appStyle.borderColor
+        }
 
-                    Button {
-                        text: "Save As"
-                        font.pixelSize: appStyle.fontSizeBody
-                        onClicked: saveConfigDialog.open()
-                    }
-                }
+        RowLayout {
+            id: toolbarRow
+            anchors.fill: parent
+            anchors.margins: appStyle.padding
+            spacing: appStyle.spacing
 
-                Label {
-                    id: configStatusLabel
-                    property bool isError: false
-                    Layout.fillWidth: true
-                    visible: text !== ""
-                    font.pixelSize: appStyle.fontSizeSmall
-                    color: isError ? "#FF3B30" : "#34C759"
-                    elide: Text.ElideMiddle
-                }
+            Button {
+                text: "Open"
+                font.pixelSize: appStyle.fontSizeBody
+                onClicked: loadConfigDialog.open()
             }
 
-            // little bottom padding?
-            Item {
-                height: appStyle.padding
+            Label {
+                id: configStatusLabel
+                property bool isError: false
+                Layout.fillWidth: true
+                font.pixelSize: appStyle.fontSizeSmall
+                color: isError ? "#FF3B30" : "#34C759"
+                elide: Text.ElideMiddle
+            }
+
+            Button {
+                text: "Save"
+                font.pixelSize: appStyle.fontSizeBody
+                enabled: currentConfigFile.toString() !== ""
+                onClicked: doSave(currentConfigFile.toString())
+            }
+
+            Button {
+                text: "Save As"
+                font.pixelSize: appStyle.fontSizeBody
+                onClicked: saveConfigDialog.open()
             }
         }
     }
@@ -1096,25 +1123,10 @@ Pane {
         nameFilters: ["Koaia Config Files (*.koaia)", "JSON Files (*.json)", "All Files (*)"]
         fileMode: FileDialog.SaveFile
         onAccepted: {
-            // Commit any pending editable-SpinBox input (e.g. seed typed but Enter not pressed)
-            mainView.forceActiveFocus()
-
-            // selectedFile.toString() gives "file:///..." on both Linux and Windows
-            var fileUrl = selectedFile.toString();
+            var fileUrl = selectedFile.toString()
             if (!fileUrl.endsWith(".koaia") && !fileUrl.endsWith(".json"))
-                fileUrl = fileUrl + ".koaia";
-
-            var jsonConfig = ConfigManager.exportConfig(appSettings);
-            ConfigManager.saveConfigToFile(jsonConfig, fileUrl, function(success, error) {
-                configStatusLabel.isError = !success;
-                configStatusLabel.text = success
-                    ? "Saved: " + fileUrl.split("/").pop()
-                    : "Save failed: " + (error || "unknown error");
-                if (success)
-                    console.log("[MainView] Config saved to:", fileUrl);
-                else
-                    console.error("[MainView] Failed to save config:", error);
-            });
+                fileUrl = fileUrl + ".koaia"
+            doSave(fileUrl)
         }
     }
 
@@ -1203,6 +1215,7 @@ Pane {
 
                 // Push updated settings into UI controls and Score
                 restoreSavedSettings();
+                currentConfigFile = fileUrl;
                 configStatusLabel.isError = false;
                 configStatusLabel.text = "Loaded: " + fileUrl.split("/").pop();
                 console.log("[MainView] Config loaded successfully from:", fileUrl);

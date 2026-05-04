@@ -1,7 +1,6 @@
 import QtCore
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
 import Score.UI as UI
@@ -31,6 +30,15 @@ Pane {
     property bool isSyncing: syncProcess.running
     property bool isBuilding: syncProcess.running || buildProcess.running
 
+    function log(message) {
+        var time = new Date();
+        var timestamp = time.getHours() + ":" +
+                       (time.getMinutes() < 10 ? "0" : "") + time.getMinutes() + ":" +
+                       (time.getSeconds() < 10 ? "0" : "") + time.getSeconds();
+        logTextArea.append("[" + timestamp + "] " + message);
+        console.log(message);
+    }
+
     // Sync process (runs uv sync first)
     UI.Process {
         id: syncProcess
@@ -39,29 +47,29 @@ Pane {
 
         onLineReceived: (line, isError) => {
             if (isError) {
-                outputTextArea.append("[sync stderr] " + line);
+                log("[sync stderr] " + line);
             } else {
-                outputTextArea.append("[sync] " + line);
+                log("[sync] " + line);
             }
         }
 
         onRunningChanged: {
             if (!running) {
                 if (exitCode === 0) {
-                    outputTextArea.append("[sync] Environment ready");
-                    outputTextArea.append("----------------------------------------");
+                    log("[sync] Environment ready");
+                    log("----------------------------------------");
                     // Now start the actual build
                     runBuildProcess();
                 } else {
-                    outputTextArea.append("[sync] Failed with exit code: " + exitCode);
-                    outputTextArea.append("----------------------------------------");
+                    log("[sync] Failed with exit code: " + exitCode);
+                    log("----------------------------------------");
                 }
             }
         }
 
         onProcessErrorChanged: {
             if (processError === UI.Process.FailedToStart) {
-                outputTextArea.append("[Error] Failed to start uv sync at: " + uvPath);
+                log("[Error] Failed to start uv sync at: " + uvPath);
             }
         }
     }
@@ -73,16 +81,16 @@ Pane {
 
         onLineReceived: (line, isError) => {
             if (isError) {
-                outputTextArea.append("[stderr] " + line);
+                log("[stderr] " + line);
             } else {
-                outputTextArea.append(line);
+                log(line);
             }
         }
 
         onRunningChanged: {
             if (!running) {
-                outputTextArea.append("\n----------------------------------------");
-                outputTextArea.append("[Build finished with exit code: " + exitCode + "]");
+                log("\n----------------------------------------");
+                log("[Build finished with exit code: " + exitCode + "]");
                 if (exitCode === 0) {
                     var folderPath = outputPathField.text;
                     if (isWin32) {
@@ -96,9 +104,9 @@ Pane {
 
         onProcessErrorChanged: {
             if (processError === UI.Process.FailedToStart) {
-                outputTextArea.append("[Error] Failed to start build process at: " + uvPath);
+                log("[Error] Failed to start build process at: " + uvPath);
             } else if (processError === UI.Process.Crashed) {
-                outputTextArea.append("[Error] Build process crashed");
+                log("[Error] Build process crashed");
             }
         }
     }
@@ -172,9 +180,9 @@ Pane {
             color: appStyle.textColorSecondary
         }
 
-        // Configuration controls
         ScrollView {
             Layout.fillWidth: true
+            Layout.preferredHeight: contentHeight
             clip: true
             contentWidth: availableWidth
 
@@ -551,85 +559,79 @@ Pane {
                     text: isBuilding ? "Stop Build" : "Build Engine"
                     font.pixelSize: appStyle.fontSizeBody
                     font.bold: true
-                    enabled: isBuilding || isValid()
                     highlighted: !isBuilding
-
-                    function isValid() {
-                        return libraryRoot !== "" && modelSourceField.text !== "" && outputPathField.text !== "" && maxBatchSpinBox.value >= minBatchSpinBox.value && optBatchSpinBox.value >= minBatchSpinBox.value && optBatchSpinBox.value <= maxBatchSpinBox.value && maxResolutionSpinBox.value >= minResolutionSpinBox.value;
-                    }
-
                     onClicked: isBuilding ? stopBuild() : startBuild()
                 }
 
                 Item {
                     height: appStyle.padding
                 }
+
             }
         }
 
-        // Output pane
-        Rectangle {
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: appStyle.spacing
+
+            CustomLabel {
+                text: "Build Output"
+                font.pixelSize: appStyle.fontSizeSmall
+                color: appStyle.textColorSecondary
+            }
+
+            Item { Layout.fillWidth: true }
+
+            Button {
+                text: "Clear Log"
+                font.pixelSize: appStyle.fontSizeSmall
+                onClicked: logTextArea.text = ""
+            }
+
+            Button {
+                text: "Test Log"
+                font.pixelSize: appStyle.fontSizeSmall
+                onClicked: log("Test log message at " + new Date().toLocaleTimeString())
+            }
+        }
+
+        ScrollView {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: appStyle.backgroundColorSecondary
-            border.color: appStyle.borderColor
-            border.width: 1
-            radius: appStyle.borderRadius
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 4
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    CustomLabel {
-                        text: "Build Output"
-                        font.pixelSize: appStyle.fontSizeBody
-                        font.bold: true
-                    }
-                    Item {
-                        Layout.fillWidth: true
-                    }
-                    Button {
-                        text: "Clear"
-                        font.pixelSize: appStyle.fontSizeSmall
-                        onClicked: outputTextArea.text = ""
-                    }
-                }
-
-                ScrollView {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    TextArea {
-                        id: outputTextArea
-                        readOnly: true
-                        wrapMode: TextEdit.Wrap
-                        font.family: "monospace"
-                        font.pixelSize: appStyle.fontSizeSmall
-                        color: appStyle.textColor
-                        text: libraryRoot !== "" ? "Ready to build. Configure options above and click 'Build Engine'.\n" : "Library path not configured. Please ensure packages are installed.\n"
-
-                        background: Rectangle {
-                            color: "transparent"
-                        }
-                    }
-                }
+            TextArea {
+                id: logTextArea
+                readOnly: true
+                wrapMode: TextEdit.Wrap
+                font.family: appStyle.fontFamily
+                font.pixelSize: appStyle.fontSizeBody
+                color: appStyle.textColor
             }
         }
+
     }
 
     // Start build: first sync, then run
     function startBuild() {
-        // Clear previous output
+        var errors = [];
+        if (libraryRoot === "") errors.push("Library path not configured");
+        if (modelSourceField.text === "") errors.push("Model source path is empty");
+        if (outputPathField.text === "") errors.push("Output path is empty");
+        if (maxBatchSpinBox.value < minBatchSpinBox.value) errors.push("Max batch must be >= min batch");
+        if (optBatchSpinBox.value < minBatchSpinBox.value || optBatchSpinBox.value > maxBatchSpinBox.value) errors.push("Opt batch must be between min and max batch");
+        if (maxResolutionSpinBox.value < minResolutionSpinBox.value) errors.push("Max resolution must be >= min resolution");
+        if (errors.length > 0) {
+            for (var i = 0; i < errors.length; i++)
+                log("[Error] " + errors[i]);
+            return;
+        }
+
         syncProcess.clearOutput();
         buildProcess.clearOutput();
-        outputTextArea.text = "";
 
-        outputTextArea.append("[Syncing environment in " + scriptDir + "]");
-        outputTextArea.append("$ " + uvPath + " sync");
-        outputTextArea.append("----------------------------------------");
+        log("[Syncing environment in " + scriptDir + "]");
+        log("$ " + uvPath + " sync");
+        log("----------------------------------------");
 
         // Set working directory and start sync
         syncProcess.workingDirectory = scriptDir;
@@ -666,9 +668,9 @@ Pane {
 
         // Log the command
         var cmdLine = uvPath + " " + args.join(" ");
-        outputTextArea.append("[Starting build]");
-        outputTextArea.append("$ cd " + scriptDir + " && " + cmdLine);
-        outputTextArea.append("----------------------------------------");
+        log("[Starting build]");
+        log("$ cd " + scriptDir + " && " + cmdLine);
+        log("----------------------------------------");
 
         // Set working directory, arguments and start
         buildProcess.workingDirectory = scriptDir;
@@ -677,7 +679,7 @@ Pane {
     }
 
     function stopBuild() {
-        outputTextArea.append("\n[Stopping...]");
+        log("\n[Stopping...]");
         if (syncProcess.running) {
             syncProcess.stop();
         }

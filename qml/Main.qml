@@ -12,8 +12,6 @@ ApplicationWindow {
     minimumHeight: appStyle.windowMinHeight
     visible: true
     title: "koaia"
-    property var logger
-
     // CUDA availability check
     readonly property bool hasCuda: System.availableCudaDevice() > 0
     readonly property bool isWin32: Qt.platform.os === "windows"
@@ -122,9 +120,8 @@ ApplicationWindow {
     }
 
     property int currentViewIndex: 0
-    readonly property int mainViewIndex: 0
-    readonly property int modelViewIndex: 1
-    readonly property int logViewIndex: 2
+    readonly property int modelViewIndex: 0
+    readonly property int mainViewIndex: 1
 
     AboutDialog {
         id: aboutDialog
@@ -407,17 +404,8 @@ ApplicationWindow {
                     }
                 }
                 CustomButton {
-                    id: runButton
-                    text: "RUN"
-                    Layout.fillWidth: true
-                    Layout.topMargin: appStyle.spacing
-                    isActive: currentViewIndex === mainViewIndex
-                    onClicked: currentViewIndex = mainViewIndex
-                }
-                
-                CustomButton {
                     id: modelButton
-                    text: "MODEL"
+                    text: "BUILD"
                     Layout.fillWidth: true
                     Layout.topMargin: appStyle.spacing
                     isActive: currentViewIndex === modelViewIndex
@@ -425,12 +413,12 @@ ApplicationWindow {
                 }
                 
                 CustomButton {
-                    id: logButton
-                    text: "LOGS"
+                    id: runButton
+                    text: "RUN"
                     Layout.fillWidth: true
                     Layout.topMargin: appStyle.spacing
-                    isActive: currentViewIndex === logViewIndex
-                    onClicked: currentViewIndex = logViewIndex
+                    isActive: currentViewIndex === mainViewIndex
+                    onClicked: currentViewIndex = mainViewIndex
                 }
 
                 Item {
@@ -446,11 +434,9 @@ ApplicationWindow {
             Layout.fillHeight: true
             currentIndex: currentViewIndex
 
-            MainView {
-            }
             ModelView {
             }
-            LogView {
+            MainView {
             }
         }
     }

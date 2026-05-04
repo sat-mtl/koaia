@@ -13,3 +13,4 @@ CustomLabel 1.0 Components/CustomLabel.qml
 CustomFrame 1.0 Components/CustomFrame.qml
 CustomButton 1.0 Components/CustomButton.qml
 ProcessObjects 1.0 Models/ProcessObjects.qml
+ConfigManager 1.0 Scripts/ConfigManager.js

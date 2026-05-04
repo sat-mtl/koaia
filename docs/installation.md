@@ -4,7 +4,8 @@
 
 - A supported platform: **Linux** (x86_64), or **Windows**.
 - An **NVIDIA GPU** with CUDA support and up-to-date drivers.
- - 8GB VRAM for SD1.5, 12GB for SDXL
+- 8GB VRAM for SD1.5, 12GB for SDXL
+- For training your own models, ensure that you have at least 20 GB of free RAM
 
 ## Download
 

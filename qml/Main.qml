@@ -3,13 +3,14 @@ import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import Score.UI as UI
 import koaia
+import ca.qc.sat.qmlcomponents
 
 ApplicationWindow {
     id: mainWindow
-    width: appStyle.windowWidth
-    height: appStyle.windowHeight
-    minimumWidth: appStyle.windowMinWidth
-    minimumHeight: appStyle.windowMinHeight
+    width: 900
+    height: 900
+    minimumWidth: 800
+    minimumHeight: 600
     visible: true
     title: "koaia"
     property var logger
@@ -77,48 +78,48 @@ ApplicationWindow {
         onTriggered: checkInstalledPackages()
     }
 
-    DarkStyle {
-        id: dark_style
+    // Drive the shared Theme from the OS colour scheme (dark unless the system
+    // asks for light) and pin koaia's teal accent — every other token is
+    // palette-driven by the shared module.
+    Binding {
+        target: Theme
+        property: "dark"
+        value: Application.styleHints.colorScheme !== Qt.ColorScheme.Light
     }
-    LightStyle {
-        id: light_style
-    }
-
-    property var appStyle: {
-        if (Application.styleHints.colorScheme === Qt.ColorScheme.Unknown) {
-            return dark_style
-        }
-        return Application.styleHints.colorScheme === Qt.ColorScheme.Dark ? dark_style : light_style
+    Binding {
+        target: Theme
+        property: "primaryColor"
+        value: "#006B85"
     }
     
     palette {
         // Text colors
-        text: appStyle.textColor
-        windowText: appStyle.textColor
-        buttonText: appStyle.textColor
-        brightText: appStyle.textColorOnAccent
-        placeholderText: appStyle.textColorSecondary
+        text: Theme.textColor
+        windowText: Theme.textColor
+        buttonText: Theme.textColor
+        brightText: Theme.textColorOnAccent
+        placeholderText: Theme.textColorSecondary
         
         // Background colors
-        window: appStyle.backgroundColor
-        base: appStyle.backgroundColorSecondary
-        alternateBase: appStyle.backgroundColorTertiary
+        window: Theme.backgroundColor
+        base: Theme.backgroundColorSecondary
+        alternateBase: Theme.backgroundColorTertiary
         
         // Used by FileDialog header/footer
-        light: appStyle.backgroundColorSecondary
-        midlight: appStyle.backgroundColorTertiary
-        mid: appStyle.borderColor
-        dark: appStyle.borderColor
-        shadow: appStyle.backgroundColor
+        light: Theme.backgroundColorSecondary
+        midlight: Theme.backgroundColorTertiary
+        mid: Theme.borderColor
+        dark: Theme.borderColor
+        shadow: Theme.backgroundColor
         
         // Interactive elements
-        button: appStyle.buttonBgInactive
-        highlight: appStyle.primaryColor
-        highlightedText: appStyle.textColorOnAccent
+        button: Theme.buttonBgInactive
+        highlight: Theme.primaryColor
+        highlightedText: Theme.textColorOnAccent
         
         // Links
-        link: appStyle.primaryColor
-        linkVisited: appStyle.secondaryColor
+        link: Theme.primaryColor
+        linkVisited: Theme.secondaryColor
     }
 
     property int currentViewIndex: 0
@@ -135,7 +136,7 @@ ApplicationWindow {
     Rectangle {
         id: noCudaMessage
         anchors.fill: parent
-        color: appStyle.backgroundColor
+        color: Theme.backgroundColor
         visible: !hasCuda
 
         ColumnLayout {
@@ -153,17 +154,17 @@ ApplicationWindow {
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: "CUDA Device Not Found"
-                font.pixelSize: appStyle.fontSizeTitle
+                font.pixelSize: Theme.fontSizeTitle
                 font.bold: true
-                color: appStyle.textColor
+                color: Theme.textColor
             }
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.maximumWidth: 400
                 text: "This application requires an NVIDIA GPU with CUDA support.\n\nPlease ensure you have an NVIDIA GPU of at least generation RTX 3xxx (Ampere architecture or newer) installed with the appropriate drivers."
-                font.pixelSize: appStyle.fontSizeBody
-                color: appStyle.textColorSecondary
+                font.pixelSize: Theme.fontSizeBody
+                color: Theme.textColorSecondary
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -172,7 +173,7 @@ ApplicationWindow {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 10
                 text: "Exit"
-                font.pixelSize: appStyle.fontSizeBody
+                font.pixelSize: Theme.fontSizeBody
                 onClicked: Qt.exit(0)
             }
         }
@@ -182,7 +183,7 @@ ApplicationWindow {
     Rectangle {
         id: missingPackagesScreen
         anchors.fill: parent
-        color: appStyle.backgroundColor
+        color: Theme.backgroundColor
         visible: hasCuda && !allPackagesInstalled
 
         ColumnLayout {
@@ -201,17 +202,17 @@ ApplicationWindow {
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 text: "Required Packages"
-                font.pixelSize: appStyle.fontSizeTitle
+                font.pixelSize: Theme.fontSizeTitle
                 font.bold: true
-                color: appStyle.textColor
+                color: Theme.textColor
             }
 
             Label {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.fillWidth: true
                 text: "The following packages are required to run Koaia. Please install any missing packages. This may take several minutes per package."
-                font.pixelSize: appStyle.fontSizeBody
-                color: appStyle.textColorSecondary
+                font.pixelSize: Theme.fontSizeBody
+                color: Theme.textColorSecondary
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -220,10 +221,10 @@ ApplicationWindow {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.preferredHeight: packageListColumn.implicitHeight + 20
-                color: appStyle.backgroundColorSecondary
-                border.color: appStyle.borderColor
+                color: Theme.backgroundColorSecondary
+                border.color: Theme.borderColor
                 border.width: 1
-                radius: appStyle.borderRadius
+                radius: Theme.borderRadius
 
                 ColumnLayout {
                     id: packageListColumn
@@ -243,7 +244,7 @@ ApplicationWindow {
                                 width: 24
                                 height: 24
                                 radius: 12
-                                color: isPackageInstalled(modelData.uuid) ? "#4CAF50" : appStyle.borderColor
+                                color: isPackageInstalled(modelData.uuid) ? "#4CAF50" : Theme.borderColor
 
                                 Label {
                                     anchors.centerIn: parent
@@ -258,22 +259,22 @@ ApplicationWindow {
                             Label {
                                 Layout.fillWidth: true
                                 text: modelData.name
-                                font.pixelSize: appStyle.fontSizeBody
-                                color: appStyle.textColor
+                                font.pixelSize: Theme.fontSizeBody
+                                color: Theme.textColor
                             }
 
                             // Status / Install button
                             Button {
                                 visible: !isPackageInstalled(modelData.uuid)
                                 text: "Install"
-                                font.pixelSize: appStyle.fontSizeSmall
+                                font.pixelSize: Theme.fontSizeSmall
                                 onClicked: Library.installPackage(modelData.uuid)
                             }
 
                             Label {
                                 visible: isPackageInstalled(modelData.uuid)
                                 text: "Installed"
-                                font.pixelSize: appStyle.fontSizeSmall
+                                font.pixelSize: Theme.fontSizeSmall
                                 color: "#4CAF50"
                             }
                         }
@@ -286,7 +287,7 @@ ApplicationWindow {
                 Layout.alignment: Qt.AlignHCenter
                 Layout.topMargin: 10
                 text: "Install All Missing Packages"
-                font.pixelSize: appStyle.fontSizeBody
+                font.pixelSize: Theme.fontSizeBody
                 visible: !allPackagesInstalled
                 onClicked: {
                     for (var i = 0; i < requiredPackages.length; i++) {
@@ -303,7 +304,7 @@ ApplicationWindow {
                 Layout.topMargin: 10
                 visible: allPackagesInstalled && needsRestart
                 color: "#2E7D32"
-                radius: appStyle.borderRadius
+                radius: Theme.borderRadius
                 implicitHeight: restartColumn.implicitHeight + 20
 
                 ColumnLayout {
@@ -315,7 +316,7 @@ ApplicationWindow {
                     Label {
                         Layout.alignment: Qt.AlignHCenter
                         text: "All packages installed successfully!"
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         font.bold: true
                         color: "white"
                     }
@@ -324,7 +325,7 @@ ApplicationWindow {
                         Layout.alignment: Qt.AlignHCenter
                         Layout.fillWidth: true
                         text: "Please restart Koaia to complete the setup."
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         color: "white"
                         wrapMode: Text.WordWrap
                         horizontalAlignment: Text.AlignHCenter
@@ -333,7 +334,7 @@ ApplicationWindow {
                     Button {
                         Layout.alignment: Qt.AlignHCenter
                         text: "Quit Koaia"
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         onClicked: Qt.exit(0)
                     }
                 }
@@ -344,8 +345,8 @@ ApplicationWindow {
                 Layout.alignment: Qt.AlignHCenter
                 visible: !allPackagesInstalled
                 text: "Checking installation status..."
-                font.pixelSize: appStyle.fontSizeSmall
-                color: appStyle.textColorSecondary
+                font.pixelSize: Theme.fontSizeSmall
+                color: Theme.textColorSecondary
 
                 SequentialAnimation on opacity {
                     loops: Animation.Infinite
@@ -361,9 +362,9 @@ ApplicationWindow {
                 Layout.topMargin: 10
                 visible: !allPackagesInstalled
                 text: "Note: After all packages are installed, you will need to restart Koaia."
-                font.pixelSize: appStyle.fontSizeSmall
+                font.pixelSize: Theme.fontSizeSmall
                 font.italic: true
-                color: appStyle.textColorSecondary
+                color: Theme.textColorSecondary
                 wrapMode: Text.WordWrap
                 horizontalAlignment: Text.AlignHCenter
             }
@@ -378,25 +379,25 @@ ApplicationWindow {
 
         Rectangle {
             id: sidebar
-            width: appStyle.sidebarWidth
+            width: Theme.sidebarWidth
             Layout.fillHeight: true
-            color: appStyle.sidebarBackgroundColor
+            color: Theme.sidebarBackgroundColor
             
             ColumnLayout {
                 id: sidebarColumn
                 anchors.fill: parent
                 anchors.leftMargin: 0
-                anchors.topMargin: appStyle.padding
+                anchors.topMargin: Theme.padding
                 anchors.rightMargin: 0
-                anchors.bottomMargin: appStyle.padding
-                spacing: appStyle.spacing
+                anchors.bottomMargin: Theme.padding
+                spacing: Theme.spacing
                 
                 Image {
                     id: logoImage
                     Layout.preferredWidth: 60
                     Layout.preferredHeight: 60
                     Layout.alignment: Qt.AlignHCenter
-                    Layout.topMargin: appStyle.padding
+                    Layout.topMargin: Theme.padding
                     source: "koaia/resources/images/koaia_logo.png"
                     fillMode: Image.PreserveAspectFit
                     
@@ -410,7 +411,7 @@ ApplicationWindow {
                     id: runButton
                     text: "RUN"
                     Layout.fillWidth: true
-                    Layout.topMargin: appStyle.spacing
+                    Layout.topMargin: Theme.spacing
                     isActive: currentViewIndex === mainViewIndex
                     onClicked: currentViewIndex = mainViewIndex
                 }
@@ -419,7 +420,7 @@ ApplicationWindow {
                     id: modelButton
                     text: "MODEL"
                     Layout.fillWidth: true
-                    Layout.topMargin: appStyle.spacing
+                    Layout.topMargin: Theme.spacing
                     isActive: currentViewIndex === modelViewIndex
                     onClicked: currentViewIndex = modelViewIndex
                 }
@@ -428,7 +429,7 @@ ApplicationWindow {
                     id: logButton
                     text: "LOGS"
                     Layout.fillWidth: true
-                    Layout.topMargin: appStyle.spacing
+                    Layout.topMargin: Theme.spacing
                     isActive: currentViewIndex === logViewIndex
                     onClicked: currentViewIndex = logViewIndex
                 }
@@ -451,6 +452,9 @@ ApplicationWindow {
             ModelView {
             }
             LogView {
+                id: logViewInstance
+                title: "Application Log"
+                Component.onCompleted: mainWindow.logger = logViewInstance
             }
         }
     }

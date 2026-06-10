@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import koaia
+import ca.qc.sat.qmlcomponents
 
 Dialog {
     id: aboutDialog
@@ -16,7 +17,7 @@ Dialog {
     property string satWebsite: "https://www.sat.qc.ca"
     
     property string satLogoPath: {
-        if (appStyle && appStyle.backgroundColor) { return appStyle.backgroundColor.r < 0.5 ? satLogoPathDark : satLogoPathLight } return satLogoPathDark
+        if (Theme.backgroundColor) { return Theme.backgroundColor.r < 0.5 ? satLogoPathDark : satLogoPathLight } return satLogoPathDark
     }
     property string ossiaLogoPath: "../resources/images/ossia_logo.png"
     property string ossiaWebsite: "https://ossia.io"
@@ -25,7 +26,7 @@ Dialog {
     property string lab7Website: "https://7doigts.com/lab"
     
     property string lab7LogoPath: {
-        if (appStyle && appStyle.backgroundColor) { return appStyle.backgroundColor.r < 0.5 ? lab7LogoPathDark : lab7LogoPathLight } return lab7LogoPathDark
+        if (Theme.backgroundColor) { return Theme.backgroundColor.r < 0.5 ? lab7LogoPathDark : lab7LogoPathLight } return lab7LogoPathDark
     }
     
     property var parentWindow: null
@@ -59,7 +60,7 @@ Dialog {
         CustomLabel {
             Layout.alignment: Qt.AlignHCenter
             text: appDescription
-            font.pixelSize: appStyle.fontSizeSubtitle
+            font.pixelSize: Theme.fontSizeSubtitle
         }
         
         Text {
@@ -69,10 +70,10 @@ Dialog {
             text: appDetails + " <a href=\"" + appWebsite + "\">" + appWebsite + "</a>"
             wrapMode: Text.WordWrap
             horizontalAlignment: Text.AlignHCenter
-            font.family: appStyle.fontFamily
-            font.pixelSize: appStyle.fontSizeBody
-            color: appStyle.textColor
-            linkColor: appStyle.primaryColor
+            font.family: Theme.fontFamily
+            font.pixelSize: Theme.fontSizeBody
+            color: Theme.textColor
+            linkColor: Theme.primaryColor
             onLinkActivated: function(url) {
                 Qt.openUrlExternally(url)
             }
@@ -127,7 +128,7 @@ Dialog {
         Button {
             Layout.alignment: Qt.AlignHCenter
             text: "Close"
-            font.family: appStyle.fontFamily
+            font.family: Theme.fontFamily
             onClicked: aboutDialog.close()
         }
     }

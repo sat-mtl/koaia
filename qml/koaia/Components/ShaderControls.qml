@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Score.UI as UI
 import koaia
+import ca.qc.sat.qmlcomponents
 
 ColumnLayout {
     property var voronoi: null
@@ -12,7 +13,7 @@ ColumnLayout {
     property var video_Mixer: null
     property int shaderType: 0 // 0=Smoke, 1=Voronoi, 2=Noise, 3=Perlin
 
-    spacing: appStyle.spacing
+    spacing: Theme.spacing
 
     // Voronoi controls
     ParameterSlider {

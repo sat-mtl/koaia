@@ -5,5 +5,4 @@ ShaderControls 1.0 Components/ShaderControls.qml
 StatusOverlay 1.0 Components/StatusOverlay.qml
 MainView 1.0 Views/MainView.qml
 ModelView 1.0 Views/ModelView.qml
-AboutDialog 1.0 Components/AboutDialog.qml
 ProcessObjects 1.0 Models/ProcessObjects.qml

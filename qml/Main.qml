@@ -130,6 +130,21 @@ ApplicationWindow {
     AboutDialog {
         id: aboutDialog
         parentWindow: mainWindow
+        appName: "Koaia"
+        appDescription: "A tool developed by the Société des Arts Technologiques"
+        appDetails: "Explore generative AI and create custom visual effects by combining input layers, filters, with a live preview and NDI streaming output."
+        appWebsite: "https://gitlab.com/sat-mtl"
+        logoPath: "koaia/resources/images/koaia_logo.png"
+        // Theme-aware partner logos are just data expressions on Theme.dark.
+        partnerLogos: [
+            { source: Theme.dark ? "koaia/resources/images/SAT_Blanc_Transparent.png"
+                                 : "koaia/resources/images/SAT_Noir.png",
+              website: "https://www.sat.qc.ca" },
+            { source: "koaia/resources/images/ossia_logo.png", website: "https://ossia.io" },
+            { source: Theme.dark ? "koaia/resources/images/Lab7_BlancRouge.png"
+                                 : "koaia/resources/images/Lab7_NoirRouge_Transparent.png",
+              website: "https://7doigts.com/lab" }
+        ]
     }
     
     // Error message when no CUDA device is available

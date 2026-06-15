@@ -3,6 +3,7 @@ import QtQuick
 import QtQuick.Controls.Basic
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import Qt.labs.folderlistmodel
 import Score.UI as UI
 import koaia
 
@@ -18,6 +19,13 @@ Pane {
         category: "Library"
     }
 
+    Settings {
+        id: buildSettings
+        category: "BuildState"
+        property string lastStatus: "idle"
+        property bool lastLogExpanded: false
+    }
+
     readonly property bool isWin32: Qt.platform.os === "windows"
 
     // Computed paths based on Library root
@@ -29,6 +37,55 @@ Pane {
 
     property bool isSyncing: syncProcess.running
     property bool isBuilding: syncProcess.running || buildProcess.running
+
+    property string buildStatus: "idle"   // "idle" | "running" | "success" | "failed"
+    property real buildProgressValue: 0
+    property bool logExpanded: false
+
+    // Persist state changes
+    onBuildStatusChanged: buildSettings.lastStatus = buildStatus
+    onLogExpandedChanged: buildSettings.lastLogExpanded = logExpanded
+
+    NumberAnimation {
+        id: progressAnimation
+        target: modelView
+        property: "buildProgressValue"
+        from: 0
+        to: 80
+        duration: 13 * 60 * 1000
+        easing.type: Easing.Linear
+    }
+
+    Component.onCompleted: {
+        logExpanded = buildSettings.lastLogExpanded
+        // "running" means app was killed mid-build — treat as interrupted
+        var last = buildSettings.lastStatus
+        buildStatus = (last === "running") ? "idle" : last
+        buildProgressValue = (buildStatus === "success") ? 100 : 0
+        loadLog()
+    }
+
+    function logFilePath() {
+        var base = StandardPaths.writableLocation(StandardPaths.AppConfigLocation)
+        var clean = base.replace(/\\/g, '/')   // normalize Windows backslashes
+        return (isWin32 ? "file:///" : "file://") + clean + "/build.log"
+    }
+
+    function saveLog() {
+        var xhr = new XMLHttpRequest()
+        xhr.open("PUT", logFilePath())
+        xhr.send(logTextArea.text)
+    }
+
+    function loadLog() {
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 0 && xhr.responseText)
+                logTextArea.text = xhr.responseText
+        }
+        xhr.open("GET", logFilePath())
+        xhr.send()
+    }
 
     function log(message) {
         var time = new Date();
@@ -58,9 +115,10 @@ Pane {
                 if (exitCode === 0) {
                     log("[sync] Environment ready");
                     log("----------------------------------------");
-                    // Now start the actual build
                     runBuildProcess();
                 } else {
+                    progressAnimation.stop()
+                    buildStatus = "failed"
                     log("[sync] Failed with exit code: " + exitCode);
                     log("----------------------------------------");
                 }
@@ -89,15 +147,22 @@ Pane {
 
         onRunningChanged: {
             if (!running) {
+                progressAnimation.stop()
                 log("\n----------------------------------------");
                 log("[Build finished with exit code: " + exitCode + "]");
                 if (exitCode === 0) {
+                    buildProgressValue = 100
+                    buildStatus = "success"
+                    saveLog()
+                    refreshEngines()
                     var folderPath = outputPathField.text;
                     if (isWin32) {
                         folderPath = folderPath.replace(/\\/g, '/');
                     }
-
                     Qt.openUrlExternally(Qt.resolvedUrl(folderPath));
+                } else {
+                    buildStatus = "failed"
+                    saveLog()
                 }
             }
         }
@@ -114,6 +179,25 @@ Pane {
     // LoRA list model
     ListModel {
         id: loraListModel
+    }
+
+    // Watches the output folder for built engine files
+    FolderListModel {
+        id: engineModel
+        nameFilters: ["*.engine", "*.onnx"]
+        showDirs: false
+        showHidden: false
+        folder: {
+            if (!outputPathField || outputPathField.text === "") return ""
+            var p = outputPathField.text.replace(/\\/g, '/')
+            return (isWin32 ? "file:///" : "file://") + p
+        }
+    }
+
+    function refreshEngines() {
+        var f = engineModel.folder
+        engineModel.folder = ""
+        engineModel.folder = f
     }
 
     // Section component (reused from MainView pattern)
@@ -182,7 +266,7 @@ Pane {
 
         ScrollView {
             Layout.fillWidth: true
-            Layout.preferredHeight: contentHeight
+            Layout.fillHeight: true
             clip: true
             contentWidth: availableWidth
 
@@ -208,6 +292,11 @@ Pane {
                             currentIndex: 0
                             font.pixelSize: appStyle.fontSizeBody
                             property string modelTypeArg: currentIndex === 0 ? "sd15" : "sdxl"
+                            onCurrentIndexChanged: {
+                                modelSourceField.text = currentIndex === 0
+                                    ? "SimianLuo/LCM_Dreamshaper_v7"
+                                    : "stabilityai/stable-diffusion-xl-base-1.0"
+                            }
                         }
                     }
 
@@ -552,60 +641,177 @@ Pane {
                     }
                 }
 
-                // Build button
-                Button {
-                    Layout.fillWidth: true
-                    Layout.topMargin: appStyle.spacing
-                    text: isBuilding ? "Stop Build" : "Build Engine"
-                    font.pixelSize: appStyle.fontSizeBody
-                    font.bold: true
-                    highlighted: !isBuilding
-                    onClicked: isBuilding ? stopBuild() : startBuild()
-                }
-
-                Item {
-                    height: appStyle.padding
-                }
-
             }
         }
 
+        // Build button — always visible, anchored below config
         RowLayout {
             Layout.fillWidth: true
             spacing: appStyle.spacing
 
-            CustomLabel {
-                text: "Build Output"
-                font.pixelSize: appStyle.fontSizeSmall
-                color: appStyle.textColorSecondary
-            }
-
-            Item { Layout.fillWidth: true }
-
             Button {
-                text: "Clear Log"
-                font.pixelSize: appStyle.fontSizeSmall
-                onClicked: logTextArea.text = ""
-            }
-
-            Button {
-                text: "Test Log"
-                font.pixelSize: appStyle.fontSizeSmall
-                onClicked: log("Test log message at " + new Date().toLocaleTimeString())
+                Layout.fillWidth: true
+                text: isBuilding ? "Stop Build" : "Build Engine"
+                font.pixelSize: appStyle.fontSizeBody
+                font.bold: true
+                highlighted: !isBuilding
+                onClicked: isBuilding ? stopBuild() : startBuild()
             }
         }
 
-        ScrollView {
+        // Progress bar — thin, inline status, only visible when active
+        RowLayout {
             Layout.fillWidth: true
-            Layout.fillHeight: true
+            spacing: 8
+            visible: buildStatus !== "idle"
 
-            TextArea {
-                id: logTextArea
-                readOnly: true
-                wrapMode: TextEdit.Wrap
-                font.family: appStyle.fontFamily
-                font.pixelSize: appStyle.fontSizeBody
-                color: appStyle.textColor
+            Rectangle {
+                Layout.fillWidth: true
+                height: 4
+                radius: 2
+                color: appStyle.backgroundColorSecondary
+
+                Rectangle {
+                    width: buildProgressValue / 100 * parent.width
+                    height: parent.height
+                    radius: 2
+                    color: buildStatus === "success" ? "#4CAF50"
+                         : buildStatus === "failed"  ? "#f44336"
+                         : appStyle.primaryColor
+                    Behavior on color { ColorAnimation { duration: 400 } }
+                    Behavior on width { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } }
+                }
+            }
+
+            Label {
+                text: buildStatus === "running" ? Math.round(buildProgressValue) + "%"
+                    : buildStatus === "success" ? "Done"
+                    : "Failed"
+                font.pixelSize: appStyle.fontSizeSmall
+                color: buildStatus === "success" ? "#4CAF50"
+                     : buildStatus === "failed"  ? "#f44336"
+                     : appStyle.textColorSecondary
+                Layout.preferredWidth: 36
+                horizontalAlignment: Text.AlignRight
+            }
+        }
+
+        // Built engines — visible once an output path is set
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 6
+            visible: outputPathField && outputPathField.text !== ""
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: appStyle.spacing
+
+                CustomLabel {
+                    text: "Built Engines"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    color: appStyle.textColorSecondary
+                }
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: "Refresh"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    onClicked: refreshEngines()
+                }
+                Button {
+                    text: "Open Folder"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    onClicked: Qt.openUrlExternally(engineModel.folder)
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: appStyle.borderColor
+                opacity: 0.5
+            }
+
+            Repeater {
+                model: engineModel
+
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 8
+
+                    Rectangle {
+                        width: 6
+                        height: 6
+                        radius: 3
+                        color: appStyle.primaryColor
+                        anchors.verticalCenter: parent.verticalCenter
+                    }
+                    Label {
+                        Layout.fillWidth: true
+                        text: fileName
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: appStyle.textColor
+                        elide: Text.ElideMiddle
+                    }
+                }
+            }
+
+            Label {
+                visible: engineModel.count === 0
+                text: "No engines found"
+                font.pixelSize: appStyle.fontSizeSmall
+                color: appStyle.textColorSecondary
+                font.italic: true
+            }
+        }
+
+        // Collapsible output — closed by default, auto-opens on build start
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 0
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
+
+                Label {
+                    text: logExpanded ? "▾" : "▸"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    color: appStyle.textColorSecondary
+                }
+                CustomLabel {
+                    text: "Output"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    color: appStyle.textColorSecondary
+                }
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: "Clear"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    visible: logExpanded
+                    onClicked: logTextArea.text = ""
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: logExpanded = !logExpanded
+                    cursorShape: Qt.PointingHandCursor
+                }
+            }
+
+            ScrollView {
+                visible: logExpanded
+                Layout.fillWidth: true
+                Layout.preferredHeight: 160
+                clip: true
+
+                TextArea {
+                    id: logTextArea
+                    readOnly: true
+                    wrapMode: TextEdit.Wrap
+                    font.family: appStyle.fontFamily
+                    font.pixelSize: appStyle.fontSizeBody
+                    color: appStyle.textColor
+                }
             }
         }
 
@@ -625,6 +831,11 @@ Pane {
                 log("[Error] " + errors[i]);
             return;
         }
+
+        buildStatus = "running"
+        buildProgressValue = 0
+        logExpanded = true
+        progressAnimation.restart()
 
         syncProcess.clearOutput();
         buildProcess.clearOutput();
@@ -679,6 +890,9 @@ Pane {
     }
 
     function stopBuild() {
+        progressAnimation.stop()
+        buildStatus = "idle"
+        buildProgressValue = 0
         log("\n[Stopping...]");
         if (syncProcess.running) {
             syncProcess.stop();

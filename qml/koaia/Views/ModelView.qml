@@ -691,11 +691,8 @@ Pane {
                     width: buildProgressValue / 100 * parent.width
                     height: parent.height
                     radius: 2
-                    color: buildStatus === "success" ? "#4CAF50"
-                         : buildStatus === "failed"  ? "#f44336"
-                         : appStyle.primaryColor
+                    color: buildStatus === "failed" ? "#f44336" : "#4CAF50"
                     Behavior on color { ColorAnimation { duration: 400 } }
-                    Behavior on width { NumberAnimation { duration: 500; easing.type: Easing.OutCubic } }
                 }
             }
 
@@ -704,9 +701,7 @@ Pane {
                     : buildStatus === "success" ? "Done"
                     : "Failed"
                 font.pixelSize: appStyle.fontSizeSmall
-                color: buildStatus === "success" ? "#4CAF50"
-                     : buildStatus === "failed"  ? "#f44336"
-                     : appStyle.textColorSecondary
+                color: buildStatus === "failed" ? "#f44336" : "#4CAF50"
                 Layout.preferredWidth: 36
                 horizontalAlignment: Text.AlignRight
             }

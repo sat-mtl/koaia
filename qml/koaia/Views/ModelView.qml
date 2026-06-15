@@ -111,7 +111,7 @@ Pane {
         }
 
         onRunningChanged: {
-            if (!running) {
+            if (!running && buildStatus === "running") {
                 if (exitCode === 0) {
                     log("[sync] Environment ready");
                     log("----------------------------------------");
@@ -146,7 +146,7 @@ Pane {
         }
 
         onRunningChanged: {
-            if (!running) {
+            if (!running && buildStatus === "running") {
                 progressAnimation.stop()
                 log("\n----------------------------------------");
                 log("[Build finished with exit code: " + exitCode + "]");

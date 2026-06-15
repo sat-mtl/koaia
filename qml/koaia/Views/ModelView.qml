@@ -22,7 +22,6 @@ Pane {
     Settings {
         id: buildSettings
         category: "BuildState"
-        property string lastStatus: "idle"
         property bool lastLogExpanded: false
     }
 
@@ -44,8 +43,6 @@ Pane {
     property bool _syncStarted: false
     property bool _buildStarted: false
 
-    // Persist state changes
-    onBuildStatusChanged: buildSettings.lastStatus = buildStatus
     onLogExpandedChanged: buildSettings.lastLogExpanded = logExpanded
 
     NumberAnimation {
@@ -60,10 +57,8 @@ Pane {
 
     Component.onCompleted: {
         logExpanded = buildSettings.lastLogExpanded
-        // "running" means app was killed mid-build — treat as interrupted
-        var last = buildSettings.lastStatus
-        buildStatus = (last === "running") ? "idle" : last
-        buildProgressValue = (buildStatus === "success") ? 100 : 0
+        buildStatus = "idle"
+        buildProgressValue = 0
         loadLog()
     }
 

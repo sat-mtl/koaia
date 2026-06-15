@@ -32,7 +32,7 @@ Pane {
     readonly property string libraryRoot: librarySettings.value("RootPath", "")
 
     readonly property string uvPath: libraryRoot + "/packages/python-uv/uv"
-    readonly property string scriptPath: libraryRoot + "/packages/librediffusion/train-loras.py"
+    readonly property string scriptPath: libraryRoot + "/packages/librediffusion/train-lora.py"
     readonly property string scriptDir: libraryRoot + "/packages/librediffusion"
 
     property bool isSyncing: syncProcess.running
@@ -41,6 +41,8 @@ Pane {
     property string buildStatus: "idle"   // "idle" | "running" | "success" | "failed"
     property real buildProgressValue: 0
     property bool logExpanded: false
+    property bool _syncStarted: false
+    property bool _buildStarted: false
 
     // Persist state changes
     onBuildStatusChanged: buildSettings.lastStatus = buildStatus
@@ -111,7 +113,10 @@ Pane {
         }
 
         onRunningChanged: {
-            if (!running && buildStatus === "running") {
+            if (running) {
+                _syncStarted = true
+            } else if (_syncStarted) {
+                _syncStarted = false
                 if (exitCode === 0) {
                     log("[sync] Environment ready");
                     log("----------------------------------------");
@@ -121,6 +126,7 @@ Pane {
                     buildStatus = "failed"
                     log("[sync] Failed with exit code: " + exitCode);
                     log("----------------------------------------");
+                    saveLog()
                 }
             }
         }
@@ -146,20 +152,17 @@ Pane {
         }
 
         onRunningChanged: {
-            if (!running && buildStatus === "running") {
+            if (running) {
+                _buildStarted = true
+            } else if (_buildStarted) {
+                _buildStarted = false
                 progressAnimation.stop()
                 log("\n----------------------------------------");
-                log("[Build finished with exit code: " + exitCode + "]");
+                log("[Build process exited with code: " + exitCode + "]");
                 if (exitCode === 0) {
                     buildProgressValue = 100
-                    buildStatus = "success"
-                    saveLog()
                     refreshEngines()
-                    var folderPath = outputPathField.text;
-                    if (isWin32) {
-                        folderPath = folderPath.replace(/\\/g, '/');
-                    }
-                    Qt.openUrlExternally(Qt.resolvedUrl(folderPath));
+                    engineCheckTimer.start()
                 } else {
                     buildStatus = "failed"
                     saveLog()
@@ -198,6 +201,24 @@ Pane {
         var f = engineModel.folder
         engineModel.folder = ""
         engineModel.folder = f
+    }
+
+    // After exit code 0, wait briefly for FolderListModel to scan output folder.
+    // Only declare success if .engine files are actually present.
+    Timer {
+        id: engineCheckTimer
+        interval: 2000
+        repeat: false
+        onTriggered: {
+            if (engineModel.count > 0) {
+                buildStatus = "success"
+                log("[Build complete] " + engineModel.count + " engine file(s) found.")
+            } else {
+                buildStatus = "failed"
+                log("[Warning] Build process exited 0 but no .engine files found in: " + outputPathField.text)
+            }
+            saveLog()
+        }
     }
 
     // Section component (reused from MainView pattern)
@@ -891,6 +912,9 @@ Pane {
 
     function stopBuild() {
         progressAnimation.stop()
+        engineCheckTimer.stop()
+        _syncStarted = false
+        _buildStarted = false
         buildStatus = "idle"
         buildProgressValue = 0
         log("\n[Stopping...]");

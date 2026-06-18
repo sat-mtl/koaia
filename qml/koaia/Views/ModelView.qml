@@ -90,6 +90,7 @@ Pane {
                        (time.getMinutes() < 10 ? "0" : "") + time.getMinutes() + ":" +
                        (time.getSeconds() < 10 ? "0" : "") + time.getSeconds();
         logTextArea.append("[" + timestamp + "] " + message);
+        logTextArea.cursorPosition = logTextArea.length
         console.log(message);
     }
 

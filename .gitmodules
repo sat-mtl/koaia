@@ -1,0 +1,3 @@
+[submodule "qml/ca/qc/sat/qmlcomponents"]
+	path = qml/ca/qc/sat/qmlcomponents
+	url = https://github.com/sat-mtl/qmlcomponents.git

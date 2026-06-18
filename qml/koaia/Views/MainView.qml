@@ -6,6 +6,7 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import Score.UI as UI
 import koaia
+import ca.qc.sat.qmlcomponents
 
 Pane {
     id: mainView
@@ -106,7 +107,7 @@ Pane {
         RowLayout {
             id: headerRow
             Layout.fillWidth: true
-            Layout.topMargin: appStyle.spacing
+            Layout.topMargin: Theme.spacing
             Layout.bottomMargin: 6
             spacing: 8
 
@@ -114,7 +115,7 @@ Pane {
                 id: headerLabel
                 Layout.fillWidth: true
                 text: title
-                font.pixelSize: appStyle.fontSizeSubtitle
+                font.pixelSize: Theme.fontSizeSubtitle
                 font.bold: true
 
                 ToolTip.visible: description !== "" && headerMouseArea.containsMouse
@@ -133,7 +134,7 @@ Pane {
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: appStyle.borderColor
+            color: Theme.borderColor
             opacity: 0.8
         }
 
@@ -148,8 +149,8 @@ Pane {
     ScrollView {
         id: leftScroll
         anchors.fill: parent
-        anchors.margins: appStyle.padding
-        spacing: appStyle.spacing
+        anchors.margins: Theme.padding
+        spacing: Theme.spacing
 
         clip: true
         contentWidth: availableWidth // viewport width?
@@ -157,7 +158,7 @@ Pane {
         ColumnLayout {
             id: leftContent
             width: leftScroll.availableWidth
-            spacing: appStyle.spacing
+            spacing: Theme.spacing
 
             Section {
                 title: "Input"
@@ -168,12 +169,12 @@ Pane {
                     Label {
                         text: "Video input"
                         Layout.preferredWidth: 100
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                     }
                     TextField {
                         id: imagePathField
                         Layout.fillWidth: true
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         placeholderText: "/path/to/video.mp4"
 
                         property var videoProcess: processes.genai_inputvideo.process_object
@@ -203,7 +204,7 @@ Pane {
                     }
                     Button {
                         text: "Browse"
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         onClicked: imageFileDialog.open()
                     }
                 }
@@ -224,7 +225,7 @@ Pane {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: appStyle.spacing
+                    spacing: Theme.spacing
                     AmountSlider {
                         id: imageAmountSlider
                         Layout.fillWidth: true
@@ -266,8 +267,8 @@ Pane {
                 Label {
                     visible: imagePathField.text === ""
                     text: "Select a video file to enable"
-                    font.pixelSize: appStyle.fontSizeSmall
-                    color: appStyle.textColorSecondary
+                    font.pixelSize: Theme.fontSizeSmall
+                    color: Theme.textColorSecondary
                     Layout.fillWidth: true
                 }
             }
@@ -281,7 +282,7 @@ Pane {
 
                 Label {
                     text: "Prompt"
-                    font.pixelSize: appStyle.fontSizeBody
+                    font.pixelSize: Theme.fontSizeBody
                 }
 
                 TextArea {
@@ -289,14 +290,14 @@ Pane {
                     text: "origami, hyperrealistic, 4k, abstract, geometry"
                     Layout.fillWidth: true
                     Layout.preferredHeight: 80
-                    font.pixelSize: appStyle.fontSizeBody
-                    color: appStyle.textColor
+                    font.pixelSize: Theme.fontSizeBody
+                    color: Theme.textColor
                     wrapMode: TextArea.Wrap
                     background: Rectangle {
-                        color: appStyle.backgroundColorSecondary
-                        border.color: appStyle.borderColor
+                        color: Theme.backgroundColorSecondary
+                        border.color: Theme.borderColor
                         border.width: 1
-                        radius: appStyle.borderRadius
+                        radius: Theme.borderRadius
                     }
                     UI.PortSource on text {
                         port: processes.prompt_composer.keywords
@@ -313,30 +314,30 @@ Pane {
                 // Advanced options toggle
                 Button {
                     Layout.fillWidth: true
-                    Layout.topMargin: appStyle.spacing
+                    Layout.topMargin: Theme.spacing
                     text: aiModelSection.showAdvancedOptions ? "Hide Advanced Options" : "Show Advanced Options"
-                    font.pixelSize: appStyle.fontSizeBody
+                    font.pixelSize: Theme.fontSizeBody
                     onClicked: aiModelSection.showAdvancedOptions = !aiModelSection.showAdvancedOptions
                 }
 
                 ColumnLayout {
                     Layout.fillWidth: true
                     visible: aiModelSection.showAdvancedOptions
-                    spacing: appStyle.spacing
+                    spacing: Theme.spacing
 
                     RowLayout {
                         Layout.fillWidth: true
                         Label {
                             text: "Workflow"
                             Layout.preferredWidth: 100
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         ComboBox {
                             id: workflowCombo
                             Layout.fillWidth: true
                             model: ["SD_TXT2IMG", "SD_IMG2IMG", "SD_TXT2IMG_CONTROLNET", "SD_TXT2IMG_IPADAPTER", "SD_IMG2IMG_IPADAPTER", "STURBO_TXT2IMG", "SDTURBO_IMG2IMG", "SDXL_TXT2IMG", "SDXL_IMG2IMG", "V2V_TXT2IMG", "V2V_IMG2IMG"]
                             currentIndex: 0
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             UI.PortSource on currentIndex {
                                 port: processes.streamDiffusion.workflow
                             }
@@ -355,12 +356,12 @@ Pane {
                         Label {
                             text: "Engine"
                             Layout.preferredWidth: 100
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         TextField {
                             id: enginePathField
                             Layout.fillWidth: true
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             text: ""
                             placeholderText: "Path to engine folder"
                             UI.PortSource on text {
@@ -376,7 +377,7 @@ Pane {
                         }
                         Button {
                             text: "Browse"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             onClicked: engineFolderDialog.open()
                         }
                     }
@@ -396,7 +397,7 @@ Pane {
                     /* JM: this has to be dynamic, with e.g. a Repeater
                         RowLayout {
                             Layout.fillWidth: true
-                            Label { text: "Weights"; font.pixelSize: appStyle.fontSizeBody }
+                            Label { text: "Weights"; font.pixelSize: Theme.fontSizeBody }
                             ParameterSlider {
                                 Layout.fillWidth: true
                                 labelText: ""
@@ -411,7 +412,7 @@ Pane {
                         Layout.fillWidth: true
                         Label {
                             text: "Seed"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         SpinBox {
                             id: seedSpinBox
@@ -421,7 +422,7 @@ Pane {
                             to: 9999999
                             value: 20
                             stepSize: 1
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             UI.PortSource on value {
                                 port: processes.streamDiffusion.seed
                             }
@@ -435,14 +436,14 @@ Pane {
                         }
                         Label {
                             text: "Timesteps"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         TextField {
                             id: timestepsField
                             Layout.fillWidth: true
                             text: "20"
                             placeholderText: "e.g. 20 or 30,45"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             UI.PortSource on text {
                                 port: processes.streamDiffusion.timesteps
                             }
@@ -460,7 +461,7 @@ Pane {
                         Layout.fillWidth: true
                         Label {
                             text: "Guidance"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         ParameterSlider {
                             Layout.fillWidth: true
@@ -472,14 +473,14 @@ Pane {
                         }
                         Label {
                             text: "Guidance type"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         ComboBox {
                             id: guidanceTypeCombo
                             Layout.fillWidth: true
                             model: ["None", "Self", "Full", "Initialize"]
                             currentIndex: 0
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             UI.PortSource on currentIndex {
                                 port: processes.streamDiffusion.guidance_type
                             }
@@ -497,7 +498,7 @@ Pane {
                         Layout.fillWidth: true
                         Label {
                             text: "Delta"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         ParameterSlider {
                             Layout.fillWidth: true
@@ -515,7 +516,7 @@ Pane {
                         CheckBox {
                             id: denoisingBatchSpinBox
                             text: "Denoise Batch"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             UI.PortSource on checked {
                                 port: processes.streamDiffusion.denoising_batch
                             }
@@ -531,7 +532,7 @@ Pane {
                             id: addNoiseCheckBox
                             text: "Add Noise"
                             checked: false
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             UI.PortSource on checked {
                                 port: processes.streamDiffusion.add_noise
                             }
@@ -547,7 +548,7 @@ Pane {
                             id: manualModeCheckBox
                             text: "Manual Mode"
                             checked: false
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             UI.PortSource on checked {
                                 port: processes.streamDiffusion.manual_mode
                             }
@@ -565,7 +566,7 @@ Pane {
                         Layout.fillWidth: true
                         Label {
                             text: "Resolution"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         ComboBox {
                             id: sizeCombo
@@ -592,10 +593,10 @@ Pane {
 
             Button {
                 Layout.fillWidth: true
-                Layout.topMargin: appStyle.spacing
-                Layout.bottomMargin: appStyle.spacing
+                Layout.topMargin: Theme.spacing
+                Layout.bottomMargin: Theme.spacing
                 text: isProcessing ? "Stop" : "Start"
-                font.pixelSize: appStyle.fontSizeBody
+                font.pixelSize: Theme.fontSizeBody
                 font.bold: true
                 highlighted: isProcessing
                 onClicked: isProcessing = !isProcessing
@@ -608,18 +609,18 @@ Pane {
                 // Shader
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: appStyle.spacing
+                    spacing: Theme.spacing
                     Label {
                         text: "Shader"
                         Layout.preferredWidth: 100
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                     }
                     ComboBox {
                         id: inputNoiseChooser
                         Layout.preferredWidth: 150
                         model: ["Smoke", "Voronoi", "Noise", "Perlin"]
                         currentIndex: 0
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         onCurrentIndexChanged: appSettings.noiseShader = currentIndex
                     }
                     // Amount sliders (check in StatusOverlay)
@@ -700,14 +701,14 @@ Pane {
                     Label {
                         text: "Shape"
                         Layout.preferredWidth: 100
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                     }
                     ComboBox {
                         id: shapeTypeCombo
                         Layout.preferredWidth: 150
                         model: ["Rectangle", "Triangle", "Circle", "Diamond"]
                         currentIndex: 1
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         UI.PortSource on currentIndex {
                             port: processes.shape.maskShapeMode
                         }
@@ -737,7 +738,7 @@ Pane {
                 // Color control
                 ColumnLayout {
                     Layout.fillWidth: true
-                    spacing: appStyle.spacing
+                    spacing: Theme.spacing
 
                     // Define brightness slider first so it's accessible
                     RowLayout {
@@ -745,7 +746,7 @@ Pane {
                         Label {
                             text: "Brightness"
                             Layout.preferredWidth: 100
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         Slider {
                             id: brightnessSlider
@@ -762,7 +763,7 @@ Pane {
                         Label {
                             text: "Hue"
                             Layout.preferredWidth: 100
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         Rectangle {
                             Layout.fillWidth: true
@@ -851,7 +852,7 @@ Pane {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: appStyle.spacing
+                    spacing: Theme.spacing
                     ParameterSlider {
                         Layout.fillWidth: true
                         labelText: "Width"
@@ -872,7 +873,7 @@ Pane {
 
                 RowLayout {
                     Layout.fillWidth: true
-                    spacing: appStyle.spacing
+                    spacing: Theme.spacing
                     ParameterSlider {
                         Layout.fillWidth: true
                         labelText: "H Repeat"
@@ -903,7 +904,7 @@ Pane {
 
                     Label {
                         text: "X"
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                     }
                     SpinBox {
                         id: shapex
@@ -912,7 +913,7 @@ Pane {
                         from: 0
                         to: parent.maxDimension
                         value: parent.maxDimension / 2
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         onValueChanged: {
                             if (processes.shape.center) {
                                 var newArr = [value / parent.maxDimension, shapey.value / parent.maxDimension];
@@ -923,7 +924,7 @@ Pane {
                     }
                     Label {
                         text: "Y"
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                     }
                     SpinBox {
                         id: shapey
@@ -932,7 +933,7 @@ Pane {
                         from: 0
                         to: parent.maxDimension
                         value: parent.maxDimension / 2
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         onValueChanged: {
                             if (processes.shape.center) {
                                 var newArr = [shapex.value / parent.maxDimension, value / parent.maxDimension];
@@ -945,7 +946,7 @@ Pane {
                         id: invertCheckBox
                         text: "Invert"
                         checked: false
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         UI.PortSource on checked {
                             port: processes.shape.invertMask
                         }
@@ -966,17 +967,17 @@ Pane {
 
             //     RowLayout {
             //         Layout.fillWidth: true
-            //         spacing: appStyle.spacing
+            //         spacing: Theme.spacing
 
-            //         Button { text: "Load preset"; font.pixelSize: appStyle.fontSizeBody }
+            //         Button { text: "Load preset"; font.pixelSize: Theme.fontSizeBody }
 
-            //         Button { text: "Capture current state"; font.pixelSize: appStyle.fontSizeBody }
+            //         Button { text: "Capture current state"; font.pixelSize: Theme.fontSizeBody }
             //     }
             // }
 
             // little bottom padding?
             Item {
-                height: appStyle.padding
+                height: Theme.padding
             }
         }
     }
@@ -986,7 +987,7 @@ Pane {
         title: "Input"
         width: sizeCombo.currentDimensions[0]
         height: sizeCombo.currentDimensions[1]
-        CustomFrame {
+        VideoPreview {
             anchors.fill: parent
             process: "Video Mapper"
             port: 0
@@ -1031,7 +1032,7 @@ Pane {
         title: "Preview"
         width: sizeCombo.currentDimensions[0]
         height: sizeCombo.currentDimensions[1]
-        CustomFrame {
+        VideoPreview {
             anchors.fill: parent
             process: "Video Mapper.1"
             port: 0

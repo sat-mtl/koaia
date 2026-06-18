@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Score.UI as UI
 import koaia
+import ca.qc.sat.qmlcomponents
 
 RowLayout {
     property string labelText: ""
@@ -18,7 +19,7 @@ RowLayout {
         text: labelText
         Layout.preferredWidth: labelText ? 80 : 0
         visible: labelText !== ""
-        font.pixelSize: appStyle.fontSizeBody
+        font.pixelSize: Theme.fontSizeBody
     }
 
     Slider {

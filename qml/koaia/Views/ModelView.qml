@@ -6,11 +6,12 @@ import QtQuick.Layouts
 import QtQuick.Dialogs
 import Score.UI as UI
 import koaia
+import ca.qc.sat.qmlcomponents
 
 Pane {
     id: modelView
     background: Rectangle {
-        color: appStyle.backgroundColor
+        color: Theme.backgroundColor
     }
 
     // Library paths from Settings
@@ -117,14 +118,14 @@ Pane {
 
         RowLayout {
             Layout.fillWidth: true
-            Layout.topMargin: appStyle.spacing
+            Layout.topMargin: Theme.spacing
             Layout.bottomMargin: 6
             spacing: 8
 
             CustomLabel {
                 Layout.fillWidth: true
                 text: title
-                font.pixelSize: appStyle.fontSizeSubtitle
+                font.pixelSize: Theme.fontSizeSubtitle
                 font.bold: true
 
                 ToolTip.visible: description !== "" && headerMouseArea.containsMouse
@@ -143,7 +144,7 @@ Pane {
         Rectangle {
             Layout.fillWidth: true
             height: 1
-            color: appStyle.borderColor
+            color: Theme.borderColor
             opacity: 0.8
         }
 
@@ -157,19 +158,19 @@ Pane {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.margins: appStyle.padding
-        spacing: appStyle.spacing
+        anchors.margins: Theme.padding
+        spacing: Theme.spacing
 
         CustomLabel {
             text: "Model Builder"
             font.bold: true
-            font.pixelSize: appStyle.fontSizeTitle
+            font.pixelSize: Theme.fontSizeTitle
         }
 
         CustomLabel {
             text: "Build TensorRT engines from Stable Diffusion models.\nNote that this is a long process: roughly fifteen minutes for a given model."
-            font.pixelSize: appStyle.fontSizeBody
-            color: appStyle.textColorSecondary
+            font.pixelSize: Theme.fontSizeBody
+            color: Theme.textColorSecondary
         }
 
         // Configuration controls
@@ -180,7 +181,7 @@ Pane {
 
             ColumnLayout {
                 width: parent.width
-                spacing: appStyle.spacing
+                spacing: Theme.spacing
 
                 Section {
                     title: "Model Configuration"
@@ -191,14 +192,14 @@ Pane {
                         Label {
                             text: "Model Type"
                             Layout.preferredWidth: 100
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         ComboBox {
                             id: modelTypeCombo
                             Layout.fillWidth: true
                             model: ["SD 1.5 / Turbo", "SDXL"]
                             currentIndex: 0
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             property string modelTypeArg: currentIndex === 0 ? "sd15" : "sdxl"
                         }
                     }
@@ -208,12 +209,12 @@ Pane {
                         Label {
                             text: "Model Source"
                             Layout.preferredWidth: 100
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                         }
                         TextField {
                             id: modelSourceField
                             Layout.fillWidth: true
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             text: "SimianLuo/LCM_Dreamshaper_v7"
                             placeholderText: "HuggingFace model ID or local path"
                         }
@@ -224,19 +225,19 @@ Pane {
                         Label {
                             text: "Output Path"
                             Layout.preferredWidth: 100
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             color: outputPathField.text !== "" ? palette.windowText : "red"
                         }
                         TextField {
                             id: outputPathField
                             Layout.fillWidth: true
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             text: ""
                             placeholderText: "Path to save engine files"
                         }
                         Button {
                             text: "Browse"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             onClicked: outputFolderDialog.open()
                         }
                     }
@@ -268,14 +269,14 @@ Pane {
 
                             TextField {
                                 Layout.fillWidth: true
-                                font.pixelSize: appStyle.fontSizeBody
+                                font.pixelSize: Theme.fontSizeBody
                                 text: path
                                 placeholderText: "/path/to/lora.safetensors"
                                 onTextChanged: loraListModel.setProperty(index, "path", text)
                             }
                             Button {
                                 text: "..."
-                                font.pixelSize: appStyle.fontSizeBody
+                                font.pixelSize: Theme.fontSizeBody
                                 implicitWidth: 40
                                 onClicked: {
                                     loraFileDialog.currentLoraIndex = index;
@@ -284,7 +285,7 @@ Pane {
                             }
                             Label {
                                 text: "Weight"
-                                font.pixelSize: appStyle.fontSizeSmall
+                                font.pixelSize: Theme.fontSizeSmall
                             }
                             SpinBox {
                                 id: weightSpinBox
@@ -295,7 +296,7 @@ Pane {
                                 to: 200
                                 value: weight * 100
                                 stepSize: 5
-                                font.pixelSize: appStyle.fontSizeSmall
+                                font.pixelSize: Theme.fontSizeSmall
                                 property real realValue: value / 100.0
                                 textFromValue: function (value, locale) {
                                     return (value / 100.0).toFixed(2);
@@ -307,7 +308,7 @@ Pane {
                             }
                             Button {
                                 text: "X"
-                                font.pixelSize: appStyle.fontSizeBody
+                                font.pixelSize: Theme.fontSizeBody
                                 implicitWidth: 40
                                 onClicked: loraListModel.remove(index)
                             }
@@ -318,7 +319,7 @@ Pane {
                         Layout.fillWidth: true
                         Button {
                             text: "+ Add LoRA"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             onClicked: loraListModel.append({
                                 "path": "",
                                 "weight": 1.0
@@ -329,7 +330,7 @@ Pane {
                         }
                         Label {
                             text: "Global Scale"
-                            font.pixelSize: appStyle.fontSizeBody
+                            font.pixelSize: Theme.fontSizeBody
                             visible: loraListModel.count > 0
                         }
                         SpinBox {
@@ -342,7 +343,7 @@ Pane {
                             to: 500
                             value: 250
                             stepSize: 10
-                            font.pixelSize: appStyle.fontSizeSmall
+                            font.pixelSize: Theme.fontSizeSmall
                             property real realValue: value / 100.0
                             textFromValue: function (value, locale) {
                                 return (value / 100.0).toFixed(2);
@@ -369,8 +370,8 @@ Pane {
                     Label {
                         visible: loraListModel.count === 0
                         text: "No LoRA files added"
-                        font.pixelSize: appStyle.fontSizeSmall
-                        color: appStyle.textColorSecondary
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.textColorSecondary
                     }
                 }
 
@@ -386,13 +387,13 @@ Pane {
                             Layout.fillWidth: true
                             Label {
                                 text: "Batch Size"
-                                font.pixelSize: appStyle.fontSizeBody
+                                font.pixelSize: Theme.fontSizeBody
                                 font.bold: true
                             }
                             RowLayout {
                                 Label {
                                     text: "Min"
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                     Layout.preferredWidth: 40
                                 }
                                 SpinBox {
@@ -402,13 +403,13 @@ Pane {
                                     from: 1
                                     to: 16
                                     value: 1
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                 }
                             }
                             RowLayout {
                                 Label {
                                     text: "Opt"
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                     Layout.preferredWidth: 40
                                 }
                                 SpinBox {
@@ -418,13 +419,13 @@ Pane {
                                     from: 1
                                     to: 16
                                     value: 2
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                 }
                             }
                             RowLayout {
                                 Label {
                                     text: "Max"
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                     Layout.preferredWidth: 40
                                 }
                                 SpinBox {
@@ -434,7 +435,7 @@ Pane {
                                     from: 1
                                     to: 16
                                     value: 2
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                 }
                             }
                         }
@@ -443,13 +444,13 @@ Pane {
                             Layout.fillWidth: true
                             Label {
                                 text: "Resolution"
-                                font.pixelSize: appStyle.fontSizeBody
+                                font.pixelSize: Theme.fontSizeBody
                                 font.bold: true
                             }
                             RowLayout {
                                 Label {
                                     text: "Min"
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                     Layout.preferredWidth: 40
                                 }
                                 SpinBox {
@@ -460,13 +461,13 @@ Pane {
                                     to: 2048
                                     value: 1024
                                     stepSize: 64
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                 }
                             }
                             RowLayout {
                                 Label {
                                     text: "Max"
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                     Layout.preferredWidth: 40
                                 }
                                 SpinBox {
@@ -477,7 +478,7 @@ Pane {
                                     to: 2048
                                     value: 1024
                                     stepSize: 64
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                 }
                             }
                         }
@@ -486,13 +487,13 @@ Pane {
                             Layout.fillWidth: true
                             Label {
                                 text: "Optimal Size"
-                                font.pixelSize: appStyle.fontSizeBody
+                                font.pixelSize: Theme.fontSizeBody
                                 font.bold: true
                             }
                             RowLayout {
                                 Label {
                                     text: "Width"
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                     Layout.preferredWidth: 40
                                 }
                                 SpinBox {
@@ -503,13 +504,13 @@ Pane {
                                     to: 2048
                                     value: 1024
                                     stepSize: 64
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                 }
                             }
                             RowLayout {
                                 Label {
                                     text: "Height"
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                     Layout.preferredWidth: 40
                                 }
                                 SpinBox {
@@ -520,7 +521,7 @@ Pane {
                                     to: 2048
                                     value: 1024
                                     stepSize: 64
-                                    font.pixelSize: appStyle.fontSizeBody
+                                    font.pixelSize: Theme.fontSizeBody
                                 }
                             }
                         }
@@ -538,7 +539,7 @@ Pane {
                                 errors.push("Max resolution must be >= min resolution");
                             return errors.join("; ");
                         }
-                        font.pixelSize: appStyle.fontSizeSmall
+                        font.pixelSize: Theme.fontSizeSmall
                         color: "red"
                         visible: text !== ""
                     }
@@ -547,9 +548,9 @@ Pane {
                 // Build button
                 Button {
                     Layout.fillWidth: true
-                    Layout.topMargin: appStyle.spacing
+                    Layout.topMargin: Theme.spacing
                     text: isBuilding ? "Stop Build" : "Build Engine"
-                    font.pixelSize: appStyle.fontSizeBody
+                    font.pixelSize: Theme.fontSizeBody
                     font.bold: true
                     enabled: isBuilding || isValid()
                     highlighted: !isBuilding
@@ -562,7 +563,7 @@ Pane {
                 }
 
                 Item {
-                    height: appStyle.padding
+                    height: Theme.padding
                 }
             }
         }
@@ -571,10 +572,10 @@ Pane {
         Rectangle {
             Layout.fillWidth: true
             Layout.fillHeight: true
-            color: appStyle.backgroundColorSecondary
-            border.color: appStyle.borderColor
+            color: Theme.backgroundColorSecondary
+            border.color: Theme.borderColor
             border.width: 1
-            radius: appStyle.borderRadius
+            radius: Theme.borderRadius
 
             ColumnLayout {
                 anchors.fill: parent
@@ -585,7 +586,7 @@ Pane {
                     Layout.fillWidth: true
                     CustomLabel {
                         text: "Build Output"
-                        font.pixelSize: appStyle.fontSizeBody
+                        font.pixelSize: Theme.fontSizeBody
                         font.bold: true
                     }
                     Item {
@@ -593,7 +594,7 @@ Pane {
                     }
                     Button {
                         text: "Clear"
-                        font.pixelSize: appStyle.fontSizeSmall
+                        font.pixelSize: Theme.fontSizeSmall
                         onClicked: outputTextArea.text = ""
                     }
                 }
@@ -607,8 +608,8 @@ Pane {
                         readOnly: true
                         wrapMode: TextEdit.Wrap
                         font.family: "monospace"
-                        font.pixelSize: appStyle.fontSizeSmall
-                        color: appStyle.textColor
+                        font.pixelSize: Theme.fontSizeSmall
+                        color: Theme.textColor
                         text: libraryRoot !== "" ? "Ready to build. Configure options above and click 'Build Engine'.\n" : "Library path not configured. Please ensure packages are installed.\n"
 
                         background: Rectangle {

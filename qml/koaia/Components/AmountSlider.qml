@@ -3,6 +3,7 @@ import QtQuick.Controls
 import QtQuick.Layouts
 import Score.UI as UI
 import koaia
+import ca.qc.sat.qmlcomponents
 
 RowLayout {
     id: root
@@ -21,8 +22,8 @@ RowLayout {
     Label {
         text: root.label
         Layout.preferredWidth: 60
-        font.pixelSize: appStyle.fontSizeBody
-        color: root.enabled ? appStyle.textColor : appStyle.textColorSecondary
+        font.pixelSize: Theme.fontSizeBody
+        color: root.enabled ? Theme.textColor : Theme.textColorSecondary
     }
     
     Slider { 

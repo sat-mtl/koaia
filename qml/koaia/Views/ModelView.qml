@@ -51,7 +51,7 @@ Pane {
         property: "buildProgressValue"
         from: 0
         to: 80
-        duration: 13 * 60 * 1000
+        duration: 45 * 60 * 1000
         easing.type: Easing.Linear
     }
 
@@ -367,127 +367,6 @@ Pane {
                 }
 
                 Section {
-                    title: "LoRA Files"
-                    description: "Optional LoRA weights to merge into the model (format: path or path:weight)"
-
-                    Repeater {
-                        model: loraListModel
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            required property int index
-                            required property string path
-                            required property real weight
-
-                            TextField {
-                                Layout.fillWidth: true
-                                font.pixelSize: appStyle.fontSizeBody
-                                text: path
-                                placeholderText: "/path/to/lora.safetensors"
-                                onTextChanged: loraListModel.setProperty(index, "path", text)
-                            }
-                            Button {
-                                text: "..."
-                                font.pixelSize: appStyle.fontSizeBody
-                                implicitWidth: 40
-                                onClicked: {
-                                    loraFileDialog.currentLoraIndex = index;
-                                    loraFileDialog.open();
-                                }
-                            }
-                            Label {
-                                text: "Weight"
-                                font.pixelSize: appStyle.fontSizeSmall
-                            }
-                            SpinBox {
-                                id: weightSpinBox
-                                editable: true
-                                Layout.minimumWidth: 150
-                                implicitWidth: 150
-                                from: 0
-                                to: 200
-                                value: weight * 100
-                                stepSize: 5
-                                font.pixelSize: appStyle.fontSizeSmall
-                                property real realValue: value / 100.0
-                                textFromValue: function (value, locale) {
-                                    return (value / 100.0).toFixed(2);
-                                }
-                                valueFromText: function (text, locale) {
-                                    return Math.round(parseFloat(text) * 100);
-                                }
-                                onValueChanged: loraListModel.setProperty(index, "weight", realValue)
-                            }
-                            Button {
-                                text: "X"
-                                font.pixelSize: appStyle.fontSizeBody
-                                implicitWidth: 40
-                                onClicked: loraListModel.remove(index)
-                            }
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Button {
-                            text: "+ Add LoRA"
-                            font.pixelSize: appStyle.fontSizeBody
-                            onClicked: loraListModel.append({
-                                "path": "",
-                                "weight": 1.0
-                            })
-                        }
-                        Item {
-                            Layout.fillWidth: true
-                        }
-                        Label {
-                            text: "Global Scale"
-                            font.pixelSize: appStyle.fontSizeBody
-                            visible: loraListModel.count > 0
-                        }
-                        SpinBox {
-                            id: loraScaleSpinBox
-                            editable: true
-                            visible: loraListModel.count > 0
-                            Layout.minimumWidth: 150
-                            implicitWidth: 150
-                            from: 0
-                            to: 500
-                            value: 250
-                            stepSize: 10
-                            font.pixelSize: appStyle.fontSizeSmall
-                            property real realValue: value / 100.0
-                            textFromValue: function (value, locale) {
-                                return (value / 100.0).toFixed(2);
-                            }
-                            valueFromText: function (text, locale) {
-                                return Math.round(parseFloat(text) * 100);
-                            }
-                        }
-                    }
-
-                    FileDialog {
-                        id: loraFileDialog
-                        title: "Select LoRA File"
-                        nameFilters: ["SafeTensors Files (*.safetensors)", "All Files (*)"]
-                        property int currentLoraIndex: -1
-                        onAccepted: {
-                            if (!selectedFile || currentLoraIndex < 0)
-                                return;
-                            var filePath = new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0);
-                            loraListModel.setProperty(currentLoraIndex, "path", filePath);
-                        }
-                    }
-
-                    Label {
-                        visible: loraListModel.count === 0
-                        text: "No LoRA files added"
-                        font.pixelSize: appStyle.fontSizeSmall
-                        color: appStyle.textColorSecondary
-                    }
-                }
-
-                Section {
                     title: "Build Parameters"
                     description: "TensorRT engine build configuration"
 
@@ -657,6 +536,127 @@ Pane {
                     }
                 }
 
+                Section {
+                    title: "LoRA Files"
+                    description: "Optional LoRA weights to merge into the model (format: path or path:weight)"
+
+                    Repeater {
+                        model: loraListModel
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            required property int index
+                            required property string path
+                            required property real weight
+
+                            TextField {
+                                Layout.fillWidth: true
+                                font.pixelSize: appStyle.fontSizeBody
+                                text: path
+                                placeholderText: "/path/to/lora.safetensors"
+                                onTextChanged: loraListModel.setProperty(index, "path", text)
+                            }
+                            Button {
+                                text: "..."
+                                font.pixelSize: appStyle.fontSizeBody
+                                implicitWidth: 40
+                                onClicked: {
+                                    loraFileDialog.currentLoraIndex = index;
+                                    loraFileDialog.open();
+                                }
+                            }
+                            Label {
+                                text: "Weight"
+                                font.pixelSize: appStyle.fontSizeSmall
+                            }
+                            SpinBox {
+                                id: weightSpinBox
+                                editable: true
+                                Layout.minimumWidth: 150
+                                implicitWidth: 150
+                                from: 0
+                                to: 200
+                                value: weight * 100
+                                stepSize: 5
+                                font.pixelSize: appStyle.fontSizeSmall
+                                property real realValue: value / 100.0
+                                textFromValue: function (value, locale) {
+                                    return (value / 100.0).toFixed(2);
+                                }
+                                valueFromText: function (text, locale) {
+                                    return Math.round(parseFloat(text) * 100);
+                                }
+                                onValueChanged: loraListModel.setProperty(index, "weight", realValue)
+                            }
+                            Button {
+                                text: "X"
+                                font.pixelSize: appStyle.fontSizeBody
+                                implicitWidth: 40
+                                onClicked: loraListModel.remove(index)
+                            }
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Button {
+                            text: "+ Add LoRA"
+                            font.pixelSize: appStyle.fontSizeBody
+                            onClicked: loraListModel.append({
+                                "path": "",
+                                "weight": 1.0
+                            })
+                        }
+                        Item {
+                            Layout.fillWidth: true
+                        }
+                        Label {
+                            text: "Global Scale"
+                            font.pixelSize: appStyle.fontSizeBody
+                            visible: loraListModel.count > 0
+                        }
+                        SpinBox {
+                            id: loraScaleSpinBox
+                            editable: true
+                            visible: loraListModel.count > 0
+                            Layout.minimumWidth: 150
+                            implicitWidth: 150
+                            from: 0
+                            to: 500
+                            value: 250
+                            stepSize: 10
+                            font.pixelSize: appStyle.fontSizeSmall
+                            property real realValue: value / 100.0
+                            textFromValue: function (value, locale) {
+                                return (value / 100.0).toFixed(2);
+                            }
+                            valueFromText: function (text, locale) {
+                                return Math.round(parseFloat(text) * 100);
+                            }
+                        }
+                    }
+
+                    FileDialog {
+                        id: loraFileDialog
+                        title: "Select LoRA File"
+                        nameFilters: ["SafeTensors Files (*.safetensors)", "All Files (*)"]
+                        property int currentLoraIndex: -1
+                        onAccepted: {
+                            if (!selectedFile || currentLoraIndex < 0)
+                                return;
+                            var filePath = new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0);
+                            loraListModel.setProperty(currentLoraIndex, "path", filePath);
+                        }
+                    }
+
+                    Label {
+                        visible: loraListModel.count === 0
+                        text: "No LoRA files added"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: appStyle.textColorSecondary
+                    }
+                }
+
             }
         }
 
@@ -790,7 +790,7 @@ Pane {
                     color: appStyle.textColorSecondary
                 }
                 CustomLabel {
-                    text: "Output"
+                    text: "Build Log"
                     font.pixelSize: appStyle.fontSizeSmall
                     color: appStyle.textColorSecondary
                 }

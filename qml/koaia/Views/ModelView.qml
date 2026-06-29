@@ -1,9 +1,9 @@
 import QtCore
 import QtQuick
 import QtQuick.Controls.Basic
-import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import Qt.labs.folderlistmodel
 import Score.UI as UI
 import koaia
 
@@ -19,17 +19,78 @@ Pane {
         category: "Library"
     }
 
+    Settings {
+        id: buildSettings
+        category: "BuildState"
+        property bool lastLogExpanded: false
+    }
+
     readonly property bool isWin32: Qt.platform.os === "windows"
 
     // Computed paths based on Library root
     readonly property string libraryRoot: librarySettings.value("RootPath", "")
 
     readonly property string uvPath: libraryRoot + "/packages/python-uv/uv"
-    readonly property string scriptPath: libraryRoot + "/packages/librediffusion/train-loras.py"
+    readonly property string scriptPath: libraryRoot + "/packages/librediffusion/train-lora.py"
     readonly property string scriptDir: libraryRoot + "/packages/librediffusion"
 
     property bool isSyncing: syncProcess.running
     property bool isBuilding: syncProcess.running || buildProcess.running
+
+    property string buildStatus: "idle"   // "idle" | "running" | "success" | "failed"
+    property real buildProgressValue: 0
+    property bool logExpanded: false
+    property bool _syncStarted: false
+    property bool _buildStarted: false
+
+    onLogExpandedChanged: buildSettings.lastLogExpanded = logExpanded
+
+    NumberAnimation {
+        id: progressAnimation
+        target: modelView
+        property: "buildProgressValue"
+        from: 0
+        to: 80
+        duration: 45 * 60 * 1000
+        easing.type: Easing.Linear
+    }
+
+    Component.onCompleted: {
+        logExpanded = buildSettings.lastLogExpanded
+        buildStatus = "idle"
+        buildProgressValue = 0
+        loadLog()
+    }
+
+    function logFilePath() {
+        return StandardPaths.writableLocation(StandardPaths.AppConfigLocation) + "/build.log"
+    }
+
+    function saveLog() {
+        var xhr = new XMLHttpRequest()
+        xhr.open("PUT", logFilePath())
+        xhr.send(logTextArea.text)
+    }
+
+    function loadLog() {
+        var xhr = new XMLHttpRequest()
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === XMLHttpRequest.DONE && xhr.status === 0 && xhr.responseText)
+                logTextArea.text = xhr.responseText
+        }
+        xhr.open("GET", logFilePath())
+        xhr.send()
+    }
+
+    function log(message) {
+        var time = new Date();
+        var timestamp = time.getHours() + ":" +
+                       (time.getMinutes() < 10 ? "0" : "") + time.getMinutes() + ":" +
+                       (time.getSeconds() < 10 ? "0" : "") + time.getSeconds();
+        logTextArea.append("[" + timestamp + "] " + message);
+        logTextArea.cursorPosition = logTextArea.length
+        console.log(message);
+    }
 
     // Sync process (runs uv sync first)
     UI.Process {
@@ -39,29 +100,34 @@ Pane {
 
         onLineReceived: (line, isError) => {
             if (isError) {
-                outputTextArea.append("[sync stderr] " + line);
+                log("[sync stderr] " + line);
             } else {
-                outputTextArea.append("[sync] " + line);
+                log("[sync] " + line);
             }
         }
 
         onRunningChanged: {
-            if (!running) {
+            if (running) {
+                _syncStarted = true
+            } else if (_syncStarted) {
+                _syncStarted = false
                 if (exitCode === 0) {
-                    outputTextArea.append("[sync] Environment ready");
-                    outputTextArea.append("----------------------------------------");
-                    // Now start the actual build
+                    log("[sync] Environment ready");
+                    log("----------------------------------------");
                     runBuildProcess();
                 } else {
-                    outputTextArea.append("[sync] Failed with exit code: " + exitCode);
-                    outputTextArea.append("----------------------------------------");
+                    progressAnimation.stop()
+                    buildStatus = "failed"
+                    log("[sync] Failed with exit code: " + exitCode);
+                    log("----------------------------------------");
+                    saveLog()
                 }
             }
         }
 
         onProcessErrorChanged: {
             if (processError === UI.Process.FailedToStart) {
-                outputTextArea.append("[Error] Failed to start uv sync at: " + uvPath);
+                log("[Error] Failed to start uv sync at: " + uvPath);
             }
         }
     }
@@ -73,32 +139,36 @@ Pane {
 
         onLineReceived: (line, isError) => {
             if (isError) {
-                outputTextArea.append("[stderr] " + line);
+                log("[stderr] " + line);
             } else {
-                outputTextArea.append(line);
+                log(line);
             }
         }
 
         onRunningChanged: {
-            if (!running) {
-                outputTextArea.append("\n----------------------------------------");
-                outputTextArea.append("[Build finished with exit code: " + exitCode + "]");
+            if (running) {
+                _buildStarted = true
+            } else if (_buildStarted) {
+                _buildStarted = false
+                progressAnimation.stop()
+                log("\n----------------------------------------");
+                log("[Build process exited with code: " + exitCode + "]");
                 if (exitCode === 0) {
-                    var folderPath = outputPathField.text;
-                    if (isWin32) {
-                        folderPath = folderPath.replace(/\\/g, '/');
-                    }
-
-                    Qt.openUrlExternally(Qt.resolvedUrl(folderPath));
+                    buildProgressValue = 100
+                    refreshEngines()
+                    engineCheckTimer.start()
+                } else {
+                    buildStatus = "failed"
+                    saveLog()
                 }
             }
         }
 
         onProcessErrorChanged: {
             if (processError === UI.Process.FailedToStart) {
-                outputTextArea.append("[Error] Failed to start build process at: " + uvPath);
+                log("[Error] Failed to start build process at: " + uvPath);
             } else if (processError === UI.Process.Crashed) {
-                outputTextArea.append("[Error] Build process crashed");
+                log("[Error] Build process crashed");
             }
         }
     }
@@ -106,6 +176,43 @@ Pane {
     // LoRA list model
     ListModel {
         id: loraListModel
+    }
+
+    // Watches the output folder for built engine files
+    FolderListModel {
+        id: engineModel
+        nameFilters: ["*.engine", "*.onnx"]
+        showDirs: false
+        showHidden: false
+        folder: {
+            if (!outputPathField || outputPathField.text === "") return ""
+            var p = outputPathField.text.replace(/\\/g, '/')
+            return (isWin32 ? "file:///" : "file://") + p
+        }
+    }
+
+    function refreshEngines() {
+        var f = engineModel.folder
+        engineModel.folder = ""
+        engineModel.folder = f
+    }
+
+    // After exit code 0, wait briefly for FolderListModel to scan output folder.
+    // Only declare success if .engine files are actually present.
+    Timer {
+        id: engineCheckTimer
+        interval: 2000
+        repeat: false
+        onTriggered: {
+            if (engineModel.count > 0) {
+                buildStatus = "success"
+                log("[Build complete] " + engineModel.count + " engine file(s) found.")
+            } else {
+                buildStatus = "failed"
+                log("[Warning] Build process exited 0 but no .engine files found in: " + outputPathField.text)
+            }
+            saveLog()
+        }
     }
 
     // Section component (reused from MainView pattern)
@@ -172,9 +279,9 @@ Pane {
             color: appStyle.textColorSecondary
         }
 
-        // Configuration controls
         ScrollView {
             Layout.fillWidth: true
+            Layout.fillHeight: true
             clip: true
             contentWidth: availableWidth
 
@@ -200,6 +307,11 @@ Pane {
                             currentIndex: 0
                             font.pixelSize: appStyle.fontSizeBody
                             property string modelTypeArg: currentIndex === 0 ? "sd15" : "sdxl"
+                            onCurrentIndexChanged: {
+                                modelSourceField.text = currentIndex === 0
+                                    ? "SimianLuo/LCM_Dreamshaper_v7"
+                                    : "stabilityai/stable-diffusion-xl-base-1.0"
+                            }
                         }
                     }
 
@@ -250,127 +362,6 @@ Pane {
                             var folderPath = new URL(selectedFolder).pathname.substr(isWin32 ? 1 : 0);
                             outputPathField.text = folderPath;
                         }
-                    }
-                }
-
-                Section {
-                    title: "LoRA Files"
-                    description: "Optional LoRA weights to merge into the model (format: path or path:weight)"
-
-                    Repeater {
-                        model: loraListModel
-
-                        RowLayout {
-                            Layout.fillWidth: true
-                            required property int index
-                            required property string path
-                            required property real weight
-
-                            TextField {
-                                Layout.fillWidth: true
-                                font.pixelSize: appStyle.fontSizeBody
-                                text: path
-                                placeholderText: "/path/to/lora.safetensors"
-                                onTextChanged: loraListModel.setProperty(index, "path", text)
-                            }
-                            Button {
-                                text: "..."
-                                font.pixelSize: appStyle.fontSizeBody
-                                implicitWidth: 40
-                                onClicked: {
-                                    loraFileDialog.currentLoraIndex = index;
-                                    loraFileDialog.open();
-                                }
-                            }
-                            Label {
-                                text: "Weight"
-                                font.pixelSize: appStyle.fontSizeSmall
-                            }
-                            SpinBox {
-                                id: weightSpinBox
-                                editable: true
-                                Layout.minimumWidth: 150
-                                implicitWidth: 150
-                                from: 0
-                                to: 200
-                                value: weight * 100
-                                stepSize: 5
-                                font.pixelSize: appStyle.fontSizeSmall
-                                property real realValue: value / 100.0
-                                textFromValue: function (value, locale) {
-                                    return (value / 100.0).toFixed(2);
-                                }
-                                valueFromText: function (text, locale) {
-                                    return Math.round(parseFloat(text) * 100);
-                                }
-                                onValueChanged: loraListModel.setProperty(index, "weight", realValue)
-                            }
-                            Button {
-                                text: "X"
-                                font.pixelSize: appStyle.fontSizeBody
-                                implicitWidth: 40
-                                onClicked: loraListModel.remove(index)
-                            }
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Button {
-                            text: "+ Add LoRA"
-                            font.pixelSize: appStyle.fontSizeBody
-                            onClicked: loraListModel.append({
-                                "path": "",
-                                "weight": 1.0
-                            })
-                        }
-                        Item {
-                            Layout.fillWidth: true
-                        }
-                        Label {
-                            text: "Global Scale"
-                            font.pixelSize: appStyle.fontSizeBody
-                            visible: loraListModel.count > 0
-                        }
-                        SpinBox {
-                            id: loraScaleSpinBox
-                            editable: true
-                            visible: loraListModel.count > 0
-                            Layout.minimumWidth: 150
-                            implicitWidth: 150
-                            from: 0
-                            to: 500
-                            value: 250
-                            stepSize: 10
-                            font.pixelSize: appStyle.fontSizeSmall
-                            property real realValue: value / 100.0
-                            textFromValue: function (value, locale) {
-                                return (value / 100.0).toFixed(2);
-                            }
-                            valueFromText: function (text, locale) {
-                                return Math.round(parseFloat(text) * 100);
-                            }
-                        }
-                    }
-
-                    FileDialog {
-                        id: loraFileDialog
-                        title: "Select LoRA File"
-                        nameFilters: ["SafeTensors Files (*.safetensors)", "All Files (*)"]
-                        property int currentLoraIndex: -1
-                        onAccepted: {
-                            if (!selectedFile || currentLoraIndex < 0)
-                                return;
-                            var filePath = new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0);
-                            loraListModel.setProperty(currentLoraIndex, "path", filePath);
-                        }
-                    }
-
-                    Label {
-                        visible: loraListModel.count === 0
-                        text: "No LoRA files added"
-                        font.pixelSize: appStyle.fontSizeSmall
-                        color: appStyle.textColorSecondary
                     }
                 }
 
@@ -544,92 +535,325 @@ Pane {
                     }
                 }
 
-                // Build button
-                Button {
-                    Layout.fillWidth: true
-                    Layout.topMargin: appStyle.spacing
-                    text: isBuilding ? "Stop Build" : "Build Engine"
-                    font.pixelSize: appStyle.fontSizeBody
-                    font.bold: true
-                    enabled: isBuilding || isValid()
-                    highlighted: !isBuilding
+                Section {
+                    title: "LoRA Files"
+                    description: "Optional LoRA weights to merge into the model (format: path or path:weight)"
 
-                    function isValid() {
-                        return libraryRoot !== "" && modelSourceField.text !== "" && outputPathField.text !== "" && maxBatchSpinBox.value >= minBatchSpinBox.value && optBatchSpinBox.value >= minBatchSpinBox.value && optBatchSpinBox.value <= maxBatchSpinBox.value && maxResolutionSpinBox.value >= minResolutionSpinBox.value;
+                    Repeater {
+                        model: loraListModel
+
+                        RowLayout {
+                            Layout.fillWidth: true
+                            required property int index
+                            required property string path
+                            required property real weight
+
+                            TextField {
+                                Layout.fillWidth: true
+                                font.pixelSize: appStyle.fontSizeBody
+                                text: path
+                                placeholderText: "/path/to/lora.safetensors"
+                                onTextChanged: loraListModel.setProperty(index, "path", text)
+                            }
+                            Button {
+                                text: "..."
+                                font.pixelSize: appStyle.fontSizeBody
+                                implicitWidth: 40
+                                onClicked: {
+                                    loraFileDialog.currentLoraIndex = index;
+                                    loraFileDialog.open();
+                                }
+                            }
+                            Label {
+                                text: "Weight"
+                                font.pixelSize: appStyle.fontSizeSmall
+                            }
+                            SpinBox {
+                                id: weightSpinBox
+                                editable: true
+                                Layout.minimumWidth: 150
+                                implicitWidth: 150
+                                from: 0
+                                to: 200
+                                value: weight * 100
+                                stepSize: 5
+                                font.pixelSize: appStyle.fontSizeSmall
+                                property real realValue: value / 100.0
+                                textFromValue: function (value, locale) {
+                                    return (value / 100.0).toFixed(2);
+                                }
+                                valueFromText: function (text, locale) {
+                                    return Math.round(parseFloat(text) * 100);
+                                }
+                                onValueChanged: loraListModel.setProperty(index, "weight", realValue)
+                            }
+                            Button {
+                                text: "X"
+                                font.pixelSize: appStyle.fontSizeBody
+                                implicitWidth: 40
+                                onClicked: loraListModel.remove(index)
+                            }
+                        }
                     }
 
-                    onClicked: isBuilding ? stopBuild() : startBuild()
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Button {
+                            text: "+ Add LoRA"
+                            font.pixelSize: appStyle.fontSizeBody
+                            onClicked: loraListModel.append({
+                                "path": "",
+                                "weight": 1.0
+                            })
+                        }
+                        Item {
+                            Layout.fillWidth: true
+                        }
+                        Label {
+                            text: "Global Scale"
+                            font.pixelSize: appStyle.fontSizeBody
+                            visible: loraListModel.count > 0
+                        }
+                        SpinBox {
+                            id: loraScaleSpinBox
+                            editable: true
+                            visible: loraListModel.count > 0
+                            Layout.minimumWidth: 150
+                            implicitWidth: 150
+                            from: 0
+                            to: 500
+                            value: 250
+                            stepSize: 10
+                            font.pixelSize: appStyle.fontSizeSmall
+                            property real realValue: value / 100.0
+                            textFromValue: function (value, locale) {
+                                return (value / 100.0).toFixed(2);
+                            }
+                            valueFromText: function (text, locale) {
+                                return Math.round(parseFloat(text) * 100);
+                            }
+                        }
+                    }
+
+                    FileDialog {
+                        id: loraFileDialog
+                        title: "Select LoRA File"
+                        nameFilters: ["SafeTensors Files (*.safetensors)", "All Files (*)"]
+                        property int currentLoraIndex: -1
+                        onAccepted: {
+                            if (!selectedFile || currentLoraIndex < 0)
+                                return;
+                            var filePath = new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0);
+                            loraListModel.setProperty(currentLoraIndex, "path", filePath);
+                        }
+                    }
+
+                    Label {
+                        visible: loraListModel.count === 0
+                        text: "No LoRA files added"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: appStyle.textColorSecondary
+                    }
                 }
 
-                Item {
-                    height: appStyle.padding
-                }
             }
         }
 
-        // Output pane
-        Rectangle {
+        // Build button — always visible, anchored below config
+        RowLayout {
             Layout.fillWidth: true
-            Layout.fillHeight: true
-            color: appStyle.backgroundColorSecondary
-            border.color: appStyle.borderColor
-            border.width: 1
-            radius: appStyle.borderRadius
+            spacing: appStyle.spacing
 
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 8
-                spacing: 4
+            Button {
+                Layout.fillWidth: true
+                text: isBuilding ? "Stop Build" : "Build Engine"
+                font.pixelSize: appStyle.fontSizeBody
+                font.bold: true
+                highlighted: !isBuilding
+                onClicked: isBuilding ? stopBuild() : startBuild()
+            }
+        }
+
+        // Progress bar — thin, inline status, only visible when active
+        RowLayout {
+            Layout.fillWidth: true
+            spacing: 8
+            visible: buildStatus !== "idle"
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 4
+                radius: 2
+                color: appStyle.backgroundColorSecondary
+
+                Rectangle {
+                    width: buildProgressValue / 100 * parent.width
+                    height: parent.height
+                    radius: 2
+                    color: buildStatus === "failed" ? "#f44336" : "#4CAF50"
+                    Behavior on color { ColorAnimation { duration: 400 } }
+                }
+            }
+
+            Label {
+                text: buildStatus === "running" ? Math.round(buildProgressValue) + "%"
+                    : buildStatus === "success" ? "Done"
+                    : "Failed"
+                font.pixelSize: appStyle.fontSizeSmall
+                color: buildStatus === "failed" ? "#f44336" : "#4CAF50"
+                Layout.preferredWidth: 36
+                horizontalAlignment: Text.AlignRight
+            }
+        }
+
+        // Built engines — visible once an output path is set
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 6
+            visible: outputPathField && outputPathField.text !== ""
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: appStyle.spacing
+
+                CustomLabel {
+                    text: "Built Engines"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    color: appStyle.textColorSecondary
+                }
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: "Refresh"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    onClicked: refreshEngines()
+                }
+                Button {
+                    text: "Open Folder"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    onClicked: Qt.openUrlExternally(engineModel.folder)
+                }
+            }
+
+            Rectangle {
+                Layout.fillWidth: true
+                height: 1
+                color: appStyle.borderColor
+                opacity: 0.5
+            }
+
+            Repeater {
+                model: engineModel
 
                 RowLayout {
                     Layout.fillWidth: true
-                    CustomLabel {
-                        text: "Build Output"
-                        font.pixelSize: appStyle.fontSizeBody
-                        font.bold: true
+                    spacing: 8
+
+                    Rectangle {
+                        width: 6
+                        height: 6
+                        radius: 3
+                        color: appStyle.primaryColor
+                        anchors.verticalCenter: parent.verticalCenter
                     }
-                    Item {
+                    Label {
                         Layout.fillWidth: true
-                    }
-                    Button {
-                        text: "Clear"
-                        font.pixelSize: appStyle.fontSizeSmall
-                        onClicked: outputTextArea.text = ""
-                    }
-                }
-
-                ScrollView {
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-
-                    TextArea {
-                        id: outputTextArea
-                        readOnly: true
-                        wrapMode: TextEdit.Wrap
-                        font.family: "monospace"
+                        text: fileName
                         font.pixelSize: appStyle.fontSizeSmall
                         color: appStyle.textColor
-                        text: libraryRoot !== "" ? "Ready to build. Configure options above and click 'Build Engine'.\n" : "Library path not configured. Please ensure packages are installed.\n"
-
-                        background: Rectangle {
-                            color: "transparent"
-                        }
+                        elide: Text.ElideMiddle
                     }
                 }
             }
+
+            Label {
+                visible: engineModel.count === 0
+                text: "No engines found"
+                font.pixelSize: appStyle.fontSizeSmall
+                color: appStyle.textColorSecondary
+                font.italic: true
+            }
         }
+
+        // Collapsible output — closed by default, auto-opens on build start
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 0
+
+            RowLayout {
+                Layout.fillWidth: true
+                spacing: 4
+
+                Label {
+                    text: logExpanded ? "▾" : "▸"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    color: appStyle.textColorSecondary
+                }
+                CustomLabel {
+                    text: "Build Log"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    color: appStyle.textColorSecondary
+                }
+                Item { Layout.fillWidth: true }
+                Button {
+                    text: "Clear"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    visible: logExpanded
+                    onClicked: logTextArea.text = ""
+                }
+
+                TapHandler {
+                    onTapped: logExpanded = !logExpanded
+                }
+                HoverHandler {
+                    cursorShape: Qt.PointingHandCursor
+                }
+            }
+
+            ScrollView {
+                visible: logExpanded
+                Layout.fillWidth: true
+                Layout.preferredHeight: 160
+                clip: true
+
+                TextArea {
+                    id: logTextArea
+                    readOnly: true
+                    wrapMode: TextEdit.Wrap
+                    font.family: appStyle.fontFamily
+                    font.pixelSize: appStyle.fontSizeBody
+                    color: appStyle.textColor
+                }
+            }
+        }
+
     }
 
     // Start build: first sync, then run
     function startBuild() {
-        // Clear previous output
+        var errors = [];
+        if (libraryRoot === "") errors.push("Library path not configured");
+        if (modelSourceField.text === "") errors.push("Model source path is empty");
+        if (outputPathField.text === "") errors.push("Output path is empty");
+        if (maxBatchSpinBox.value < minBatchSpinBox.value) errors.push("Max batch must be >= min batch");
+        if (optBatchSpinBox.value < minBatchSpinBox.value || optBatchSpinBox.value > maxBatchSpinBox.value) errors.push("Opt batch must be between min and max batch");
+        if (maxResolutionSpinBox.value < minResolutionSpinBox.value) errors.push("Max resolution must be >= min resolution");
+        if (errors.length > 0) {
+            for (var i = 0; i < errors.length; i++)
+                log("[Error] " + errors[i]);
+            return;
+        }
+
+        buildStatus = "running"
+        buildProgressValue = 0
+        logExpanded = true
+        progressAnimation.restart()
+
         syncProcess.clearOutput();
         buildProcess.clearOutput();
-        outputTextArea.text = "";
 
-        outputTextArea.append("[Syncing environment in " + scriptDir + "]");
-        outputTextArea.append("$ " + uvPath + " sync");
-        outputTextArea.append("----------------------------------------");
+        log("[Syncing environment in " + scriptDir + "]");
+        log("$ " + uvPath + " sync");
+        log("----------------------------------------");
 
         // Set working directory and start sync
         syncProcess.workingDirectory = scriptDir;
@@ -666,9 +890,9 @@ Pane {
 
         // Log the command
         var cmdLine = uvPath + " " + args.join(" ");
-        outputTextArea.append("[Starting build]");
-        outputTextArea.append("$ cd " + scriptDir + " && " + cmdLine);
-        outputTextArea.append("----------------------------------------");
+        log("[Starting build]");
+        log("$ cd " + scriptDir + " && " + cmdLine);
+        log("----------------------------------------");
 
         // Set working directory, arguments and start
         buildProcess.workingDirectory = scriptDir;
@@ -677,7 +901,13 @@ Pane {
     }
 
     function stopBuild() {
-        outputTextArea.append("\n[Stopping...]");
+        progressAnimation.stop()
+        engineCheckTimer.stop()
+        _syncStarted = false
+        _buildStarted = false
+        buildStatus = "idle"
+        buildProgressValue = 0
+        log("\n[Stopping...]");
         if (syncProcess.running) {
             syncProcess.stop();
         }

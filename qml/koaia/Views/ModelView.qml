@@ -63,9 +63,7 @@ Pane {
     }
 
     function logFilePath() {
-        var base = StandardPaths.writableLocation(StandardPaths.AppConfigLocation)
-        var clean = base.replace(/\\/g, '/')   // normalize Windows backslashes
-        return (isWin32 ? "file:///" : "file://") + clean + "/build.log"
+        return StandardPaths.writableLocation(StandardPaths.AppConfigLocation) + "/build.log"
     }
 
     function saveLog() {
@@ -803,9 +801,10 @@ Pane {
                     onClicked: logTextArea.text = ""
                 }
 
-                MouseArea {
-                    anchors.fill: parent
-                    onClicked: logExpanded = !logExpanded
+                TapHandler {
+                    onTapped: logExpanded = !logExpanded
+                }
+                HoverHandler {
                     cursorShape: Qt.PointingHandCursor
                 }
             }

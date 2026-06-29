@@ -12,7 +12,6 @@ RowLayout {
     property real from: 0.0
     property real to: 1.0
     property var port: null
-    property bool enabled: true
     
     property alias slider: slider
     

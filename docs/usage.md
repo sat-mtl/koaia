@@ -60,9 +60,9 @@ The main view shows the live result of all layers and the AI output. Use it to t
 
 <img src="images/preview.png" alt="Preview">
 
-## The **MODEL** tab
+## The **BUILD** tab
 
-The MODEL tab converts Stable Diffusion models into optimized TensorRT engines that can run in real time on your NVIDIA GPU. This is a one-time build step: once an engine is built, it can be loaded from the RUN tab for live generation.
+The BUILD tab converts Stable Diffusion models into optimized TensorRT engines that can run in real time on your NVIDIA GPU. This is a one-time build step: once an engine is built, it can be loaded from the RUN tab for live generation.
 
 Building an engine takes between ten and thirty minutes depending on the machine and / or model.
 
@@ -140,7 +140,3 @@ The resolution range and optimal size have a significant impact on performance a
 
 The bottom panel shows live log output from the build process. It displays environment synchronization messages followed by the TensorRT compilation progress. When the build finishes successfully, the output folder opens automatically.
 If you encounter a problem, copy this log and send it to us!
-
-## The **LOG** tab
-
-This tab display general utility log. Send this to the developer if you encounter issues!

@@ -4,6 +4,7 @@ import QtQuick.Controls.Basic
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import Qt.labs.folderlistmodel
 import Score.UI as UI
 import koaia
 import "../Scripts/ConfigManager.js" as ConfigManager
@@ -13,6 +14,50 @@ Pane {
 
     readonly property bool isWin32: Qt.platform.os === "windows"
     readonly property url defaultConfigUrl: Qt.resolvedUrl("../../default.koaia")
+
+    // Video file existence check — scans parent dir for the exact filename
+    readonly property string _videoParentUrl: {
+        var p = imagePathField.text.replace(/\\/g, '/')
+        var dir = p.substring(0, p.lastIndexOf('/'))
+        return dir ? ((isWin32 ? "file:///" : "file://") + dir) : ""
+    }
+    readonly property string _videoFileName: {
+        var p = imagePathField.text.replace(/\\/g, '/')
+        return p.substring(p.lastIndexOf('/') + 1)
+    }
+    readonly property bool videoFileExists: _videoFileName !== "" && videoFileModel.count > 0
+
+    // Engine folder validation
+    readonly property string _engineFolderUrl: {
+        if (!enginePathField.text) return ""
+        return (isWin32 ? "file:///" : "file://") + enginePathField.text.replace(/\\/g, '/')
+    }
+    readonly property bool engineHasFiles:  engineFilesModel.count > 0
+    readonly property bool engineHasOnnx:   engineOnnxModel.count > 0
+
+    FolderListModel {
+        id: videoFileModel
+        showFiles: true
+        showDirs: false
+        folder: mainView._videoParentUrl
+        nameFilters: mainView._videoFileName ? [mainView._videoFileName] : []
+    }
+
+    FolderListModel {
+        id: engineFilesModel
+        showFiles: true
+        showDirs: false
+        nameFilters: ["*.engine"]
+        folder: mainView._engineFolderUrl
+    }
+
+    FolderListModel {
+        id: engineOnnxModel
+        showFiles: true
+        showDirs: false
+        nameFilters: ["*.onnx"]
+        folder: mainView._engineFolderUrl ? mainView._engineFolderUrl + "/onnx" : ""
+    }
 
     property bool isProcessing: false
     onIsProcessingChanged: {
@@ -494,6 +539,13 @@ Pane {
                     color: appStyle.textColorSecondary
                     Layout.fillWidth: true
                 }
+                Label {
+                    visible: imagePathField.text !== "" && !mainView.videoFileExists
+                    text: "File not found"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    color: "#FF3B30"
+                    Layout.fillWidth: true
+                }
             }
 
             Section {
@@ -610,7 +662,28 @@ Pane {
                         visible: enginePathField.text === ""
                         text: "Select an engine folder to enable start"
                         font.pixelSize: appStyle.fontSizeSmall
-                        color: appStyle.textColorSecondary
+                        color: "#FF3B30"
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        visible: enginePathField.text !== "" && !mainView.engineHasFiles
+                        text: "No .engine files found in this folder"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: "#FF3B30"
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        visible: enginePathField.text !== "" && mainView.engineHasFiles && !mainView.engineHasOnnx
+                        text: "Missing onnx subfolder"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: "#FF9500"
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        visible: enginePathField.text !== "" && mainView.engineHasFiles
+                        text: engineFilesModel.count + " engine" + (engineFilesModel.count === 1 ? "" : "s") + " found" + (mainView.engineHasOnnx ? "" : " — onnx missing")
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: mainView.engineHasOnnx ? "#34C759" : "#FF9500"
                         Layout.fillWidth: true
                     }
 

@@ -353,6 +353,14 @@ Pane {
                         }
                     }
 
+                    Label {
+                        visible: outputPathField.text === ""
+                        text: "Select an output folder to enable build"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: "#FF3B30"
+                        Layout.fillWidth: true
+                    }
+
                     FolderDialog {
                         id: outputFolderDialog
                         title: "Select Output Folder"

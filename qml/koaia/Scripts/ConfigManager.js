@@ -2,6 +2,8 @@
 
 var CONFIG_VERSION = "1.0";
 
+function r(v) { return Math.round(v * 10000) / 10000; }
+
 var WORKFLOW_TYPES = [
     "SD_TXT2IMG",
     "SD_IMG2IMG",
@@ -38,7 +40,9 @@ function createDefaultConfig() {
         },
         noiseLayer: {
             noiseShader: 0, smokeAmount: 0.0, voronoiAmount: 0.0,
-            noiseAmount: 0.0, perlinAmount: 0.0
+            noiseAmount: 0.0, perlinAmount: 0.0,
+            voronoiSeed: 0.3, voronoiIregularity: 0.3, voronoiBlur: 0.3, voronoiScale: 0.4,
+            whiteNoiseSeed: 0.3, perlinSeed: 0.3, perlinScale: 0.3
         },
         shapeLayer: {
             shapeType: 1, shapeAmount: 0.0, brightness: 0.1, hue: 0.0,
@@ -58,8 +62,8 @@ function exportConfig(s) {
         metadata: { timestamp: new Date().toISOString(), application: "Koaia" },
         input: {
             videoPath:    s.videoPath    || "",
-            videoAmount:  s.videoAmount  || 0,
-            cameraAmount: s.cameraAmount || 0
+            videoAmount:  r(s.videoAmount  || 0),
+            cameraAmount: r(s.cameraAmount || 0)
         },
         aiModel: {
             prompt:         s.prompt        || "",
@@ -67,31 +71,37 @@ function exportConfig(s) {
             enginePath:     s.enginePath    || "",
             seed:           s.seed          !== undefined ? s.seed   : 20,
             timesteps:      s.timesteps     || "20",
-            guidance:       s.guidance      !== undefined ? s.guidance : 1.0,
+            guidance:       r(s.guidance    !== undefined ? s.guidance : 1.0),
             guidanceType:   s.guidanceType  || 0,
-            delta:          s.delta         !== undefined ? s.delta    : 1.0,
+            delta:          r(s.delta       !== undefined ? s.delta   : 1.0),
             denoisingBatch: s.denoisingBatch|| false,
             addNoise:       s.addNoise      || false,
             manualMode:     s.manualMode    || false,
             resolution:     s.resolution    || 0
         },
         noiseLayer: {
-            noiseShader:   s.noiseShader   || 0,
-            smokeAmount:   s.smokeAmount   || 0,
-            voronoiAmount: s.voronoiAmount || 0,
-            noiseAmount:   s.noiseAmount   || 0,
-            perlinAmount:  s.perlinAmount  || 0
+            noiseShader:        s.noiseShader        || 0,
+            smokeAmount:        r(s.smokeAmount        || 0),
+            voronoiAmount:      r(s.voronoiAmount      || 0),
+            noiseAmount:        r(s.noiseAmount        || 0),
+            perlinAmount:       r(s.perlinAmount       || 0),
+            voronoiSeed:        r(s.voronoiSeed        !== undefined ? s.voronoiSeed        : 0.3),
+            voronoiIregularity: r(s.voronoiIregularity !== undefined ? s.voronoiIregularity : 0.3),
+            voronoiBlur:        r(s.voronoiBlur        !== undefined ? s.voronoiBlur        : 0.3),
+            voronoiScale:       r(s.voronoiScale       !== undefined ? s.voronoiScale       : 0.4),
+            whiteNoiseSeed:     r(s.whiteNoiseSeed     !== undefined ? s.whiteNoiseSeed     : 0.3),
+            perlinSeed:         r(s.perlinSeed         !== undefined ? s.perlinSeed         : 0.3),
+            perlinScale:        r(s.perlinScale        !== undefined ? s.perlinScale        : 0.3)
         },
         shapeLayer: {
             shapeType:    s.shapeType    || 0,
-            shapeAmount:  s.shapeAmount  || 0,
-            brightness:   s.shapeBrightness || 0.1,
-            hue:          s.shapeHue     || 0,
-            shapeWidth:   s.shapeWidth   !== undefined ? s.shapeWidth   : 0.5,
-            shapeHeight:  s.shapeHeight  !== undefined ? s.shapeHeight  : 0.5,
-            shapeHRepeat: s.shapeHRepeat !== undefined ? s.shapeHRepeat : 1,
-            shapeVRepeat: s.shapeVRepeat !== undefined ? s.shapeVRepeat : 1,
-            // shapeX/Y can legitimately be 0, so avoid the || fallback
+            shapeAmount:  r(s.shapeAmount  || 0),
+            brightness:   r(s.shapeBrightness || 0.1),
+            hue:          r(s.shapeHue     || 0),
+            shapeWidth:   r(s.shapeWidth   !== undefined ? s.shapeWidth   : 0.5),
+            shapeHeight:  r(s.shapeHeight  !== undefined ? s.shapeHeight  : 0.5),
+            shapeHRepeat: r(s.shapeHRepeat !== undefined ? s.shapeHRepeat : 1),
+            shapeVRepeat: r(s.shapeVRepeat !== undefined ? s.shapeVRepeat : 1),
             shapeX: s.shapeX !== undefined ? s.shapeX : 256,
             shapeY: s.shapeY !== undefined ? s.shapeY : 256,
             invert: s.shapeInvert || false

@@ -12,11 +12,89 @@ Pane {
     id: mainView
 
     readonly property bool isWin32: Qt.platform.os === "windows"
+    readonly property url defaultConfigUrl: Qt.resolvedUrl("../../default.koaia")
 
     property bool isProcessing: false
-    onIsProcessingChanged: (isProcessing) ? Score.play() : Score.stop()
+    onIsProcessingChanged: {
+        if (isProcessing) {
+            Score.play()
+            Qt.callLater(pushValuesToScore)
+        } else {
+            Score.stop()
+        }
+    }
 
-    property url currentConfigFile: ""
+    // Re-pushes all current UI values to Score after play() resets port state.
+    function pushValuesToScore() {
+        var p = processes
+        try {
+            if (p.prompt_composer.keywords)
+                Score.setValue(p.prompt_composer.keywords, promptTextField.text)
+            if (p.streamDiffusion.workflow)
+                Score.setValue(p.streamDiffusion.workflow, workflowCombo.currentIndex)
+            if (p.streamDiffusion.engines)
+                Score.setValue(p.streamDiffusion.engines, enginePathField.text)
+            if (p.streamDiffusion.seed)
+                Score.setValue(p.streamDiffusion.seed, seedSpinBox.value)
+            if (p.streamDiffusion.timesteps)
+                Score.setValue(p.streamDiffusion.timesteps, timestepsField.text)
+            if (p.streamDiffusion.guidance)
+                Score.setValue(p.streamDiffusion.guidance, guidanceSlider.value)
+            if (p.streamDiffusion.guidance_type)
+                Score.setValue(p.streamDiffusion.guidance_type, guidanceTypeCombo.currentIndex)
+            if (p.streamDiffusion.delta)
+                Score.setValue(p.streamDiffusion.delta, deltaSlider.value)
+            if (p.streamDiffusion.denoising_batch)
+                Score.setValue(p.streamDiffusion.denoising_batch, denoisingBatchSpinBox.checked)
+            if (p.streamDiffusion.add_noise)
+                Score.setValue(p.streamDiffusion.add_noise, addNoiseCheckBox.checked)
+            if (p.streamDiffusion.manual_mode)
+                Score.setValue(p.streamDiffusion.manual_mode, manualModeCheckBox.checked)
+            if (p.streamDiffusion.resolution)
+                Score.setValue(p.streamDiffusion.resolution, sizeCombo.currentDimensions)
+            if (p.shape.maskShapeMode)
+                Score.setValue(p.shape.maskShapeMode, shapeTypeCombo.currentIndex)
+            if (p.shape.color) {
+                var c = Qt.hsla(hueSlider.value, 0.7, brightnessSlider.value, 1.0)
+                Score.setValue(p.shape.color, [c.r, c.g, c.b, 1.0])
+            }
+            if (p.shape.shapeWidth)
+                Score.setValue(p.shape.shapeWidth, shapeWidthSlider.value)
+            if (p.shape.shapeHeight)
+                Score.setValue(p.shape.shapeHeight, shapeHeightSlider.value)
+            if (p.shape.horizontalRepeat)
+                Score.setValue(p.shape.horizontalRepeat, shapeHRepeatSlider.value)
+            if (p.shape.verticalRepeat)
+                Score.setValue(p.shape.verticalRepeat, shapeVRepeatSlider.value)
+            if (p.shape.center)
+                Score.setValue(p.shape.center, [shapex.value / 512.0, shapey.value / 512.0])
+            if (p.shape.invertMask)
+                Score.setValue(p.shape.invertMask, invertCheckBox.checked)
+            if (p.video_Mixer.alpha1)
+                Score.setValue(p.video_Mixer.alpha1, shapeAmountSlider.slider.value)
+            if (p.video_Mixer.alpha2)
+                Score.setValue(p.video_Mixer.alpha2, smokeAmountSlider.slider.value)
+            if (p.video_Mixer.alpha3)
+                Score.setValue(p.video_Mixer.alpha3, voronoiAmountSlider.slider.value)
+            if (p.video_Mixer.alpha4)
+                Score.setValue(p.video_Mixer.alpha4, noiseAmountSlider.slider.value)
+            if (p.video_Mixer.alpha5)
+                Score.setValue(p.video_Mixer.alpha5, perlinAmountSlider.slider.value)
+            if (p.video_Mixer.alpha7)
+                Score.setValue(p.video_Mixer.alpha7, imageAmountSlider.slider.value)
+            if (p.video_Mixer.alpha8)
+                Score.setValue(p.video_Mixer.alpha8, cameraAmountSlider.slider.value)
+            if (p.voronoi.seed)        Score.setValue(p.voronoi.seed,        shaderControls.voronoiSeed)
+            if (p.voronoi.iregularity) Score.setValue(p.voronoi.iregularity, shaderControls.voronoiIregularity)
+            if (p.voronoi.blur)        Score.setValue(p.voronoi.blur,        shaderControls.voronoiBlur)
+            if (p.voronoi.scale)       Score.setValue(p.voronoi.scale,       shaderControls.voronoiScale)
+            if (p.white_Noise.seed)    Score.setValue(p.white_Noise.seed,    shaderControls.whiteNoiseSeed)
+            if (p.perlin_Noise.seed)   Score.setValue(p.perlin_Noise.seed,   shaderControls.perlinSeed)
+            if (p.perlin_Noise.scale)  Score.setValue(p.perlin_Noise.scale,  shaderControls.perlinScale)
+        } catch(e) {
+            console.warn("[MainView] pushValuesToScore error:", e)
+        }
+    }
 
     Settings {
         id: appSettings
@@ -70,19 +148,29 @@ Pane {
     }
 
     Component.onCompleted: {
-        restoreSavedSettings();
+        loadConfigFromUrl(defaultConfigUrl, true)
+    }
+
+    // Returns the absolute filesystem path for a file inside media/.
+    // Use this instead of hardcoding paths — works in dev and in packaged builds.
+    function mediaPath(filename) {
+        var url = Qt.resolvedUrl("../../media/" + filename)
+        var path = new URL(url.toString()).pathname
+        return isWin32 ? path.substr(1) : path
     }
 
     function doSave(fileUrl) {
         mainView.forceActiveFocus()
         var jsonConfig = ConfigManager.exportConfig(appSettings)
+        // Re-tokenise the bundled media path so saved files stay portable across machines.
+        var mediaDirPath = mediaPath("").replace(/\/+$/, "")
+        if (mediaDirPath) jsonConfig = jsonConfig.split(mediaDirPath).join("{{media}}")
         ConfigManager.saveConfigToFile(jsonConfig, fileUrl, function(success, error) {
             configStatusLabel.isError = !success
             configStatusLabel.text = success
-                ? "Saved: " + fileUrl.split("/").pop()
+                ? "Saved: " + fileUrl.toString().split("/").pop()
                 : "Save failed: " + (error || "unknown error")
             if (success) {
-                currentConfigFile = fileUrl
                 console.log("[MainView] Config saved to:", fileUrl)
             } else {
                 console.error("[MainView] Failed to save config:", error)
@@ -90,7 +178,112 @@ Pane {
         })
     }
 
-    // Called on startup and after every config load.
+    // Writes config values into appSettings then pushes them to the UI and Score.
+    function applyConfig(config) {
+        var i = config.input
+        if (i) {
+            var rawPath = i.videoPath || ""
+            // Resolve {{media}} token to the bundled media/ directory path.
+            // Fall back to glow.mp4 when no video is specified — Score crashes without one.
+            if (rawPath.indexOf("{{media}}") !== -1) {
+                rawPath = rawPath.replace("{{media}}", mediaPath("").replace(/\/$/, ""))
+            } else if (!rawPath) {
+                rawPath = mediaPath("glow.mp4")
+            }
+            appSettings.videoPath    = rawPath
+            appSettings.videoAmount  = i.videoAmount  || 0
+            appSettings.cameraAmount = i.cameraAmount || 0
+        }
+        var ai = config.aiModel
+        if (ai) {
+            appSettings.prompt         = ai.prompt        || ""
+            appSettings.workflow       = ai.workflow       || 0
+            appSettings.enginePath     = ai.enginePath     || ""
+            appSettings.seed           = ai.seed           !== undefined ? ai.seed      : 20
+            appSettings.timesteps      = ai.timesteps      || "20"
+            appSettings.guidance       = ai.guidance       !== undefined ? ai.guidance  : 1.0
+            appSettings.guidanceType   = ai.guidanceType   || 0
+            appSettings.delta          = ai.delta          !== undefined ? ai.delta     : 1.0
+            appSettings.denoisingBatch = ai.denoisingBatch || false
+            appSettings.addNoise       = ai.addNoise       || false
+            appSettings.manualMode     = ai.manualMode     || false
+            appSettings.resolution     = ai.resolution     || 0
+        }
+        var n = config.noiseLayer
+        if (n) {
+            appSettings.noiseShader        = n.noiseShader        || 0
+            appSettings.smokeAmount        = n.smokeAmount        || 0
+            appSettings.voronoiAmount      = n.voronoiAmount      || 0
+            appSettings.noiseAmount        = n.noiseAmount        || 0
+            appSettings.perlinAmount       = n.perlinAmount       || 0
+            appSettings.voronoiSeed        = n.voronoiSeed        !== undefined ? n.voronoiSeed        : 0.3
+            appSettings.voronoiIregularity = n.voronoiIregularity !== undefined ? n.voronoiIregularity : 0.3
+            appSettings.voronoiBlur        = n.voronoiBlur        !== undefined ? n.voronoiBlur        : 0.3
+            appSettings.voronoiScale       = n.voronoiScale       !== undefined ? n.voronoiScale       : 0.4
+            appSettings.whiteNoiseSeed     = n.whiteNoiseSeed     !== undefined ? n.whiteNoiseSeed     : 0.3
+            appSettings.perlinSeed         = n.perlinSeed         !== undefined ? n.perlinSeed         : 0.3
+            appSettings.perlinScale        = n.perlinScale        !== undefined ? n.perlinScale        : 0.3
+        }
+        var sh = config.shapeLayer
+        if (sh) {
+            appSettings.shapeType       = sh.shapeType    || 0
+            appSettings.shapeAmount     = sh.shapeAmount  || 0
+            appSettings.shapeBrightness = sh.brightness   || 0.1
+            appSettings.shapeHue        = sh.hue          || 0
+            appSettings.shapeWidth      = sh.shapeWidth   !== undefined ? sh.shapeWidth   : 0.5
+            appSettings.shapeHeight     = sh.shapeHeight  !== undefined ? sh.shapeHeight  : 0.5
+            appSettings.shapeHRepeat    = sh.shapeHRepeat !== undefined ? sh.shapeHRepeat : 1
+            appSettings.shapeVRepeat    = sh.shapeVRepeat !== undefined ? sh.shapeVRepeat : 1
+            appSettings.shapeX          = sh.shapeX       !== undefined ? sh.shapeX       : 256
+            appSettings.shapeY          = sh.shapeY       !== undefined ? sh.shapeY       : 256
+            appSettings.shapeInvert     = sh.invert        || false
+        }
+        restoreSavedSettings()
+    }
+
+    // Loads a .koaia file by URL and applies it. Pass silent=true on startup to
+    // suppress status label updates (avoids "Loaded: default.koaia" flash).
+    function loadConfigFromUrl(fileUrl, silent) {
+        var fileUrlStr = fileUrl.toString()
+        ConfigManager.loadConfigFromFile(fileUrlStr, function(success, jsonText, error) {
+            if (!success) {
+                if (!silent) {
+                    configStatusLabel.isError = true
+                    configStatusLabel.text = "Load failed: " + (error || "unknown error")
+                }
+                console.error("[MainView] Failed to load config:", fileUrlStr, error)
+                return
+            }
+            var config
+            try { config = JSON.parse(jsonText) }
+            catch (e) {
+                console.error("[MainView] Invalid config JSON:", e.message)
+                if (!silent) {
+                    configStatusLabel.isError = true
+                    configStatusLabel.text = "Invalid config file"
+                }
+                return
+            }
+            var validation = ConfigManager.validateConfig(config)
+            if (!validation.valid) {
+                console.error("[MainView] Config validation failed:", validation.errors.join(", "))
+                if (!silent) {
+                    configStatusLabel.isError = true
+                    configStatusLabel.text = "Invalid config: " + validation.errors[0]
+                }
+                return
+            }
+            applyConfig(config)
+            if (!silent) {
+                configStatusLabel.isError = false
+                configStatusLabel.text = "Loaded: " + fileUrlStr.split("/").pop()
+            }
+            console.log("[MainView] Config loaded from:", fileUrlStr)
+        })
+    }
+
+    // Called after every config load — pushes appSettings values into UI controls,
+    // which in turn fire onValueChanged and push to Score.
     function restoreSavedSettings() {
         // Input section
         imagePathField.text = appSettings.videoPath;
@@ -233,23 +426,10 @@ Pane {
                         onTextChanged: {
                             appSettings.videoPath = text;
                             if (videoProcess && text !== "") {
-                                console.log("Setting video path to:", text);
                                 var wasPlaying = isProcessing;
-                                if (wasPlaying) {
-                                    console.log("Stopping Score to reload video...");
-                                    Score.stop();
-                                    isProcessing = false;
-                                }
-
+                                if (wasPlaying) isProcessing = false;  // handler calls Score.stop()
                                 videoProcess.path = text;
-
-                                if (wasPlaying) {
-                                    Qt.callLater(function () {
-                                        console.log("Restarting Score with new video...");
-                                        isProcessing = true;
-                                        Score.play();
-                                    });
-                                }
+                                if (wasPlaying) Qt.callLater(function() { isProcessing = true; });  // handler calls Score.play()
                             }
                         }
                     }
@@ -1045,7 +1225,12 @@ Pane {
                 font.bold: true
                 highlighted: isProcessing
                 Layout.preferredWidth: 230
+                enabled: isProcessing || imagePathField.text !== ""
                 onClicked: isProcessing = !isProcessing
+
+                ToolTip.visible: !enabled && hovered
+                ToolTip.text: "Set a video input path before starting"
+                ToolTip.delay: 500
             }
 
             Label {
@@ -1061,13 +1246,6 @@ Pane {
                 text: "Open"
                 font.pixelSize: appStyle.fontSizeBody
                 onClicked: loadConfigDialog.open()
-            }
-
-            Button {
-                text: "Save"
-                font.pixelSize: appStyle.fontSizeBody
-                enabled: currentConfigFile.toString() !== ""
-                onClicked: doSave(currentConfigFile.toString())
             }
 
             Button {
@@ -1143,6 +1321,7 @@ Pane {
         title: "Save Configuration"
         nameFilters: ["Koaia Config Files (*.koaia)", "JSON Files (*.json)", "All Files (*)"]
         fileMode: FileDialog.SaveFile
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
         onAccepted: {
             var fileUrl = selectedFile.toString()
             if (!fileUrl.endsWith(".koaia") && !fileUrl.endsWith(".json"))
@@ -1156,94 +1335,9 @@ Pane {
         title: "Load Configuration"
         nameFilters: ["Koaia Config Files (*.koaia)", "JSON Files (*.json)", "All Files (*)"]
         fileMode: FileDialog.OpenFile
+        currentFolder: Qt.resolvedUrl("../../presets/")
         onAccepted: {
-            var fileUrl = selectedFile.toString();
-            console.log("[MainView] Loading config from:", fileUrl);
-
-            Score.stop();
-            isProcessing = false;
-
-            ConfigManager.loadConfigFromFile(fileUrl, function(success, jsonText, error) {
-                if (!success) {
-                    console.error("[MainView] Failed to load config:", error);
-                    configStatusLabel.isError = true;
-                    configStatusLabel.text = "Load failed: " + (error || "unknown error");
-                    return;
-                }
-
-                var config;
-                try { config = JSON.parse(jsonText); }
-                catch (e) {
-                    console.error("[MainView] Invalid config JSON:", e.message);
-                    configStatusLabel.isError = true;
-                    configStatusLabel.text = "Invalid config file";
-                    return;
-                }
-
-                var validation = ConfigManager.validateConfig(config);
-                if (!validation.valid) {
-                    console.error("[MainView] Config validation failed:", validation.errors.join(", "));
-                    configStatusLabel.isError = true;
-                    configStatusLabel.text = "Invalid config: " + validation.errors[0];
-                    return;
-                }
-
-                // Write parsed values into appSettings (persists across restarts)
-                var i = config.input;
-                if (i) {
-                    appSettings.videoPath    = i.videoPath    || "";
-                    appSettings.videoAmount  = i.videoAmount  || 0;
-                    appSettings.cameraAmount = i.cameraAmount || 0;
-                }
-
-                var ai = config.aiModel;
-                if (ai) {
-                    appSettings.prompt = ai.prompt || "";
-                    appSettings.workflow = ai.workflow || 0;
-                    appSettings.enginePath = ai.enginePath || "";
-                    appSettings.seed = ai.seed !== undefined ? ai.seed : 20;
-                    appSettings.timesteps = ai.timesteps || "20";
-                    appSettings.guidance = ai.guidance !== undefined ? ai.guidance : 1.0;
-                    appSettings.guidanceType = ai.guidanceType || 0;
-                    appSettings.delta = ai.delta !== undefined ? ai.delta    : 1.0;
-                    appSettings.denoisingBatch = ai.denoisingBatch || false;
-                    appSettings.addNoise = ai.addNoise || false;
-                    appSettings.manualMode = ai.manualMode || false;
-                    appSettings.resolution = ai.resolution || 0;
-                }
-
-                var n = config.noiseLayer;
-                if (n) {
-                    appSettings.noiseShader = n.noiseShader || 0;
-                    appSettings.smokeAmount = n.smokeAmount || 0;
-                    appSettings.voronoiAmount = n.voronoiAmount || 0;
-                    appSettings.noiseAmount = n.noiseAmount || 0;
-                    appSettings.perlinAmount = n.perlinAmount || 0;
-                }
-
-                var sh = config.shapeLayer;
-                if (sh) {
-                    appSettings.shapeType = sh.shapeType || 0;
-                    appSettings.shapeAmount = sh.shapeAmount || 0;
-                    appSettings.shapeBrightness = sh.brightness || 0.1;
-                    appSettings.shapeHue = sh.hue || 0;
-                    appSettings.shapeWidth = sh.shapeWidth !== undefined ? sh.shapeWidth : 0.5;
-                    appSettings.shapeHeight = sh.shapeHeight !== undefined ? sh.shapeHeight : 0.5;
-                    appSettings.shapeHRepeat = sh.shapeHRepeat !== undefined ? sh.shapeHRepeat : 1;
-                    appSettings.shapeVRepeat = sh.shapeVRepeat !== undefined ? sh.shapeVRepeat : 1;
-                    // shapeX/Y can be 0, so avoid || fallback
-                    appSettings.shapeX = sh.shapeX !== undefined ? sh.shapeX : 256;
-                    appSettings.shapeY = sh.shapeY !== undefined ? sh.shapeY : 256;
-                    appSettings.shapeInvert = sh.invert || false;
-                }
-
-                // Push updated settings into UI controls and Score
-                restoreSavedSettings();
-                currentConfigFile = fileUrl;
-                configStatusLabel.isError = false;
-                configStatusLabel.text = "Loaded: " + fileUrl.split("/").pop();
-                console.log("[MainView] Config loaded successfully from:", fileUrl);
-            });
+            loadConfigFromUrl(selectedFile, false);
         }
     }
 }

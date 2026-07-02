@@ -337,7 +337,7 @@ Pane {
                             text: "Output Path"
                             Layout.preferredWidth: 100
                             font.pixelSize: appStyle.fontSizeBody
-                            color: outputPathField.text !== "" ? palette.windowText : "red"
+                            color: outputPathField.text === "" ? "#FF3B30" : appStyle.textColor
                         }
                         TextField {
                             id: outputPathField

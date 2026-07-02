@@ -501,7 +501,7 @@ Pane {
                 title: "AI model"
                 description: "Configure AI image generation parameters including prompts, seed, and steps"
 
-                property bool showAdvancedOptions: false
+                property bool showAdvancedOptions: appSettings.enginePath === ""
 
                 Label {
                     text: "Prompt"
@@ -580,6 +580,7 @@ Pane {
                             text: "Engine"
                             Layout.preferredWidth: 100
                             font.pixelSize: appStyle.fontSizeBody
+                            color: enginePathField.text === "" ? "#FF3B30" : appStyle.textColor
                         }
                         TextField {
                             id: enginePathField
@@ -603,6 +604,14 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                             onClicked: engineFolderDialog.open()
                         }
+                    }
+
+                    Label {
+                        visible: enginePathField.text === ""
+                        text: "Select an engine folder to enable start"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: appStyle.textColorSecondary
+                        Layout.fillWidth: true
                     }
 
                     FolderDialog {
@@ -1225,11 +1234,15 @@ Pane {
                 font.bold: true
                 highlighted: isProcessing
                 Layout.preferredWidth: 230
-                enabled: isProcessing || imagePathField.text !== ""
+                enabled: isProcessing || (imagePathField.text !== "" && enginePathField.text !== "")
                 onClicked: isProcessing = !isProcessing
 
                 ToolTip.visible: !enabled && hovered
-                ToolTip.text: "Set a video input path before starting"
+                ToolTip.text: imagePathField.text === "" && enginePathField.text === ""
+                    ? "Set a video input path and an engine path (Advanced Options) before starting"
+                    : imagePathField.text === ""
+                        ? "Set a video input path before starting"
+                        : "Set an engine path (Advanced Options) before starting"
                 ToolTip.delay: 500
             }
 

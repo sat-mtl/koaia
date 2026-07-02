@@ -1,0 +1,46 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "timestamp": "2026-06-29T20:11:03.790Z",
+    "application": "Koaia"
+  },
+  "input": {
+    "videoPath": "{{media}}/glow.mp4",
+    "videoAmount": 1,
+    "cameraAmount": 0
+  },
+  "aiModel": {
+    "prompt": "origami, hyperrealistic, 4k, abstract, geometry",
+    "workflow": 0,
+    "enginePath": "",
+    "seed": 20,
+    "timesteps": "20",
+    "guidance": 1,
+    "guidanceType": 0,
+    "delta": 1,
+    "denoisingBatch": false,
+    "addNoise": false,
+    "manualMode": false,
+    "resolution": 0
+  },
+  "noiseLayer": {
+    "noiseShader": 0,
+    "smokeAmount": 0.7381,
+    "voronoiAmount": 0,
+    "noiseAmount": 0,
+    "perlinAmount": 0
+  },
+  "shapeLayer": {
+    "shapeType": 0,
+    "shapeAmount": 0,
+    "brightness": 0.1622,
+    "hue": 0.527,
+    "shapeWidth": 0.38,
+    "shapeHeight": 0.32,
+    "shapeHRepeat": 1,
+    "shapeVRepeat": 3,
+    "shapeX": 256,
+    "shapeY": 256,
+    "invert": false
+  }
+}

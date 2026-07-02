@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "timestamp": "2026-06-29T20:15:41.990Z",
+    "application": "Koaia"
+  },
+  "input": {
+    "videoPath": "{{media}}/glow.mp4",
+    "videoAmount": 1,
+    "cameraAmount": 1
+  },
+  "aiModel": {
+    "prompt": "test100",
+    "workflow": 10,
+    "enginePath": "",
+    "seed": 9999999,
+    "timesteps": "100",
+    "guidance": 20,
+    "guidanceType": 3,
+    "delta": 2,
+    "denoisingBatch": true,
+    "addNoise": true,
+    "manualMode": true,
+    "resolution": 1
+  },
+  "noiseLayer": {
+    "noiseShader": 3,
+    "smokeAmount": 1,
+    "voronoiAmount": 1,
+    "noiseAmount": 1,
+    "perlinAmount": 1,
+    "voronoiSeed": 100,
+    "voronoiIregularity": 1,
+    "voronoiBlur": 1,
+    "voronoiScale": 100,
+    "whiteNoiseSeed": 100,
+    "perlinSeed": 100,
+    "perlinScale": 100
+  },
+  "shapeLayer": {
+    "shapeType": 3,
+    "shapeAmount": 1,
+    "brightness": 0.9,
+    "hue": 1,
+    "shapeWidth": 2,
+    "shapeHeight": 2,
+    "shapeHRepeat": 10,
+    "shapeVRepeat": 10,
+    "shapeX": 512,
+    "shapeY": 512,
+    "invert": true
+  }
+}

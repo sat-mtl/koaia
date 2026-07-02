@@ -47,6 +47,13 @@ Pane {
         property real voronoiAmount: 0.0
         property real noiseAmount: 0.0
         property real perlinAmount: 0.0
+        property real voronoiSeed: 0.3
+        property real voronoiIregularity: 0.3
+        property real voronoiBlur: 0.3
+        property real voronoiScale: 0.4
+        property real whiteNoiseSeed: 0.3
+        property real perlinSeed: 0.3
+        property real perlinScale: 0.3
 
         // Shape layer section
         property int shapeType: 1
@@ -110,6 +117,13 @@ Pane {
         voronoiAmountSlider.value = appSettings.voronoiAmount;
         noiseAmountSlider.value = appSettings.noiseAmount;
         perlinAmountSlider.value = appSettings.perlinAmount;
+        shaderControls.voronoiSeed        = appSettings.voronoiSeed;
+        shaderControls.voronoiIregularity = appSettings.voronoiIregularity;
+        shaderControls.voronoiBlur        = appSettings.voronoiBlur;
+        shaderControls.voronoiScale       = appSettings.voronoiScale;
+        shaderControls.whiteNoiseSeed     = appSettings.whiteNoiseSeed;
+        shaderControls.perlinSeed         = appSettings.perlinSeed;
+        shaderControls.perlinScale        = appSettings.perlinScale;
 
         // Shape layer section
         shapeTypeCombo.currentIndex = appSettings.shapeType;
@@ -705,12 +719,21 @@ Pane {
                 }
 
                 ShaderControls {
+                    id: shaderControls
                     Layout.fillWidth: true
                     shaderType: inputNoiseChooser.currentIndex
                     voronoi: processes.voronoi
                     perlin_Noise: processes.perlin_Noise
                     white_Noise: processes.white_Noise
                     simplex_Noise: processes.simplex_Noise
+
+                    onVoronoiSeedChanged:        appSettings.voronoiSeed        = voronoiSeed
+                    onVoronoiIregularityChanged: appSettings.voronoiIregularity = voronoiIregularity
+                    onVoronoiBlurChanged:        appSettings.voronoiBlur        = voronoiBlur
+                    onVoronoiScaleChanged:       appSettings.voronoiScale       = voronoiScale
+                    onWhiteNoiseSeedChanged:     appSettings.whiteNoiseSeed     = whiteNoiseSeed
+                    onPerlinSeedChanged:         appSettings.perlinSeed         = perlinSeed
+                    onPerlinScaleChanged:        appSettings.perlinScale        = perlinScale
                 }
             }
             Section {

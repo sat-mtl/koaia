@@ -28,7 +28,14 @@
     "smokeAmount": 0.7381,
     "voronoiAmount": 0,
     "noiseAmount": 0,
-    "perlinAmount": 0
+    "perlinAmount": 0,
+    "voronoiSeed": 0.3,
+    "voronoiIregularity": 0.3,
+    "voronoiBlur": 0.3,
+    "voronoiScale": 0.4,
+    "whiteNoiseSeed": 0.3,
+    "perlinSeed": 0.3,
+    "perlinScale": 0.3
   },
   "shapeLayer": {
     "shapeType": 0,

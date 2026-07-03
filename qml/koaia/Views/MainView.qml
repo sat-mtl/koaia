@@ -15,6 +15,10 @@ Pane {
     readonly property bool isWin32: Qt.platform.os === "windows"
     readonly property url defaultConfigUrl: Qt.resolvedUrl("../../default.koaia")
 
+    property bool isDirty: false
+    property bool _suppressDirty: false
+    property url currentConfigFile
+
     // Video file existence check — scans parent dir for the exact filename
     readonly property string _videoParentUrl: {
         var p = imagePathField.text.replace(/\\/g, '/')
@@ -190,6 +194,46 @@ Pane {
         property int shapeX: 256
         property int shapeY: 256
         property bool shapeInvert: false
+
+        onVideoPathChanged:          _markDirty()
+        onVideoAmountChanged:        _markDirty()
+        onCameraAmountChanged:       _markDirty()
+        onPromptChanged:             _markDirty()
+        onWorkflowChanged:           _markDirty()
+        onEnginePathChanged:         _markDirty()
+        onSeedChanged:               _markDirty()
+        onTimestepsChanged:          _markDirty()
+        onGuidanceChanged:           _markDirty()
+        onGuidanceTypeChanged:       _markDirty()
+        onDeltaChanged:              _markDirty()
+        onDenoisingBatchChanged:     _markDirty()
+        onAddNoiseChanged:           _markDirty()
+        onManualModeChanged:         _markDirty()
+        onResolutionChanged:         _markDirty()
+        onNoiseShaderChanged:        _markDirty()
+        onSmokeAmountChanged:        _markDirty()
+        onVoronoiAmountChanged:      _markDirty()
+        onNoiseAmountChanged:        _markDirty()
+        onPerlinAmountChanged:       _markDirty()
+        onVoronoiSeedChanged:        _markDirty()
+        onVoronoiIregularityChanged: _markDirty()
+        onVoronoiBlurChanged:        _markDirty()
+        onVoronoiScaleChanged:       _markDirty()
+        onWhiteNoiseSeedChanged:     _markDirty()
+        onPerlinSeedChanged:         _markDirty()
+        onPerlinScaleChanged:        _markDirty()
+        onShapeTypeChanged:          _markDirty()
+        onShapeAmountChanged:        _markDirty()
+        onShapeBrightnessChanged:    _markDirty()
+        onShapeHueChanged:           _markDirty()
+        onShapeWidthChanged:         _markDirty()
+        onShapeHeightChanged:        _markDirty()
+        onShapeHRepeatChanged:       _markDirty()
+        onShapeVRepeatChanged:       _markDirty()
+        onShapeXChanged:             _markDirty()
+        onShapeYChanged:             _markDirty()
+        onShapeInvertChanged:        _markDirty()
+
     }
 
     Component.onCompleted: {
@@ -204,7 +248,9 @@ Pane {
         return isWin32 ? path.substr(1) : path
     }
 
-    function doSave(fileUrl) {
+    function _markDirty() { if (!_suppressDirty) isDirty = true }
+
+    function doSave(fileUrl, onSuccess) {
         mainView.forceActiveFocus()
         var jsonConfig = ConfigManager.exportConfig(appSettings)
         // Re-tokenise the bundled media path so saved files stay portable across machines.
@@ -216,6 +262,9 @@ Pane {
                 ? "Saved: " + fileUrl.toString().split("/").pop()
                 : "Save failed: " + (error || "unknown error")
             if (success) {
+                isDirty = false
+                currentConfigFile = fileUrl
+                if (onSuccess) onSuccess()
                 console.log("[MainView] Config saved to:", fileUrl)
             } else {
                 console.error("[MainView] Failed to save config:", error)
@@ -225,6 +274,7 @@ Pane {
 
     // Writes config values into appSettings then pushes them to the UI and Score.
     function applyConfig(config) {
+        _suppressDirty = true
         var i = config.input
         if (i) {
             var rawPath = i.videoPath || ""
@@ -319,6 +369,12 @@ Pane {
                 return
             }
             applyConfig(config)
+            isDirty = false
+            if (fileUrl.toString() !== defaultConfigUrl.toString()) {
+                currentConfigFile = fileUrl
+            } else {
+                currentConfigFile = ""
+            }
             if (!silent) {
                 configStatusLabel.isError = false
                 configStatusLabel.text = "Loaded: " + fileUrlStr.split("/").pop()
@@ -375,6 +431,7 @@ Pane {
         shapex.value = appSettings.shapeX;
         shapey.value = appSettings.shapeY;
         invertCheckBox.checked = appSettings.shapeInvert;
+        Qt.callLater(function() { _suppressDirty = false })
     }
 
     // Score process objects
@@ -1279,6 +1336,37 @@ Pane {
         }
     }
 
+    Dialog {
+        id: unsavedChangesDialog
+        title: "Unsaved Changes"
+        modal: true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
+
+        contentItem: Label {
+            text: "You have unsaved changes. Save before opening a new file?"
+            wrapMode: Text.WordWrap
+            width: 320
+            font.pixelSize: appStyle.fontSizeBody
+        }
+
+        footer: DialogButtonBox {
+            Button {
+                text: "Save"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+            }
+            Button {
+                text: "Cancel"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
+            onClicked: function(button) {
+                unsavedChangesDialog.close()
+                if (button.DialogButtonBox.buttonRole === DialogButtonBox.AcceptRole)
+                    mainView.doSave(mainView.currentConfigFile)
+            }
+        }
+    }
+
     Rectangle {
         id: configToolbar
         anchors.left: parent.left
@@ -1331,7 +1419,25 @@ Pane {
             Button {
                 text: "Open"
                 font.pixelSize: appStyle.fontSizeBody
-                onClicked: loadConfigDialog.open()
+                onClicked: {
+                    var hasFile = mainView.currentConfigFile.toString() !== ""
+                        && mainView.currentConfigFile.toString() !== mainView.defaultConfigUrl.toString()
+                    var shouldWarn = hasFile && mainView.isDirty
+                    if (shouldWarn) {
+                        unsavedChangesDialog.open()
+                    } else {
+                        loadConfigDialog.open()
+                    }
+                }
+            }
+
+            Button {
+                text: "Save"
+                font.pixelSize: appStyle.fontSizeBody
+                visible: mainView.isDirty
+                    && mainView.currentConfigFile.toString() !== ""
+                    && mainView.currentConfigFile.toString() !== mainView.defaultConfigUrl.toString()
+                onClicked: mainView.doSave(mainView.currentConfigFile)
             }
 
             Button {

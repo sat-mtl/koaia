@@ -333,6 +333,8 @@ Pane {
             appSettings.shapeY          = sh.shapeY       !== undefined ? sh.shapeY       : 256
             appSettings.shapeInvert     = sh.invert        || false
         }
+        if (!appSettings.enginePath && isProcessing)
+            isProcessing = false
         restoreSavedSettings()
     }
 
@@ -706,6 +708,8 @@ Pane {
                                 if (processes.streamDiffusion.engines)
                                     Score.setValue(processes.streamDiffusion.engines, text);
                                 appSettings.enginePath = text;
+                                if (!text && isProcessing)
+                                    isProcessing = false
                             }
                         }
                         Button {

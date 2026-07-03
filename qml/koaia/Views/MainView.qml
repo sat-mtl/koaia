@@ -279,11 +279,11 @@ Pane {
         if (i) {
             var rawPath = i.videoPath || ""
             // Resolve {{media}} token to the bundled media/ directory path.
-            // Fall back to glow.mp4 when no video is specified — Score crashes without one.
+            // Fall back to glow.mov when no video is specified — Score crashes without one.
             if (rawPath.indexOf("{{media}}") !== -1) {
                 rawPath = rawPath.replace("{{media}}", mediaPath("").replace(/\/$/, ""))
             } else if (!rawPath) {
-                rawPath = mediaPath("glow.mp4")
+                rawPath = mediaPath("glow.mov")
             }
             appSettings.videoPath    = rawPath
             appSettings.videoAmount  = i.videoAmount  || 0

@@ -5,7 +5,7 @@
     "application": "Koaia"
   },
   "input": {
-    "videoPath": "{{media}}/glow.mp4",
+    "videoPath": "{{media}}/glow.mov",
     "videoAmount": 1,
     "cameraAmount": 0
   },

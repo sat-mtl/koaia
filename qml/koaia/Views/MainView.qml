@@ -250,26 +250,23 @@ Pane {
 
     function _markDirty() { if (!_suppressDirty) isDirty = true }
 
-    function doSave(fileUrl, onSuccess) {
+    function doSave(fileUrl) {
         mainView.forceActiveFocus()
         var jsonConfig = ConfigManager.exportConfig(appSettings)
-        // Re-tokenise the bundled media path so saved files stay portable across machines.
         var mediaDirPath = mediaPath("").replace(/\/+$/, "")
         if (mediaDirPath) jsonConfig = jsonConfig.split(mediaDirPath).join("{{media}}")
-        ConfigManager.saveConfigToFile(jsonConfig, fileUrl, function(success, error) {
-            configStatusLabel.isError = !success
-            configStatusLabel.text = success
-                ? "Saved: " + fileUrl.toString().split("/").pop()
-                : "Save failed: " + (error || "unknown error")
-            if (success) {
-                isDirty = false
-                currentConfigFile = fileUrl
-                if (onSuccess) onSuccess()
-                console.log("[MainView] Config saved to:", fileUrl)
-            } else {
-                console.error("[MainView] Failed to save config:", error)
-            }
-        })
+        try {
+            Utils.writeFile(Utils.urlToLocalFile(fileUrl.toString()), jsonConfig)
+            configStatusLabel.isError = false
+            configStatusLabel.text = "Saved: " + fileUrl.toString().split("/").pop()
+            isDirty = false
+            currentConfigFile = fileUrl
+            console.log("[MainView] Config saved to:", fileUrl)
+        } catch(e) {
+            configStatusLabel.isError = true
+            configStatusLabel.text = "Save failed: " + e
+            console.error("[MainView] Failed to save config:", e)
+        }
     }
 
     // Writes config values into appSettings then pushes them to the UI and Score.
@@ -342,47 +339,56 @@ Pane {
     // suppress status label updates (avoids "Loaded: default.koaia" flash).
     function loadConfigFromUrl(fileUrl, silent) {
         var fileUrlStr = fileUrl.toString()
-        ConfigManager.loadConfigFromFile(fileUrlStr, function(success, jsonText, error) {
-            if (!success) {
-                if (!silent) {
-                    configStatusLabel.isError = true
-                    configStatusLabel.text = "Load failed: " + (error || "unknown error")
-                }
-                console.error("[MainView] Failed to load config:", fileUrlStr, error)
-                return
-            }
-            var config
-            try { config = JSON.parse(jsonText) }
-            catch (e) {
-                console.error("[MainView] Invalid config JSON:", e.message)
-                if (!silent) {
-                    configStatusLabel.isError = true
-                    configStatusLabel.text = "Invalid config file"
-                }
-                return
-            }
-            var validation = ConfigManager.validateConfig(config)
-            if (!validation.valid) {
-                console.error("[MainView] Config validation failed:", validation.errors.join(", "))
-                if (!silent) {
-                    configStatusLabel.isError = true
-                    configStatusLabel.text = "Invalid config: " + validation.errors[0]
-                }
-                return
-            }
-            applyConfig(config)
-            isDirty = false
-            if (fileUrl.toString() !== defaultConfigUrl.toString()) {
-                currentConfigFile = fileUrl
-            } else {
-                currentConfigFile = ""
-            }
+        var jsonText
+        try {
+            jsonText = Utils.readFile(Utils.urlToLocalFile(fileUrlStr))
+        } catch(e) {
             if (!silent) {
-                configStatusLabel.isError = false
-                configStatusLabel.text = "Loaded: " + fileUrlStr.split("/").pop()
+                configStatusLabel.isError = true
+                configStatusLabel.text = "Load failed: " + e
             }
-            console.log("[MainView] Config loaded from:", fileUrlStr)
-        })
+            console.error("[MainView] Failed to load config:", fileUrlStr, e)
+            return
+        }
+        if (!jsonText) {
+            if (!silent) {
+                configStatusLabel.isError = true
+                configStatusLabel.text = "Load failed: file not found or empty"
+            }
+            console.error("[MainView] Config file not found or empty:", fileUrlStr)
+            return
+        }
+        var config
+        try { config = JSON.parse(jsonText) }
+        catch (e) {
+            console.error("[MainView] Invalid config JSON:", e.message)
+            if (!silent) {
+                configStatusLabel.isError = true
+                configStatusLabel.text = "Invalid config file"
+            }
+            return
+        }
+        var validation = ConfigManager.validateConfig(config)
+        if (!validation.valid) {
+            console.error("[MainView] Config validation failed:", validation.errors.join(", "))
+            if (!silent) {
+                configStatusLabel.isError = true
+                configStatusLabel.text = "Invalid config: " + validation.errors[0]
+            }
+            return
+        }
+        applyConfig(config)
+        isDirty = false
+        if (fileUrl.toString() !== defaultConfigUrl.toString()) {
+            currentConfigFile = fileUrl
+        } else {
+            currentConfigFile = ""
+        }
+        if (!silent) {
+            configStatusLabel.isError = false
+            configStatusLabel.text = "Loaded: " + fileUrlStr.split("/").pop()
+        }
+        console.log("[MainView] Config loaded from:", fileUrlStr)
     }
 
     // Called after every config load — pushes appSettings values into UI controls,

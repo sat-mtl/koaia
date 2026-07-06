@@ -1,3 +1,5 @@
+.pragma library
+
 var CONFIG_VERSION = "1.0";
 
 function r(v) { return Math.round(v * 10000) / 10000; }
@@ -141,39 +143,3 @@ function validateConfig(config) {
     return result;
 }
 
-// File I/O 
-//
-// fileUrl must be a full file:// URL — pass selectedFile.toString() from FileDialog directly.
-// Requires QML_XHR_ALLOW_FILE_READ=1 / QML_XHR_ALLOW_FILE_WRITE=1 in the environment.
-//
-// Note: Qt's XHR always returns status 0 for file:// PUT (no HTTP response code),
-// even on success. We verify the write by reading the file back and checking that
-// the timestamp in the saved content matches what we just wrote.
-
-function saveConfigToFile(jsonString, fileUrl, callback) {
-    try {
-        var path = Utils.urlToLocalFile(fileUrl)
-        Utils.writeFile(path, jsonString)
-        console.log("[ConfigManager] Saved to:", path)
-        callback(true, null)
-    } catch(e) {
-        console.error("[ConfigManager] Save failed:", e)
-        callback(false, e.toString())
-    }
-}
-
-function loadConfigFromFile(fileUrl, callback) {
-    try {
-        var path = Utils.urlToLocalFile(fileUrl)
-        var content = Utils.readFile(path)
-        if (!content) {
-            callback(false, null, "File not found or empty: " + path)
-            return
-        }
-        console.log("[ConfigManager] Loaded from:", path)
-        callback(true, content, null)
-    } catch(e) {
-        console.error("[ConfigManager] Load failed:", e)
-        callback(false, null, e.toString())
-    }
-}

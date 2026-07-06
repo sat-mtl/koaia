@@ -153,52 +153,29 @@ function validateConfig(config) {
 // the timestamp in the saved content matches what we just wrote.
 
 function saveConfigToFile(jsonString, fileUrl, callback) {
-    // Extract the timestamp we embedded so we can verify the write afterward.
-    var expectedTimestamp;
-    try { expectedTimestamp = JSON.parse(jsonString).metadata.timestamp; }
-    catch (e) { expectedTimestamp = null; }
-
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState !== XMLHttpRequest.DONE) return;
-
-        // Verify the write by reading back the file and confirming the timestamp.
-        var verify = new XMLHttpRequest();
-        verify.onreadystatechange = function() {
-            if (verify.readyState !== XMLHttpRequest.DONE) return;
-            if (verify.status === 200) {
-                try {
-                    var saved = JSON.parse(verify.responseText);
-                    if (!expectedTimestamp || saved.metadata.timestamp === expectedTimestamp) {
-                        console.log("[ConfigManager] Saved to:", fileUrl);
-                        callback(true, null);
-                        return;
-                    }
-                } catch (e) {}
-            }
-            console.error("[ConfigManager] Save verification failed for:", fileUrl);
-            callback(false, "File write failed — ensure QML_XHR_ALLOW_FILE_WRITE=1 is set");
-        };
-        verify.open("GET", fileUrl);
-        verify.send();
-    };
-    xhr.open("PUT", fileUrl);
-    xhr.send(jsonString);
+    try {
+        var path = Utils.urlToLocalFile(fileUrl)
+        Utils.writeFile(path, jsonString)
+        console.log("[ConfigManager] Saved to:", path)
+        callback(true, null)
+    } catch(e) {
+        console.error("[ConfigManager] Save failed:", e)
+        callback(false, e.toString())
+    }
 }
 
 function loadConfigFromFile(fileUrl, callback) {
-    var xhr = new XMLHttpRequest();
-    xhr.onreadystatechange = function() {
-        if (xhr.readyState !== XMLHttpRequest.DONE) return;
-        if (xhr.status === 200) {
-            console.log("[ConfigManager] Loaded from:", fileUrl);
-            callback(true, xhr.responseText, null);
-        } else {
-            var err = xhr.status + (xhr.statusText ? " " + xhr.statusText : "");
-            console.error("[ConfigManager] Load failed:", err);
-            callback(false, null, err);
+    try {
+        var path = Utils.urlToLocalFile(fileUrl)
+        var content = Utils.readFile(path)
+        if (!content) {
+            callback(false, null, "File not found or empty: " + path)
+            return
         }
-    };
-    xhr.open("GET", fileUrl);
-    xhr.send();
+        console.log("[ConfigManager] Loaded from:", path)
+        callback(true, content, null)
+    } catch(e) {
+        console.error("[ConfigManager] Load failed:", e)
+        callback(false, null, e.toString())
+    }
 }

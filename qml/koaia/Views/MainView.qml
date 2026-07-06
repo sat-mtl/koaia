@@ -277,64 +277,7 @@ Pane {
     // Writes config values into appSettings then pushes them to the UI and Score.
     function applyConfig(config) {
         _suppressDirty = true
-        var i = config.input
-        if (i) {
-            var rawPath = i.videoPath || ""
-            // Resolve {{media}} token to the bundled media/ directory path.
-            // Fall back to glow.mov when no video is specified — Score crashes without one.
-            if (rawPath.indexOf("{{media}}") !== -1) {
-                rawPath = rawPath.replace("{{media}}", mediaPath("").replace(/\/$/, ""))
-            } else if (!rawPath) {
-                rawPath = mediaPath("glow.mov")
-            }
-            appSettings.videoPath    = rawPath
-            appSettings.videoAmount  = i.videoAmount  || 0
-            appSettings.cameraAmount = i.cameraAmount || 0
-        }
-        var ai = config.aiModel
-        if (ai) {
-            appSettings.prompt         = ai.prompt        || ""
-            appSettings.workflow       = ai.workflow       || 0
-            appSettings.enginePath     = ai.enginePath     || ""
-            appSettings.seed           = ai.seed           !== undefined ? ai.seed      : 20
-            appSettings.timesteps      = ai.timesteps      || "20"
-            appSettings.guidance       = ai.guidance       !== undefined ? ai.guidance  : 1.0
-            appSettings.guidanceType   = ai.guidanceType   || 0
-            appSettings.delta          = ai.delta          !== undefined ? ai.delta     : 1.0
-            appSettings.denoisingBatch = ai.denoisingBatch || false
-            appSettings.addNoise       = ai.addNoise       || false
-            appSettings.manualMode     = ai.manualMode     || false
-            appSettings.resolution     = ai.resolution     || 0
-        }
-        var n = config.noiseLayer
-        if (n) {
-            appSettings.noiseShader        = n.noiseShader        || 0
-            appSettings.smokeAmount        = n.smokeAmount        || 0
-            appSettings.voronoiAmount      = n.voronoiAmount      || 0
-            appSettings.noiseAmount        = n.noiseAmount        || 0
-            appSettings.perlinAmount       = n.perlinAmount       || 0
-            appSettings.voronoiSeed        = n.voronoiSeed        !== undefined ? n.voronoiSeed        : 0.3
-            appSettings.voronoiIregularity = n.voronoiIregularity !== undefined ? n.voronoiIregularity : 0.3
-            appSettings.voronoiBlur        = n.voronoiBlur        !== undefined ? n.voronoiBlur        : 0.3
-            appSettings.voronoiScale       = n.voronoiScale       !== undefined ? n.voronoiScale       : 0.4
-            appSettings.whiteNoiseSeed     = n.whiteNoiseSeed     !== undefined ? n.whiteNoiseSeed     : 0.3
-            appSettings.perlinSeed         = n.perlinSeed         !== undefined ? n.perlinSeed         : 0.3
-            appSettings.perlinScale        = n.perlinScale        !== undefined ? n.perlinScale        : 0.3
-        }
-        var sh = config.shapeLayer
-        if (sh) {
-            appSettings.shapeType       = sh.shapeType    || 0
-            appSettings.shapeAmount     = sh.shapeAmount  || 0
-            appSettings.shapeBrightness = sh.brightness   || 0.1
-            appSettings.shapeHue        = sh.hue          || 0
-            appSettings.shapeWidth      = sh.shapeWidth   !== undefined ? sh.shapeWidth   : 0.5
-            appSettings.shapeHeight     = sh.shapeHeight  !== undefined ? sh.shapeHeight  : 0.5
-            appSettings.shapeHRepeat    = sh.shapeHRepeat !== undefined ? sh.shapeHRepeat : 1
-            appSettings.shapeVRepeat    = sh.shapeVRepeat !== undefined ? sh.shapeVRepeat : 1
-            appSettings.shapeX          = sh.shapeX       !== undefined ? sh.shapeX       : 256
-            appSettings.shapeY          = sh.shapeY       !== undefined ? sh.shapeY       : 256
-            appSettings.shapeInvert     = sh.invert        || false
-        }
+        ConfigManager.applyConfig(config, appSettings, mediaPath("").replace(/\/$/, ""))
         if (!appSettings.enginePath && isProcessing)
             isProcessing = false
         restoreSavedSettings()

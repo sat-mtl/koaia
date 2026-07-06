@@ -143,3 +143,67 @@ function validateConfig(config) {
     return result;
 }
 
+// Apply
+// Writes a parsed config object into a QML Settings object.
+// mediaBasePath: resolved filesystem path to the bundled media/ dir (no trailing slash).
+// Returns the resolved videoPath so the caller can handle {{media}} fallback display.
+
+function applyConfig(config, settings, mediaBasePath) {
+    var i = config.input
+    if (i) {
+        var rawPath = i.videoPath || ""
+        if (rawPath.indexOf("{{media}}") !== -1) {
+            rawPath = rawPath.replace("{{media}}", mediaBasePath)
+        } else if (!rawPath) {
+            rawPath = mediaBasePath + "/glow.mov"
+        }
+        settings.videoPath    = rawPath
+        settings.videoAmount  = i.videoAmount  || 0
+        settings.cameraAmount = i.cameraAmount || 0
+    }
+    var ai = config.aiModel
+    if (ai) {
+        settings.prompt         = ai.prompt        || ""
+        settings.workflow       = ai.workflow       || 0
+        settings.enginePath     = ai.enginePath     || ""
+        settings.seed           = ai.seed           !== undefined ? ai.seed      : 20
+        settings.timesteps      = ai.timesteps      || "20"
+        settings.guidance       = ai.guidance       !== undefined ? ai.guidance  : 1.0
+        settings.guidanceType   = ai.guidanceType   || 0
+        settings.delta          = ai.delta          !== undefined ? ai.delta     : 1.0
+        settings.denoisingBatch = ai.denoisingBatch || false
+        settings.addNoise       = ai.addNoise       || false
+        settings.manualMode     = ai.manualMode     || false
+        settings.resolution     = ai.resolution     || 0
+    }
+    var n = config.noiseLayer
+    if (n) {
+        settings.noiseShader        = n.noiseShader        || 0
+        settings.smokeAmount        = n.smokeAmount        || 0
+        settings.voronoiAmount      = n.voronoiAmount      || 0
+        settings.noiseAmount        = n.noiseAmount        || 0
+        settings.perlinAmount       = n.perlinAmount       || 0
+        settings.voronoiSeed        = n.voronoiSeed        !== undefined ? n.voronoiSeed        : 0.3
+        settings.voronoiIregularity = n.voronoiIregularity !== undefined ? n.voronoiIregularity : 0.3
+        settings.voronoiBlur        = n.voronoiBlur        !== undefined ? n.voronoiBlur        : 0.3
+        settings.voronoiScale       = n.voronoiScale       !== undefined ? n.voronoiScale       : 0.4
+        settings.whiteNoiseSeed     = n.whiteNoiseSeed     !== undefined ? n.whiteNoiseSeed     : 0.3
+        settings.perlinSeed         = n.perlinSeed         !== undefined ? n.perlinSeed         : 0.3
+        settings.perlinScale        = n.perlinScale        !== undefined ? n.perlinScale        : 0.3
+    }
+    var sh = config.shapeLayer
+    if (sh) {
+        settings.shapeType       = sh.shapeType    || 0
+        settings.shapeAmount     = sh.shapeAmount  || 0
+        settings.shapeBrightness = sh.brightness   || 0.1
+        settings.shapeHue        = sh.hue          || 0
+        settings.shapeWidth      = sh.shapeWidth   !== undefined ? sh.shapeWidth   : 0.5
+        settings.shapeHeight     = sh.shapeHeight  !== undefined ? sh.shapeHeight  : 0.5
+        settings.shapeHRepeat    = sh.shapeHRepeat !== undefined ? sh.shapeHRepeat : 1
+        settings.shapeVRepeat    = sh.shapeVRepeat !== undefined ? sh.shapeVRepeat : 1
+        settings.shapeX          = sh.shapeX       !== undefined ? sh.shapeX       : 256
+        settings.shapeY          = sh.shapeY       !== undefined ? sh.shapeY       : 256
+        settings.shapeInvert     = sh.invert        || false
+    }
+}
+

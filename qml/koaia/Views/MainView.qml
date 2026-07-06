@@ -8,6 +8,7 @@ import Qt.labs.folderlistmodel
 import Score.UI as UI
 import koaia
 import "../Scripts/ConfigManager.js" as ConfigManager
+import "../Scripts/ScoreBridge.js" as ScoreBridge
 
 Pane {
     id: mainView
@@ -75,74 +76,44 @@ Pane {
 
     // Re-pushes all current UI values to Score after play() resets port state.
     function pushValuesToScore() {
-        var p = processes
-        try {
-            if (p.prompt_composer.keywords)
-                Score.setValue(p.prompt_composer.keywords, promptTextField.text)
-            if (p.streamDiffusion.workflow)
-                Score.setValue(p.streamDiffusion.workflow, workflowCombo.currentIndex)
-            if (p.streamDiffusion.engines)
-                Score.setValue(p.streamDiffusion.engines, enginePathField.text)
-            if (p.streamDiffusion.seed)
-                Score.setValue(p.streamDiffusion.seed, seedSpinBox.value)
-            if (p.streamDiffusion.timesteps)
-                Score.setValue(p.streamDiffusion.timesteps, timestepsField.text)
-            if (p.streamDiffusion.guidance)
-                Score.setValue(p.streamDiffusion.guidance, guidanceSlider.value)
-            if (p.streamDiffusion.guidance_type)
-                Score.setValue(p.streamDiffusion.guidance_type, guidanceTypeCombo.currentIndex)
-            if (p.streamDiffusion.delta)
-                Score.setValue(p.streamDiffusion.delta, deltaSlider.value)
-            if (p.streamDiffusion.denoising_batch)
-                Score.setValue(p.streamDiffusion.denoising_batch, denoisingBatchSpinBox.checked)
-            if (p.streamDiffusion.add_noise)
-                Score.setValue(p.streamDiffusion.add_noise, addNoiseCheckBox.checked)
-            if (p.streamDiffusion.manual_mode)
-                Score.setValue(p.streamDiffusion.manual_mode, manualModeCheckBox.checked)
-            if (p.streamDiffusion.resolution)
-                Score.setValue(p.streamDiffusion.resolution, sizeCombo.currentDimensions)
-            if (p.shape.maskShapeMode)
-                Score.setValue(p.shape.maskShapeMode, shapeTypeCombo.currentIndex)
-            if (p.shape.color) {
-                var c = Qt.hsla(hueSlider.value, 0.7, brightnessSlider.value, 1.0)
-                Score.setValue(p.shape.color, [c.r, c.g, c.b, 1.0])
-            }
-            if (p.shape.shapeWidth)
-                Score.setValue(p.shape.shapeWidth, shapeWidthSlider.value)
-            if (p.shape.shapeHeight)
-                Score.setValue(p.shape.shapeHeight, shapeHeightSlider.value)
-            if (p.shape.horizontalRepeat)
-                Score.setValue(p.shape.horizontalRepeat, shapeHRepeatSlider.value)
-            if (p.shape.verticalRepeat)
-                Score.setValue(p.shape.verticalRepeat, shapeVRepeatSlider.value)
-            if (p.shape.center)
-                Score.setValue(p.shape.center, [shapex.value / 512.0, shapey.value / 512.0])
-            if (p.shape.invertMask)
-                Score.setValue(p.shape.invertMask, invertCheckBox.checked)
-            if (p.video_Mixer.alpha1)
-                Score.setValue(p.video_Mixer.alpha1, shapeAmountSlider.slider.value)
-            if (p.video_Mixer.alpha2)
-                Score.setValue(p.video_Mixer.alpha2, smokeAmountSlider.slider.value)
-            if (p.video_Mixer.alpha3)
-                Score.setValue(p.video_Mixer.alpha3, voronoiAmountSlider.slider.value)
-            if (p.video_Mixer.alpha4)
-                Score.setValue(p.video_Mixer.alpha4, noiseAmountSlider.slider.value)
-            if (p.video_Mixer.alpha5)
-                Score.setValue(p.video_Mixer.alpha5, perlinAmountSlider.slider.value)
-            if (p.video_Mixer.alpha7)
-                Score.setValue(p.video_Mixer.alpha7, imageAmountSlider.slider.value)
-            if (p.video_Mixer.alpha8)
-                Score.setValue(p.video_Mixer.alpha8, cameraAmountSlider.slider.value)
-            if (p.voronoi.seed)        Score.setValue(p.voronoi.seed,        shaderControls.voronoiSeed)
-            if (p.voronoi.iregularity) Score.setValue(p.voronoi.iregularity, shaderControls.voronoiIregularity)
-            if (p.voronoi.blur)        Score.setValue(p.voronoi.blur,        shaderControls.voronoiBlur)
-            if (p.voronoi.scale)       Score.setValue(p.voronoi.scale,       shaderControls.voronoiScale)
-            if (p.white_Noise.seed)    Score.setValue(p.white_Noise.seed,    shaderControls.whiteNoiseSeed)
-            if (p.perlin_Noise.seed)   Score.setValue(p.perlin_Noise.seed,   shaderControls.perlinSeed)
-            if (p.perlin_Noise.scale)  Score.setValue(p.perlin_Noise.scale,  shaderControls.perlinScale)
-        } catch(e) {
-            console.warn("[MainView] pushValuesToScore error:", e)
-        }
+        ScoreBridge.pushValuesToScore(Score, processes, {
+            prompt:             promptTextField.text,
+            workflow:           workflowCombo.currentIndex,
+            enginePath:         enginePathField.text,
+            seed:               seedSpinBox.value,
+            timesteps:          timestepsField.text,
+            guidance:           guidanceSlider.value,
+            guidanceType:       guidanceTypeCombo.currentIndex,
+            delta:              deltaSlider.value,
+            denoisingBatch:     denoisingBatchSpinBox.checked,
+            addNoise:           addNoiseCheckBox.checked,
+            manualMode:         manualModeCheckBox.checked,
+            resolution:         sizeCombo.currentDimensions,
+            shapeType:          shapeTypeCombo.currentIndex,
+            hue:                hueSlider.value,
+            brightness:         brightnessSlider.value,
+            shapeWidth:         shapeWidthSlider.value,
+            shapeHeight:        shapeHeightSlider.value,
+            shapeHRepeat:       shapeHRepeatSlider.value,
+            shapeVRepeat:       shapeVRepeatSlider.value,
+            shapeX:             shapex.value,
+            shapeY:             shapey.value,
+            invert:             invertCheckBox.checked,
+            shapeAmount:        shapeAmountSlider.slider.value,
+            smokeAmount:        smokeAmountSlider.slider.value,
+            voronoiAmount:      voronoiAmountSlider.slider.value,
+            noiseAmount:        noiseAmountSlider.slider.value,
+            perlinAmount:       perlinAmountSlider.slider.value,
+            imageAmount:        imageAmountSlider.slider.value,
+            cameraAmount:       cameraAmountSlider.slider.value,
+            voronoiSeed:        shaderControls.voronoiSeed,
+            voronoiIregularity: shaderControls.voronoiIregularity,
+            voronoiBlur:        shaderControls.voronoiBlur,
+            voronoiScale:       shaderControls.voronoiScale,
+            whiteNoiseSeed:     shaderControls.whiteNoiseSeed,
+            perlinSeed:         shaderControls.perlinSeed,
+            perlinScale:        shaderControls.perlinScale
+        })
     }
 
     Settings {

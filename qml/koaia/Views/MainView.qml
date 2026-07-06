@@ -1282,13 +1282,24 @@ Pane {
                 DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
             }
             Button {
+                text: "Discard"
+                DialogButtonBox.buttonRole: DialogButtonBox.DestructiveRole
+            }
+            Button {
                 text: "Cancel"
                 DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
             }
             onClicked: function(button) {
                 unsavedChangesDialog.close()
-                if (button.DialogButtonBox.buttonRole === DialogButtonBox.AcceptRole)
+                var role = button.DialogButtonBox.buttonRole
+                if (role === DialogButtonBox.AcceptRole) {
                     mainView.doSave(mainView.currentConfigFile)
+                    loadConfigDialog.open()
+                } else if (role === DialogButtonBox.DestructiveRole) {
+                    // Reload the currently open file to revert unsaved changes
+                    mainView.loadConfigFromUrl(mainView.currentConfigFile)
+                }
+                // RejectRole (Cancel): do nothing, stay as-is
             }
         }
     }

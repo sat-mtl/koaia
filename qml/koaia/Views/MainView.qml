@@ -221,10 +221,7 @@ Pane {
 
     function _markDirty() { if (!_suppressDirty) isDirty = true }
 
-    function _urlToPath(url) {
-        var path = new URL(url.toString()).pathname
-        return isWin32 ? path.substr(1) : path
-    }
+
 
     function doSave(fileUrl) {
         mainView.forceActiveFocus()
@@ -232,7 +229,7 @@ Pane {
         var mediaDirPath = mediaPath("").replace(/\/+$/, "")
         if (mediaDirPath) jsonConfig = jsonConfig.split(mediaDirPath).join("{{media}}")
         try {
-            Util.writeFile(_urlToPath(fileUrl.toString()), jsonConfig)
+            Util.writeFile(Util.urlToLocalFile(fileUrl.toString()), jsonConfig)
             configStatusLabel.isError = false
             configStatusLabel.text = "Saved: " + fileUrl.toString().split("/").pop()
             isDirty = false
@@ -260,7 +257,7 @@ Pane {
         var fileUrlStr = fileUrl.toString()
         var jsonText
         try {
-            jsonText = String(Util.readFile(_urlToPath(fileUrlStr)))
+            jsonText = String(Util.readFile(Util.urlToLocalFile(fileUrlStr)))
         } catch(e) {
             if (!silent) {
                 configStatusLabel.isError = true

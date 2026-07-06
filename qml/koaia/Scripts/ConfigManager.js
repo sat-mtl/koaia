@@ -1,5 +1,3 @@
-.pragma library
-
 var CONFIG_VERSION = "1.0";
 
 function r(v) { return Math.round(v * 10000) / 10000; }

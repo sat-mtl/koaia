@@ -341,7 +341,7 @@ Pane {
         var fileUrlStr = fileUrl.toString()
         var jsonText
         try {
-            jsonText = Utils.readFile(Utils.urlToLocalFile(fileUrlStr))
+            jsonText = String(Utils.readFile(Utils.urlToLocalFile(fileUrlStr)))
         } catch(e) {
             if (!silent) {
                 configStatusLabel.isError = true

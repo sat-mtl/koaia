@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "timestamp": "2026-01-01T00:00:00.000Z",
+    "application": "Koaia"
+  },
+  "input": {
+    "videoPath": "{{media}}/glow.mp4",
+    "videoAmount": 0.6,
+    "cameraAmount": 0.0
+  },
+  "aiModel": {
+    "prompt": "cyberpunk, neon lights, city, rain, reflections, futuristic architecture",
+    "workflow": 0,
+    "enginePath": "",
+    "seed": 99,
+    "timesteps": "20",
+    "guidance": 3.0,
+    "guidanceType": 0,
+    "delta": 1.0,
+    "denoisingBatch": false,
+    "addNoise": false,
+    "manualMode": false,
+    "resolution": 0
+  },
+  "noiseLayer": {
+    "noiseShader": 1,
+    "smokeAmount": 0.0,
+    "voronoiAmount": 0.6,
+    "noiseAmount": 0.0,
+    "perlinAmount": 0.0,
+    "voronoiSeed": 0.3,
+    "voronoiIregularity": 0.3,
+    "voronoiBlur": 0.3,
+    "voronoiScale": 0.4,
+    "whiteNoiseSeed": 0.3,
+    "perlinSeed": 0.3,
+    "perlinScale": 0.3
+  },
+  "shapeLayer": {
+    "shapeType": 0,
+    "shapeAmount": 0.2,
+    "brightness": 0.5,
+    "hue": 0.75,
+    "shapeWidth": 1.0,
+    "shapeHeight": 0.3,
+    "shapeHRepeat": 3,
+    "shapeVRepeat": 1,
+    "shapeX": 256,
+    "shapeY": 256,
+    "invert": false
+  }
+}

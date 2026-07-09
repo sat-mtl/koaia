@@ -4,16 +4,117 @@ import QtQuick.Controls.Basic
 import QtQuick.Controls
 import QtQuick.Layouts
 import QtQuick.Dialogs
+import Qt.labs.folderlistmodel
 import Score.UI as UI
 import koaia
+import "../Scripts/ConfigManager.js" as ConfigManager
+import "../Scripts/ScoreBridge.js" as ScoreBridge
 
 Pane {
     id: mainView
 
     readonly property bool isWin32: Qt.platform.os === "windows"
+    readonly property url defaultConfigUrl: Qt.resolvedUrl("../../default.koaia")
+
+    property bool isDirty: false
+    property bool _suppressDirty: false
+    property url currentConfigFile
+
+    // Video file existence check — scans parent dir for the exact filename
+    readonly property string _videoParentUrl: {
+        var p = imagePathField.text.replace(/\\/g, '/')
+        var dir = p.substring(0, p.lastIndexOf('/'))
+        return dir ? ((isWin32 ? "file:///" : "file://") + dir) : ""
+    }
+    readonly property string _videoFileName: {
+        var p = imagePathField.text.replace(/\\/g, '/')
+        return p.substring(p.lastIndexOf('/') + 1)
+    }
+    readonly property bool videoFileExists: _videoFileName !== "" && videoFileModel.count > 0
+
+    // Engine folder validation
+    readonly property string _engineFolderUrl: {
+        if (!enginePathField.text) return ""
+        return (isWin32 ? "file:///" : "file://") + enginePathField.text.replace(/\\/g, '/')
+    }
+    readonly property bool engineHasFiles:  engineFilesModel.count > 0
+    readonly property bool engineHasOnnx:   engineOnnxModel.count > 0
+
+    FolderListModel {
+        id: videoFileModel
+        showFiles: true
+        showDirs: false
+        folder: mainView._videoParentUrl
+        nameFilters: mainView._videoFileName ? [mainView._videoFileName] : []
+    }
+
+    FolderListModel {
+        id: engineFilesModel
+        showFiles: true
+        showDirs: false
+        nameFilters: ["*.engine"]
+        folder: mainView._engineFolderUrl
+    }
+
+    FolderListModel {
+        id: engineOnnxModel
+        showFiles: true
+        showDirs: false
+        nameFilters: ["*.onnx"]
+        folder: mainView._engineFolderUrl ? mainView._engineFolderUrl + "/onnx" : ""
+    }
 
     property bool isProcessing: false
-    onIsProcessingChanged: (isProcessing) ? Score.play() : Score.stop()
+    onIsProcessingChanged: {
+        if (isProcessing) {
+            Score.play()
+            Qt.callLater(pushValuesToScore)
+        } else {
+            Score.stop()
+        }
+    }
+
+    // Re-pushes all current UI values to Score after play() resets port state.
+    function pushValuesToScore() {
+        ScoreBridge.pushValuesToScore(Score, processes, {
+            prompt:             promptTextField.text,
+            workflow:           workflowCombo.currentIndex,
+            enginePath:         enginePathField.text,
+            seed:               seedSpinBox.value,
+            timesteps:          timestepsField.text,
+            guidance:           guidanceSlider.value,
+            guidanceType:       guidanceTypeCombo.currentIndex,
+            delta:              deltaSlider.value,
+            denoisingBatch:     denoisingBatchSpinBox.checked,
+            addNoise:           addNoiseCheckBox.checked,
+            manualMode:         manualModeCheckBox.checked,
+            resolution:         sizeCombo.currentDimensions,
+            shapeType:          shapeTypeCombo.currentIndex,
+            hue:                hueSlider.value,
+            brightness:         brightnessSlider.value,
+            shapeWidth:         shapeWidthSlider.value,
+            shapeHeight:        shapeHeightSlider.value,
+            shapeHRepeat:       shapeHRepeatSlider.value,
+            shapeVRepeat:       shapeVRepeatSlider.value,
+            shapeX:             shapex.value,
+            shapeY:             shapey.value,
+            invert:             invertCheckBox.checked,
+            shapeAmount:        shapeAmountSlider.slider.value,
+            smokeAmount:        smokeAmountSlider.slider.value,
+            voronoiAmount:      voronoiAmountSlider.slider.value,
+            noiseAmount:        noiseAmountSlider.slider.value,
+            perlinAmount:       perlinAmountSlider.slider.value,
+            imageAmount:        imageAmountSlider.slider.value,
+            cameraAmount:       cameraAmountSlider.slider.value,
+            voronoiSeed:        shaderControls.voronoiSeed,
+            voronoiIregularity: shaderControls.voronoiIregularity,
+            voronoiBlur:        shaderControls.voronoiBlur,
+            voronoiScale:       shaderControls.voronoiScale,
+            whiteNoiseSeed:     shaderControls.whiteNoiseSeed,
+            perlinSeed:         shaderControls.perlinSeed,
+            perlinScale:        shaderControls.perlinScale
+        })
+    }
 
     Settings {
         id: appSettings
@@ -30,7 +131,9 @@ Pane {
         property string enginePath: ""
         property int seed: 20
         property string timesteps: "20"
+        property real guidance: 1.0
         property int guidanceType: 0
+        property real delta: 1.0
         property bool denoisingBatch: false
         property bool addNoise: false
         property bool manualMode: false
@@ -42,26 +145,175 @@ Pane {
         property real voronoiAmount: 0.0
         property real noiseAmount: 0.0
         property real perlinAmount: 0.0
+        property real voronoiSeed: 0.3
+        property real voronoiIregularity: 0.3
+        property real voronoiBlur: 0.3
+        property real voronoiScale: 0.4
+        property real whiteNoiseSeed: 0.3
+        property real perlinSeed: 0.3
+        property real perlinScale: 0.3
 
         // Shape layer section
         property int shapeType: 1
         property real shapeAmount: 0.0
         property real shapeBrightness: 0.1
         property real shapeHue: 0.0
+        property real shapeWidth: 0.5
+        property real shapeHeight: 0.5
+        property real shapeHRepeat: 1
+        property real shapeVRepeat: 1
         property int shapeX: 256
         property int shapeY: 256
         property bool shapeInvert: false
+
+        onVideoPathChanged:          _markDirty()
+        onVideoAmountChanged:        _markDirty()
+        onCameraAmountChanged:       _markDirty()
+        onPromptChanged:             _markDirty()
+        onWorkflowChanged:           _markDirty()
+        onEnginePathChanged:         _markDirty()
+        onSeedChanged:               _markDirty()
+        onTimestepsChanged:          _markDirty()
+        onGuidanceChanged:           _markDirty()
+        onGuidanceTypeChanged:       _markDirty()
+        onDeltaChanged:              _markDirty()
+        onDenoisingBatchChanged:     _markDirty()
+        onAddNoiseChanged:           _markDirty()
+        onManualModeChanged:         _markDirty()
+        onResolutionChanged:         _markDirty()
+        onNoiseShaderChanged:        _markDirty()
+        onSmokeAmountChanged:        _markDirty()
+        onVoronoiAmountChanged:      _markDirty()
+        onNoiseAmountChanged:        _markDirty()
+        onPerlinAmountChanged:       _markDirty()
+        onVoronoiSeedChanged:        _markDirty()
+        onVoronoiIregularityChanged: _markDirty()
+        onVoronoiBlurChanged:        _markDirty()
+        onVoronoiScaleChanged:       _markDirty()
+        onWhiteNoiseSeedChanged:     _markDirty()
+        onPerlinSeedChanged:         _markDirty()
+        onPerlinScaleChanged:        _markDirty()
+        onShapeTypeChanged:          _markDirty()
+        onShapeAmountChanged:        _markDirty()
+        onShapeBrightnessChanged:    _markDirty()
+        onShapeHueChanged:           _markDirty()
+        onShapeWidthChanged:         _markDirty()
+        onShapeHeightChanged:        _markDirty()
+        onShapeHRepeatChanged:       _markDirty()
+        onShapeVRepeatChanged:       _markDirty()
+        onShapeXChanged:             _markDirty()
+        onShapeYChanged:             _markDirty()
+        onShapeInvertChanged:        _markDirty()
+
     }
 
     Component.onCompleted: {
-        restoreSavedSettings();
+        loadConfigFromUrl(defaultConfigUrl, true)
     }
 
+    // Returns the absolute filesystem path for a file inside media/.
+    // Use this instead of hardcoding paths — works in dev and in packaged builds.
+    function mediaPath(filename) {
+        var url = Qt.resolvedUrl("../../media/" + filename)
+        var path = new URL(url.toString()).pathname
+        return isWin32 ? path.substr(1) : path
+    }
+
+    function _markDirty() { if (!_suppressDirty) isDirty = true }
+
+
+
+    function doSave(fileUrl) {
+        mainView.forceActiveFocus()
+        var jsonConfig = ConfigManager.exportConfig(appSettings)
+        var mediaDirPath = mediaPath("").replace(/\/+$/, "")
+        if (mediaDirPath) jsonConfig = jsonConfig.split(mediaDirPath).join("{{media}}")
+        try {
+            Util.writeFile(Util.urlToLocalFile(fileUrl.toString()), jsonConfig)
+            configStatusLabel.isError = false
+            configStatusLabel.text = "Saved: " + fileUrl.toString().split("/").pop()
+            isDirty = false
+            currentConfigFile = fileUrl
+            console.log("[MainView] Config saved to:", fileUrl)
+        } catch(e) {
+            configStatusLabel.isError = true
+            configStatusLabel.text = "Save failed: " + e
+            console.error("[MainView] Failed to save config:", e)
+        }
+    }
+
+    // Writes config values into appSettings then pushes them to the UI and Score.
+    function applyConfig(config) {
+        _suppressDirty = true
+        ConfigManager.applyConfig(config, appSettings, mediaPath("").replace(/\/$/, ""))
+        if (!appSettings.enginePath && isProcessing)
+            isProcessing = false
+        restoreSavedSettings()
+    }
+
+    // Loads a .koaia file by URL and applies it. Pass silent=true on startup to
+    // suppress status label updates (avoids "Loaded: default.koaia" flash).
+    function loadConfigFromUrl(fileUrl, silent) {
+        var fileUrlStr = fileUrl.toString()
+        var jsonText
+        try {
+            jsonText = String(Util.readFile(Util.urlToLocalFile(fileUrlStr)))
+        } catch(e) {
+            if (!silent) {
+                configStatusLabel.isError = true
+                configStatusLabel.text = "Load failed: " + e
+            }
+            console.error("[MainView] Failed to load config:", fileUrlStr, e)
+            return
+        }
+        if (!jsonText) {
+            if (!silent) {
+                configStatusLabel.isError = true
+                configStatusLabel.text = "Load failed: file not found or empty"
+            }
+            console.error("[MainView] Config file not found or empty:", fileUrlStr)
+            return
+        }
+        var config
+        try { config = JSON.parse(jsonText) }
+        catch (e) {
+            console.error("[MainView] Invalid config JSON:", e.message)
+            if (!silent) {
+                configStatusLabel.isError = true
+                configStatusLabel.text = "Invalid config file"
+            }
+            return
+        }
+        var validation = ConfigManager.validateConfig(config)
+        if (!validation.valid) {
+            console.error("[MainView] Config validation failed:", validation.errors.join(", "))
+            if (!silent) {
+                configStatusLabel.isError = true
+                configStatusLabel.text = "Invalid config: " + validation.errors[0]
+            }
+            return
+        }
+        applyConfig(config)
+        isDirty = false
+        if (fileUrl.toString() !== defaultConfigUrl.toString()) {
+            currentConfigFile = fileUrl
+        } else {
+            currentConfigFile = ""
+        }
+        if (!silent) {
+            configStatusLabel.isError = false
+            configStatusLabel.text = "Loaded: " + fileUrlStr.split("/").pop()
+        }
+        console.log("[MainView] Config loaded from:", fileUrlStr)
+    }
+
+    // Called after every config load — pushes appSettings values into UI controls,
+    // which in turn fire onValueChanged and push to Score.
     function restoreSavedSettings() {
         // Input section
         imagePathField.text = appSettings.videoPath;
-        imageAmountSlider.slider.value = appSettings.videoAmount;
-        cameraAmountSlider.slider.value = appSettings.cameraAmount;
+        imageAmountSlider.value = appSettings.videoAmount;
+        cameraAmountSlider.value = appSettings.cameraAmount;
 
         // AI Model section
         promptTextField.text = appSettings.prompt;
@@ -69,7 +321,9 @@ Pane {
         enginePathField.text = appSettings.enginePath;
         seedSpinBox.value = appSettings.seed;
         timestepsField.text = appSettings.timesteps;
+        guidanceSlider.value = appSettings.guidance;
         guidanceTypeCombo.currentIndex = appSettings.guidanceType;
+        deltaSlider.value = appSettings.delta;
         denoisingBatchSpinBox.checked = appSettings.denoisingBatch;
         addNoiseCheckBox.checked = appSettings.addNoise;
         manualModeCheckBox.checked = appSettings.manualMode;
@@ -77,19 +331,31 @@ Pane {
 
         // Noise layer section
         inputNoiseChooser.currentIndex = appSettings.noiseShader;
-        smokeAmountSlider.slider.value = appSettings.smokeAmount;
-        voronoiAmountSlider.slider.value = appSettings.voronoiAmount;
-        noiseAmountSlider.slider.value = appSettings.noiseAmount;
-        perlinAmountSlider.slider.value = appSettings.perlinAmount;
+        smokeAmountSlider.value = appSettings.smokeAmount;
+        voronoiAmountSlider.value = appSettings.voronoiAmount;
+        noiseAmountSlider.value = appSettings.noiseAmount;
+        perlinAmountSlider.value = appSettings.perlinAmount;
+        shaderControls.voronoiSeed        = appSettings.voronoiSeed;
+        shaderControls.voronoiIregularity = appSettings.voronoiIregularity;
+        shaderControls.voronoiBlur        = appSettings.voronoiBlur;
+        shaderControls.voronoiScale       = appSettings.voronoiScale;
+        shaderControls.whiteNoiseSeed     = appSettings.whiteNoiseSeed;
+        shaderControls.perlinSeed         = appSettings.perlinSeed;
+        shaderControls.perlinScale        = appSettings.perlinScale;
 
         // Shape layer section
         shapeTypeCombo.currentIndex = appSettings.shapeType;
-        shapeAmountSlider.slider.value = appSettings.shapeAmount;
+        shapeAmountSlider.value = appSettings.shapeAmount;
         brightnessSlider.value = appSettings.shapeBrightness;
         hueSlider.value = appSettings.shapeHue;
+        shapeWidthSlider.value = appSettings.shapeWidth;
+        shapeHeightSlider.value = appSettings.shapeHeight;
+        shapeHRepeatSlider.value = appSettings.shapeHRepeat;
+        shapeVRepeatSlider.value = appSettings.shapeVRepeat;
         shapex.value = appSettings.shapeX;
         shapey.value = appSettings.shapeY;
         invertCheckBox.checked = appSettings.shapeInvert;
+        Qt.callLater(function() { _suppressDirty = false })
     }
 
     // Score process objects
@@ -147,8 +413,13 @@ Pane {
 
     ScrollView {
         id: leftScroll
-        anchors.fill: parent
-        anchors.margins: appStyle.padding
+        anchors.top: parent.top
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: configToolbar.top
+        anchors.topMargin: appStyle.padding
+        anchors.leftMargin: appStyle.padding
+        anchors.rightMargin: appStyle.padding
         spacing: appStyle.spacing
 
         clip: true
@@ -181,23 +452,10 @@ Pane {
                         onTextChanged: {
                             appSettings.videoPath = text;
                             if (videoProcess && text !== "") {
-                                console.log("Setting video path to:", text);
                                 var wasPlaying = isProcessing;
-                                if (wasPlaying) {
-                                    console.log("Stopping Score to reload video...");
-                                    Score.stop();
-                                    isProcessing = false;
-                                }
-
+                                if (wasPlaying) isProcessing = false;  // handler calls Score.stop()
                                 videoProcess.path = text;
-
-                                if (wasPlaying) {
-                                    Qt.callLater(function () {
-                                        console.log("Restarting Score with new video...");
-                                        isProcessing = true;
-                                        Score.play();
-                                    });
-                                }
+                                if (wasPlaying) Qt.callLater(function() { isProcessing = true; });  // handler calls Score.play()
                             }
                         }
                     }
@@ -229,18 +487,10 @@ Pane {
                         id: imageAmountSlider
                         Layout.fillWidth: true
                         label: "Video"
-                        value: imagePathField.text !== "" ? (imageAmountSlider.slider.value || 0.8) : 0.0
+                        value: 0.0
                         port: processes.video_Mixer.alpha7
                         enabled: imagePathField.text !== ""
 
-                        Connections {
-                            target: imagePathField
-                            function onTextChanged() {
-                                if (imagePathField.text === "") {
-                                    imageAmountSlider.slider.value = 0.0;
-                                }
-                            }
-                        }
                         Connections {
                             target: imageAmountSlider.slider
                             function onValueChanged() {
@@ -270,6 +520,13 @@ Pane {
                     color: appStyle.textColorSecondary
                     Layout.fillWidth: true
                 }
+                Label {
+                    visible: imagePathField.text !== "" && !mainView.videoFileExists
+                    text: "File not found"
+                    font.pixelSize: appStyle.fontSizeSmall
+                    color: "#FF3B30"
+                    Layout.fillWidth: true
+                }
             }
 
             Section {
@@ -277,7 +534,7 @@ Pane {
                 title: "AI model"
                 description: "Configure AI image generation parameters including prompts, seed, and steps"
 
-                property bool showAdvancedOptions: false
+                property bool showAdvancedOptions: appSettings.enginePath === ""
 
                 Label {
                     text: "Prompt"
@@ -356,6 +613,7 @@ Pane {
                             text: "Engine"
                             Layout.preferredWidth: 100
                             font.pixelSize: appStyle.fontSizeBody
+                            color: enginePathField.text === "" ? "#FF3B30" : appStyle.textColor
                         }
                         TextField {
                             id: enginePathField
@@ -372,6 +630,8 @@ Pane {
                                 if (processes.streamDiffusion.engines)
                                     Score.setValue(processes.streamDiffusion.engines, text);
                                 appSettings.enginePath = text;
+                                if (!text && isProcessing)
+                                    isProcessing = false
                             }
                         }
                         Button {
@@ -379,6 +639,35 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                             onClicked: engineFolderDialog.open()
                         }
+                    }
+
+                    Label {
+                        visible: enginePathField.text === ""
+                        text: "Select an engine folder to enable start"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: "#FF3B30"
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        visible: enginePathField.text !== "" && !mainView.engineHasFiles
+                        text: "No .engine files found in this folder"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: "#FF3B30"
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        visible: enginePathField.text !== "" && mainView.engineHasFiles && !mainView.engineHasOnnx
+                        text: "Missing onnx subfolder"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: "#FF9500"
+                        Layout.fillWidth: true
+                    }
+                    Label {
+                        visible: enginePathField.text !== "" && mainView.engineHasFiles
+                        text: engineFilesModel.count + " engine" + (engineFilesModel.count === 1 ? "" : "s") + " found" + (mainView.engineHasOnnx ? "" : " — onnx missing")
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: mainView.engineHasOnnx ? "#34C759" : "#FF9500"
+                        Layout.fillWidth: true
                     }
 
                     FolderDialog {
@@ -463,12 +752,14 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                         }
                         ParameterSlider {
+                            id: guidanceSlider
                             Layout.fillWidth: true
                             labelText: ""
                             port: processes.streamDiffusion.guidance
                             from: 0
                             to: 20
                             initialValue: 1.0
+                            onValueChanged: appSettings.guidance = value
                         }
                         Label {
                             text: "Guidance type"
@@ -500,6 +791,7 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                         }
                         ParameterSlider {
+                            id: deltaSlider
                             Layout.fillWidth: true
                             labelText: ""
                             port: processes.streamDiffusion.delta
@@ -507,6 +799,7 @@ Pane {
                             to: 2
                             initialValue: 1.0
                             stepSize: 0.01
+                            onValueChanged: appSettings.delta = value
                         }
                     }
 
@@ -590,17 +883,6 @@ Pane {
                 }
             }
 
-            Button {
-                Layout.fillWidth: true
-                Layout.topMargin: appStyle.spacing
-                Layout.bottomMargin: appStyle.spacing
-                text: isProcessing ? "Stop" : "Start"
-                font.pixelSize: appStyle.fontSizeBody
-                font.bold: true
-                highlighted: isProcessing
-                onClicked: isProcessing = !isProcessing
-            }
-
             Section {
                 title: "Noise layer"
                 description: "Control shader effects, noise patterns."
@@ -682,12 +964,21 @@ Pane {
                 }
 
                 ShaderControls {
+                    id: shaderControls
                     Layout.fillWidth: true
                     shaderType: inputNoiseChooser.currentIndex
                     voronoi: processes.voronoi
                     perlin_Noise: processes.perlin_Noise
                     white_Noise: processes.white_Noise
                     simplex_Noise: processes.simplex_Noise
+
+                    onVoronoiSeedChanged:        appSettings.voronoiSeed        = voronoiSeed
+                    onVoronoiIregularityChanged: appSettings.voronoiIregularity = voronoiIregularity
+                    onVoronoiBlurChanged:        appSettings.voronoiBlur        = voronoiBlur
+                    onVoronoiScaleChanged:       appSettings.voronoiScale       = voronoiScale
+                    onWhiteNoiseSeedChanged:     appSettings.whiteNoiseSeed     = whiteNoiseSeed
+                    onPerlinSeedChanged:         appSettings.perlinSeed         = perlinSeed
+                    onPerlinScaleChanged:        appSettings.perlinScale        = perlinScale
                 }
             }
             Section {
@@ -853,20 +1144,24 @@ Pane {
                     Layout.fillWidth: true
                     spacing: appStyle.spacing
                     ParameterSlider {
+                        id: shapeWidthSlider
                         Layout.fillWidth: true
                         labelText: "Width"
                         port: processes.shape.shapeWidth
                         from: 0
                         to: 2
                         initialValue: 0.5
+                        onValueChanged: appSettings.shapeWidth = value
                     }
                     ParameterSlider {
+                        id: shapeHeightSlider
                         Layout.fillWidth: true
                         labelText: "Height"
                         port: processes.shape.shapeHeight
                         from: 0
                         to: 2
                         initialValue: 0.5
+                        onValueChanged: appSettings.shapeHeight = value
                     }
                 }
 
@@ -874,6 +1169,7 @@ Pane {
                     Layout.fillWidth: true
                     spacing: appStyle.spacing
                     ParameterSlider {
+                        id: shapeHRepeatSlider
                         Layout.fillWidth: true
                         labelText: "H Repeat"
                         port: processes.shape.horizontalRepeat
@@ -881,8 +1177,10 @@ Pane {
                         to: 10
                         initialValue: 1
                         stepSize: 1
+                        onValueChanged: appSettings.shapeHRepeat = value
                     }
                     ParameterSlider {
+                        id: shapeVRepeatSlider
                         Layout.fillWidth: true
                         labelText: "V Repeat"
                         port: processes.shape.verticalRepeat
@@ -890,6 +1188,7 @@ Pane {
                         to: 10
                         initialValue: 1
                         stepSize: 1
+                        onValueChanged: appSettings.shapeVRepeat = value
                     }
                 }
 
@@ -960,23 +1259,128 @@ Pane {
                 }
             }
 
-            // Section {
-            //     title: "Presets"
-            //     description: "Save and load preset configurations for quick setup"
+        }
+    }
 
-            //     RowLayout {
-            //         Layout.fillWidth: true
-            //         spacing: appStyle.spacing
+    Dialog {
+        id: unsavedChangesDialog
+        title: "Unsaved Changes"
+        modal: true
+        parent: Overlay.overlay
+        anchors.centerIn: parent
 
-            //         Button { text: "Load preset"; font.pixelSize: appStyle.fontSizeBody }
+        contentItem: Label {
+            text: "You have unsaved changes. Save before opening a new file?"
+            wrapMode: Text.WordWrap
+            width: 320
+            font.pixelSize: appStyle.fontSizeBody
+        }
 
-            //         Button { text: "Capture current state"; font.pixelSize: appStyle.fontSizeBody }
-            //     }
-            // }
+        footer: DialogButtonBox {
+            Button {
+                text: "Save"
+                DialogButtonBox.buttonRole: DialogButtonBox.AcceptRole
+            }
+            Button {
+                text: "Discard"
+                DialogButtonBox.buttonRole: DialogButtonBox.DestructiveRole
+            }
+            Button {
+                text: "Cancel"
+                DialogButtonBox.buttonRole: DialogButtonBox.RejectRole
+            }
+            onClicked: function(button) {
+                unsavedChangesDialog.close()
+                var role = button.DialogButtonBox.buttonRole
+                if (role === DialogButtonBox.AcceptRole) {
+                    mainView.doSave(mainView.currentConfigFile)
+                    loadConfigDialog.open()
+                } else if (role === DialogButtonBox.DestructiveRole) {
+                    // Reload the currently open file to revert unsaved changes
+                    mainView.loadConfigFromUrl(mainView.currentConfigFile)
+                }
+                // RejectRole (Cancel): do nothing, stay as-is
+            }
+        }
+    }
 
-            // little bottom padding?
-            Item {
-                height: appStyle.padding
+    Rectangle {
+        id: configToolbar
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        implicitHeight: toolbarRow.implicitHeight + appStyle.padding * 2
+        color: appStyle.backgroundColor
+
+        Rectangle {
+            anchors.top: parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            height: 1
+            color: appStyle.borderColor
+        }
+
+        RowLayout {
+            id: toolbarRow
+            anchors.fill: parent
+            anchors.margins: appStyle.padding
+            spacing: appStyle.spacing
+
+            Button {
+                text: isProcessing ? "Stop" : "Start"
+                font.pixelSize: appStyle.fontSizeBody
+                font.bold: true
+                highlighted: isProcessing
+                Layout.preferredWidth: 230
+                enabled: isProcessing || (imagePathField.text !== "" && enginePathField.text !== "")
+                onClicked: isProcessing = !isProcessing
+
+                ToolTip.visible: !enabled && hovered
+                ToolTip.text: imagePathField.text === "" && enginePathField.text === ""
+                    ? "Set a video input path and an engine path (Advanced Options) before starting"
+                    : imagePathField.text === ""
+                        ? "Set a video input path before starting"
+                        : "Set an engine path (Advanced Options) before starting"
+                ToolTip.delay: 500
+            }
+
+            Label {
+                id: configStatusLabel
+                property bool isError: false
+                Layout.fillWidth: true
+                font.pixelSize: appStyle.fontSizeSmall
+                color: isError ? "#FF3B30" : "#34C759"
+                elide: Text.ElideMiddle
+            }
+
+            Button {
+                text: "Open"
+                font.pixelSize: appStyle.fontSizeBody
+                onClicked: {
+                    var hasFile = mainView.currentConfigFile.toString() !== ""
+                        && mainView.currentConfigFile.toString() !== mainView.defaultConfigUrl.toString()
+                    var shouldWarn = hasFile && mainView.isDirty
+                    if (shouldWarn) {
+                        unsavedChangesDialog.open()
+                    } else {
+                        loadConfigDialog.open()
+                    }
+                }
+            }
+
+            Button {
+                text: "Save"
+                font.pixelSize: appStyle.fontSizeBody
+                visible: mainView.isDirty
+                    && mainView.currentConfigFile.toString() !== ""
+                    && mainView.currentConfigFile.toString() !== mainView.defaultConfigUrl.toString()
+                onClicked: mainView.doSave(mainView.currentConfigFile)
+            }
+
+            Button {
+                text: "Save As"
+                font.pixelSize: appStyle.fontSizeBody
+                onClicked: saveConfigDialog.open()
             }
         }
     }
@@ -1036,6 +1440,33 @@ Pane {
             process: "Video Mapper.1"
             port: 0
             showTexture: true
+        }
+    }
+
+    // CONFIG FILE DIALOGS
+ 
+    FileDialog {
+        id: saveConfigDialog
+        title: "Save Configuration"
+        nameFilters: ["Koaia Config Files (*.koaia)", "JSON Files (*.json)", "All Files (*)"]
+        fileMode: FileDialog.SaveFile
+        currentFolder: StandardPaths.writableLocation(StandardPaths.DocumentsLocation)
+        onAccepted: {
+            var fileUrl = selectedFile.toString()
+            if (!fileUrl.endsWith(".koaia") && !fileUrl.endsWith(".json"))
+                fileUrl = fileUrl + ".koaia"
+            doSave(fileUrl)
+        }
+    }
+
+    FileDialog {
+        id: loadConfigDialog
+        title: "Load Configuration"
+        nameFilters: ["Koaia Config Files (*.koaia)", "JSON Files (*.json)", "All Files (*)"]
+        fileMode: FileDialog.OpenFile
+        currentFolder: Qt.resolvedUrl("../../presets/")
+        onAccepted: {
+            loadConfigFromUrl(selectedFile, false);
         }
     }
 }

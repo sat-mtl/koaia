@@ -1,0 +1,53 @@
+{
+  "version": "1.0",
+  "metadata": {
+    "timestamp": "2026-01-01T00:00:00.000Z",
+    "application": "Koaia"
+  },
+  "input": {
+    "videoPath": "{{media}}/glow.mp4",
+    "videoAmount": 0.4,
+    "cameraAmount": 0.0
+  },
+  "aiModel": {
+    "prompt": "organic, flowing, bioluminescent, underwater, deep sea creatures, ethereal",
+    "workflow": 1,
+    "enginePath": "",
+    "seed": 7,
+    "timesteps": "20",
+    "guidance": 2.0,
+    "guidanceType": 1,
+    "delta": 0.8,
+    "denoisingBatch": false,
+    "addNoise": true,
+    "manualMode": false,
+    "resolution": 0
+  },
+  "noiseLayer": {
+    "noiseShader": 3,
+    "smokeAmount": 0.0,
+    "voronoiAmount": 0.0,
+    "noiseAmount": 0.0,
+    "perlinAmount": 0.5,
+    "voronoiSeed": 0.3,
+    "voronoiIregularity": 0.3,
+    "voronoiBlur": 0.3,
+    "voronoiScale": 0.4,
+    "whiteNoiseSeed": 0.3,
+    "perlinSeed": 0.3,
+    "perlinScale": 0.3
+  },
+  "shapeLayer": {
+    "shapeType": 2,
+    "shapeAmount": 0.3,
+    "brightness": 0.2,
+    "hue": 0.5,
+    "shapeWidth": 0.8,
+    "shapeHeight": 0.8,
+    "shapeHRepeat": 1,
+    "shapeVRepeat": 1,
+    "shapeX": 256,
+    "shapeY": 256,
+    "invert": false
+  }
+}

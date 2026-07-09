@@ -12,10 +12,20 @@ ColumnLayout {
     property var video_Mixer: null
     property int shaderType: 0 // 0=Smoke, 1=Voronoi, 2=Noise, 3=Perlin
 
+    // Expose slider values so MainView can save/restore them
+    property alias voronoiSeed:         voronoiSeedSlider.value
+    property alias voronoiIregularity:  voronoiIregularitySlider.value
+    property alias voronoiBlur:         voronoiBlurSlider.value
+    property alias voronoiScale:        voronoiScaleSlider.value
+    property alias whiteNoiseSeed:      whiteNoiseSeedSlider.value
+    property alias perlinSeed:          perlinSeedSlider.value
+    property alias perlinScale:         perlinScaleSlider.value
+
     spacing: appStyle.spacing
 
     // Voronoi controls
     ParameterSlider {
+        id: voronoiSeedSlider
         visible: shaderType === 1
         labelText: "Seed"
         port: voronoi ? voronoi.seed : null
@@ -25,6 +35,7 @@ ColumnLayout {
     }
 
     ParameterSlider {
+        id: voronoiIregularitySlider
         visible: shaderType === 1
         labelText: "Iregularity"
         port: voronoi ? voronoi.iregularity : null
@@ -34,6 +45,7 @@ ColumnLayout {
     }
 
     ParameterSlider {
+        id: voronoiBlurSlider
         visible: shaderType === 1
         labelText: "Blur"
         port: voronoi ? voronoi.blur : null
@@ -43,6 +55,7 @@ ColumnLayout {
     }
 
     ParameterSlider {
+        id: voronoiScaleSlider
         visible: shaderType === 1
         labelText: "Scale"
         port: voronoi ? voronoi.scale : null
@@ -53,6 +66,7 @@ ColumnLayout {
 
     // White Noise controls
     ParameterSlider {
+        id: whiteNoiseSeedSlider
         visible: shaderType === 2
         labelText: "Seed"
         port: white_Noise ? white_Noise.seed : null
@@ -61,7 +75,7 @@ ColumnLayout {
         initialValue: 0.3
     }
 
-    // Simplex Noise controls
+    // Simplex Noise controls (hidden, not yet exposed)
     ParameterSlider {
         visible: false
         labelText: "Offset"
@@ -82,6 +96,7 @@ ColumnLayout {
 
     // Perlin controls
     ParameterSlider {
+        id: perlinSeedSlider
         visible: shaderType === 3
         labelText: "Seed"
         port: perlin_Noise ? perlin_Noise.seed : null
@@ -91,6 +106,7 @@ ColumnLayout {
     }
 
     ParameterSlider {
+        id: perlinScaleSlider
         visible: shaderType === 3
         labelText: "Scale"
         port: perlin_Noise ? perlin_Noise.scale : null

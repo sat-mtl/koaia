@@ -337,7 +337,7 @@ Pane {
                             text: "Output Path"
                             Layout.preferredWidth: 100
                             font.pixelSize: appStyle.fontSizeBody
-                            color: outputPathField.text !== "" ? palette.windowText : "red"
+                            color: outputPathField.text === "" ? "#FF3B30" : appStyle.textColor
                         }
                         TextField {
                             id: outputPathField
@@ -351,6 +351,14 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                             onClicked: outputFolderDialog.open()
                         }
+                    }
+
+                    Label {
+                        visible: outputPathField.text === ""
+                        text: "Select an output folder to enable build"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: "#FF3B30"
+                        Layout.fillWidth: true
                     }
 
                     FolderDialog {

@@ -20,24 +20,38 @@ jobs:
           - os: ubuntu-latest
             platform: linux-x86_64
             artifact-name: linux-x86_64
+          - os: ubuntu-24.04-arm
+            platform: linux-aarch64
+            artifact-name: linux-aarch64
           - os: macos-latest
             platform: macos-arm
             artifact-name: macos-arm
+          - os: macos-latest
+            platform: macos-intel
+            artifact-name: macos-intel
+            target-arch: x86_64
           - os: windows-latest
             platform: windows
             artifact-name: windows
+          - os: ubuntu-24.04
+            platform: wasm
+            artifact-name: wasm
+            target-platform: wasm
+            artifact-path: packages/*.zip
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: ossia score build
         id: score
         uses: ossia/actions/custom-score-build@master
         with:
+          target-arch: ${{ matrix.target-arch || '' }}
+          target-platform: ${{ matrix.target-platform || '' }}
           cmake-options: >
             -DSCORE_ENABLE_ADDONS=score-addon-librediffusion
-            -DSCORE_DISABLE_PLUGINS=score-plugin-faust,score-plugin-jit,score-plugin-vst,score-plugin-vst3,score-plugin-clap,score-plugin-lv2,score-plugin-avnd,score-plugin-pd,score-plugin-ysfx,score-plugin-controlsurface,score-plugin-spline3d,score-plugin-recording,score-plugin-nodal,score-plugin-spline,score-plugin-mapping,score-plugin-threedim
+            -DSCORE_DISABLE_PLUGINS=score-plugin-faust,score-plugin-jit,score-plugin-vst,score-plugin-vst3,score-plugin-clap,score-plugin-lv2,score-plugin-pd,score-plugin-ysfx,score-plugin-controlsurface,score-plugin-spline3d,score-plugin-recording,score-plugin-nodal,score-plugin-spline,score-plugin-mapping,score-plugin-threedim
             -DSCORE_QT_PLUGINS_NO_QTQUICK3D=1
           macos-certificate-base64: ${{ secrets.MAC_CERT_B64 }}
           macos-certificate-password: ${{ secrets.MAC_CERT_PASSWORD }}
@@ -48,7 +62,7 @@ jobs:
       - name: Package custom ossia score app
         uses: ossia/actions/package-custom-app@master
         with:
-          app-name: "My Custom App"
+          app-name: "Koaia"
           qml-files: "qml"
           # Optional: Add your score file here
           score-file: "score/app.score"
@@ -76,7 +90,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: custom-app-${{ matrix.artifact-name }}
-          path: packages/
+          path: ${{ matrix.artifact-path || 'packages/' }}
           retention-days: 30
 
   release:

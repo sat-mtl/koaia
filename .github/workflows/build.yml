@@ -10,17 +10,21 @@ jobs:
   build:
     name: Package Custom App - ${{ matrix.platform }}
     runs-on: ${{ matrix.os }}
+    container: ${{ matrix.container }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: ubuntu-latest
+          - os: [self-hosted, linux, x64, sat-builder]
+            container: "ubuntu:noble"
             platform: linux-x86_64
             artifact-name: linux-x86_64
           - os: macos-latest
+            container: ""
             platform: macos-arm
             artifact-name: macos-arm
           - os: windows-latest
+            container: ""
             platform: windows
             artifact-name: windows
 

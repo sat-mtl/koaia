@@ -50,7 +50,7 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
 
       - name: ossia score build
         id: score
@@ -96,7 +96,7 @@ jobs:
           macos-notarize-password: ${{ secrets.MAC_NOTARIZE_PASSWORD }}
 
       - name: Upload packages
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: custom-app-${{ matrix.artifact-name }}
           path: ${{ matrix.artifact-path || 'packages/' }}
@@ -111,7 +111,7 @@ jobs:
 
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           path: all-packages
           pattern: custom-app-*

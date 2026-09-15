@@ -68,6 +68,18 @@ jobs:
           macos-notarize-apple-id: ${{ secrets.MAC_NOTARIZE_APPLE_ID }}
           macos-notarize-password: ${{ secrets.MAC_NOTARIZE_PASSWORD }}
 
+      # koaia's engine builder ships inside the package (score/engine-builder), so
+      # the app never depends on score's package manager to obtain uv. Only the
+      # x86_64 Linux/Windows targets can build TensorRT engines, so the rest skip.
+      - name: Fetch uv for the engine builder
+        shell: bash
+        run: |
+          case "${{ matrix.platform }}" in
+            linux-x86_64) scripts/fetch-uv.sh linux ;;
+            windows)      scripts/fetch-uv.sh windows ;;
+            *) echo "No engine-builder uv for ${{ matrix.platform }}; skipping." ;;
+          esac
+
       - name: Package custom ossia score app
         uses: ossia/actions/package-custom-app@master
         with:

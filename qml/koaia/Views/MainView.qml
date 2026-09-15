@@ -591,7 +591,16 @@ Pane {
                         ComboBox {
                             id: workflowCombo
                             Layout.fillWidth: true
-                            model: ["SD_TXT2IMG", "SD_IMG2IMG", "SD_TXT2IMG_CONTROLNET", "SD_TXT2IMG_IPADAPTER", "SD_IMG2IMG_IPADAPTER", "STURBO_TXT2IMG", "SDTURBO_IMG2IMG", "SDXL_TXT2IMG", "SDXL_IMG2IMG", "V2V_TXT2IMG", "V2V_IMG2IMG"]
+                            // Must mirror LibreDiffusion::Workflow exactly and in
+                            // order: currentIndex is written straight to the port.
+                            model: ["SD_TXT2IMG", "SD_IMG2IMG", "SD_TXT2IMG_CONTROLNET",
+                                    "SD_IMG2IMG_CONTROLNET", "SD_TXT2IMG_IPADAPTER",
+                                    "SD_IMG2IMG_IPADAPTER", "SDTURBO_TXT2IMG",
+                                    "SDTURBO_IMG2IMG", "SDXL_TXT2IMG", "SDXL_IMG2IMG",
+                                    "SDXL_TXT2IMG_CONTROLNET", "SDXL_IMG2IMG_CONTROLNET",
+                                    "V2V_TXT2IMG", "V2V_IMG2IMG",
+                                    "FLUX2_KLEIN_TXT2IMG", "FLUX2_KLEIN_IMG2IMG",
+                                    "FLUX2_KLEIN_INPAINT", "IMG2IMG_TURBO"]
                             currentIndex: 0
                             font.pixelSize: appStyle.fontSizeBody
                             UI.PortSource on currentIndex {

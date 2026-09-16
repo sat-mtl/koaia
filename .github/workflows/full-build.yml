@@ -51,6 +51,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v7
+        with:
+          # 3rdparty/librediffusion supplies the Python engine builder. Not recursive:
+          # librediffusion's own 3rdparty is ~154 MB of C++ deps we do not package.
+          submodules: true
 
       - name: ossia score build
         id: score
@@ -71,13 +75,13 @@ jobs:
       # koaia's engine builder ships inside the package (score/engine-builder), so
       # the app never depends on score's package manager to obtain uv. Only the
       # x86_64 Linux/Windows targets can build TensorRT engines, so the rest skip.
-      - name: Fetch uv for the engine builder
+      - name: Stage the engine builder
         shell: bash
         run: |
           case "${{ matrix.platform }}" in
-            linux-x86_64) scripts/fetch-uv.sh linux ;;
-            windows)      scripts/fetch-uv.sh windows ;;
-            *) echo "No engine-builder uv for ${{ matrix.platform }}; skipping." ;;
+            linux-x86_64) scripts/prepare-package.sh linux ;;
+            windows)      scripts/prepare-package.sh windows ;;
+            *) echo "No engine builder for ${{ matrix.platform }}; skipping." ;;
           esac
 
       - name: Package custom ossia score app

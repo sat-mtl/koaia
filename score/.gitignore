@@ -1,3 +1,3 @@
-# Fetched at package time by scripts/fetch-uv.sh (~45 MB per platform).
-engine-builder/uv
-engine-builder/uv.exe
+# Staged at package time by scripts/prepare-package.sh from the
+# 3rdparty/librediffusion submodule. Not tracked: the submodule is the record.
+engine-builder/

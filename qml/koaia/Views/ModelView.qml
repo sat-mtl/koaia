@@ -13,12 +13,6 @@ Pane {
         color: appStyle.backgroundColor
     }
 
-    // Library paths from Settings
-    Settings {
-        id: librarySettings
-        category: "Library"
-    }
-
     Settings {
         id: buildSettings
         category: "BuildState"
@@ -27,12 +21,23 @@ Pane {
 
     readonly property bool isWin32: Qt.platform.os === "windows"
 
-    // Computed paths based on Library root
-    readonly property string libraryRoot: librarySettings.value("RootPath", "")
+    // The engine builder ships inside the package, so nothing here depends on
+    // score's package manager or on a configured library root. create-app.sh
+    // copies the contents of koaia/score/ next to the QML tree, giving
+    // <root>/engine-builder and <root>/qml; this file sits three levels down
+    // in the latter. Strip the file:// scheme -- Process.program takes a path.
+    readonly property string appRoot: {
+        var u = Qt.resolvedUrl("../../..").toString()
+        if (u.startsWith("file://")) u = u.substring(7)
+        // Windows resolves to file:///C:/..., so dropping the scheme leaves a
+        // leading slash in front of the drive letter that Process would reject.
+        if (/^\/[A-Za-z]:/.test(u)) u = u.substring(1)
+        return u.replace(/\/$/, "")
+    }
 
-    readonly property string uvPath: libraryRoot + "/packages/python-uv/uv"
-    readonly property string scriptPath: libraryRoot + "/packages/librediffusion/train-lora.py"
-    readonly property string scriptDir: libraryRoot + "/packages/librediffusion"
+    readonly property string scriptDir: appRoot + "/engine-builder"
+    readonly property string uvPath: scriptDir + (isWin32 ? "/uv.exe" : "/uv")
+    readonly property string scriptPath: scriptDir + "/train-lora.py"
 
     property bool isSyncing: syncProcess.running
     property bool isBuilding: syncProcess.running || buildProcess.running
@@ -839,7 +844,6 @@ Pane {
     // Start build: first sync, then run
     function startBuild() {
         var errors = [];
-        if (libraryRoot === "") errors.push("Library path not configured");
         if (modelSourceField.text === "") errors.push("Model source path is empty");
         if (outputPathField.text === "") errors.push("Output path is empty");
         if (maxBatchSpinBox.value < minBatchSpinBox.value) errors.push("Max batch must be >= min batch");

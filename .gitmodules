@@ -1,0 +1,4 @@
+[submodule "3rdparty/librediffusion"]
+	path = 3rdparty/librediffusion
+	url = https://github.com/jcelerier/librediffusion.git
+	branch = release/sat-2026-09

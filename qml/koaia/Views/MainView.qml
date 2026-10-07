@@ -40,6 +40,18 @@ Pane {
     readonly property bool engineHasFiles:  engineFilesModel.count > 0
     readonly property bool engineHasOnnx:   engineOnnxModel.count > 0
 
+    // A bundle exported with --controlnet carries controlnet.engine AND a
+    // control-aware unet.engine; the two only make sense together, so the file's
+    // presence is the bundle's ControlNet flag. (bundle.json says the same under
+    // features.controlnet, but the add-on only ever parses embedding_dim out of it,
+    // and a FolderListModel is already scanning this directory for the count below.)
+    readonly property bool engineHasControlNet: {
+        for (var i = 0; i < engineFilesModel.count; i++)
+            if (engineFilesModel.get(i, "fileName") === "controlnet.engine")
+                return true
+        return false
+    }
+
     FolderListModel {
         id: videoFileModel
         showFiles: true
@@ -240,6 +252,62 @@ Pane {
     // frame -- so the cable follows the workflow instead of being wired once in
     // app.score. Resolved by port name, not index: the node's inlet order has
     // moved before and a saved index silently rebinds to another port.
+    // Plain workflow <-> its ControlNet variant, as LibreDiffusion::Workflow orders
+    // them: SD_TXT2IMG/SD_IMG2IMG <-> SD_*_CONTROLNET, and the same pair for SDXL.
+    readonly property var controlNetWorkflowPairs: [[0, 2], [1, 3], [8, 10], [9, 11]]
+
+    function workflowForBundle(wf, hasControlNet) {
+        for (var i = 0; i < controlNetWorkflowPairs.length; i++) {
+            var plain = controlNetWorkflowPairs[i][0]
+            var cn    = controlNetWorkflowPairs[i][1]
+            if (hasControlNet && wf === plain) return cn
+            if (!hasControlNet && wf === cn)   return plain
+        }
+        return wf   // IP-Adapter, FLUX, V2V, turbo: nothing to derive
+    }
+
+    // The workflow is not free to differ from the bundle. A control-aware
+    // unet.engine declares input_control_00..N; a non-ControlNet workflow never
+    // calls set_controlnet_cond_rgba, so those tensors keep a null address and
+    // TensorRT refuses EVERY enqueue:
+    //
+    //   [TensorRT-RTX ERROR] IExecutionContext::enqueueV3: Error Code 3: API Usage
+    //   Error (... Address is not set for input tensor input_control_00 ...)
+    //   StreamDiffusion: img2img failed (-99)
+    //
+    // Measured on the RTX 3090 against engines/sdxs-sketch: SD_IMG2IMG gives 11224
+    // of those in 150 s and a black Preview; SD_IMG2IMG_CONTROLNET gives zero and a
+    // real image. The reverse mismatch fails too -- config_add_controlnet cannot
+    // find controlnet.engine. koaia defaulted to SD_IMG2IMG while ModelView's FIRST
+    // and default preset is "SDXS-sketch 512 (SD 1.5 + ControlNet)", so the
+    // out-of-the-box path built an engine the RUN view could not then drive.
+    function syncWorkflowToBundle() {
+        // Wait for the scan to settle: FolderListModel publishes `count` while it is
+        // still filling, so acting on a half-read directory demotes to the plain
+        // workflow and then promotes back once controlnet.engine shows up -- churn
+        // that also tears the Control / Style cable down and rebuilds it.
+        if (!enginePathField.text || !engineHasFiles
+            || engineFilesModel.status !== FolderListModel.Ready)
+            return
+        var want = workflowForBundle(workflowCombo.currentIndex, engineHasControlNet)
+        if (want === workflowCombo.currentIndex)
+            return
+        console.log("[MainView] engine bundle", engineHasControlNet ? "has" : "has no",
+                    "controlnet.engine — workflow", workflowCombo.currentIndex, "->", want)
+        // Assigning the combo is what drives everything else: onCurrentIndexChanged
+        // writes the port and calls syncControlCable(), which is what puts the
+        // Video Mapper texture on the "Control / Style" inlet.
+        workflowCombo.currentIndex = want
+    }
+
+    onEngineHasControlNetChanged: syncWorkflowToBundle()
+    onEngineHasFilesChanged:      syncWorkflowToBundle()
+
+    Connections {
+        target: engineFilesModel
+        function onStatusChanged() { mainView.syncWorkflowToBundle() }
+    }
+
     function syncControlCable() {
         var src = processes.video_Mapper.out
         var sink = processes.streamDiffusion.control_style

@@ -223,13 +223,18 @@ Pane {
 
     function _markDirty() { if (!_suppressDirty) isDirty = true }
 
-    // Mirrors is_controlnet_workflow() in LibreDiffusion.cpp: the only workflows
-    // that read the "Control / Style" inlet at all.
-    readonly property var controlNetWorkflows: [2, 3, 10, 11]
+    // Every workflow that reads the "Control / Style" inlet. The inlet is named for
+    // two jobs and both of them bail out without it:
+    //   2, 3, 10, 11  ControlNet  -- is_controlnet_workflow(), LibreDiffusion.cpp:231
+    //                  no control map -> "ControlNet workflow but no control image"
+    //   4, 5          IP-Adapter  -- ipadapter_enabled, LibreDiffusion.cpp:926
+    //                  no style image -> "IP-Adapter workflow but no style image",
+    //                  and the node `return`s on every frame (:2651)
+    readonly property var controlStyleWorkflows: [2, 3, 4, 5, 10, 11]
 
-    // ControlNet takes its control map from StreamDiffusion's second inlet, and
-    // refuses the frame outright when nothing is on it. In koaia the Noise and
-    // Shape layers *are* the sketch, so the control image is the same composed
+    // Those workflows take their control map / style image from StreamDiffusion's
+    // second inlet and refuse the frame outright when nothing is on it. In koaia the
+    // Noise and Shape layers *are* the sketch, so the image is the same composed
     // Video Mapper texture that already drives "In". Every other workflow ignores
     // that inlet, and a live texture cable there still costs a render pass per
     // frame -- so the cable follows the workflow instead of being wired once in
@@ -246,7 +251,7 @@ Pane {
             return
         }
         var existing = Score.cable(src, sink)
-        var wanted = controlNetWorkflows.indexOf(workflowCombo.currentIndex) >= 0
+        var wanted = controlStyleWorkflows.indexOf(workflowCombo.currentIndex) >= 0
         if (wanted && !existing)
             Score.createCable(src, sink)
         else if (!wanted && existing)

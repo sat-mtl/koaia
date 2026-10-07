@@ -136,14 +136,26 @@ Pane {
     // draws C0 as replacement boxes and turns a bare CR into a paragraph break:
     // that is the mojibake in the build log.
     //
-    // Order matters. The NULs sit *inside* the escape sequences, so they go first
-    // or the CSI pattern cannot match. A CR means "redraw this line", so only the
-    // last segment is the state the writer meant to leave behind.
+    // Order matters, and the two kinds of CR must not be confused.
+    //
+    // The NULs sit *inside* the escape sequences, so they go first or the CSI
+    // pattern cannot match. Then the CRs, in two steps:
+    //
+    //   * A CR at end of line is CRLF **framing**, not content: UI.Process splits
+    //     on '\n' with `left(idx)` and QProcess is not opened with QIODevice::Text,
+    //     so the CR of every CRLF survives into the line. On Windows that is every
+    //     single line Python writes -- 1680 of 1681 in the capture above. Drop it.
+    //   * A CR in the *middle* means "redraw this line", as tqdm does, so only the
+    //     last segment is the state the writer meant to leave behind.
+    //
+    // Collapsing those two cases into one lastIndexOf() deletes every CRLF line,
+    // which is what the first version of this did.
     function sanitizeConsole(text) {
         var s = String(text).replace(/\x00/g, "")
         s = s.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")     // OSC ... BEL / ST
         s = s.replace(/\x1b\[[0-9;?]*[\x20-\x2f]*[\x40-\x7e]/g, "") // CSI
         s = s.replace(/\x1b[\x40-\x5a\x5c-\x5f]/g, "")              // two-byte Fe
+        s = s.replace(/\r+$/, "")
         var last = s.lastIndexOf("\r")
         if (last >= 0)
             s = s.substring(last + 1)

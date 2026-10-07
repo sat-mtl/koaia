@@ -34,7 +34,7 @@ function createDefaultConfig() {
         },
         aiModel: {
             prompt: "origami, hyperrealistic, 4k, abstract, geometry",
-            workflow: 0, enginePath: "", seed: 20, timesteps: "20",
+            workflow: 1, enginePath: "", seed: 20, timesteps: "20",
             guidance: 1.0, guidanceType: 0, delta: 1.0,
             denoisingBatch: false, addNoise: false, manualMode: false, resolution: 0
         },
@@ -67,7 +67,7 @@ function exportConfig(s) {
         },
         aiModel: {
             prompt:         s.prompt        || "",
-            workflow:       s.workflow      || 0,
+            workflow:       s.workflow      !== undefined ? s.workflow : 1,
             enginePath:     s.enginePath    || "",
             seed:           s.seed          !== undefined ? s.seed   : 20,
             timesteps:      s.timesteps     || "20",
@@ -164,7 +164,7 @@ function applyConfig(config, settings, mediaBasePath) {
     var ai = config.aiModel
     if (ai) {
         settings.prompt         = ai.prompt        || ""
-        settings.workflow       = ai.workflow       || 0
+        settings.workflow       = ai.workflow       !== undefined ? ai.workflow : 1
         settings.enginePath     = ai.enginePath     || ""
         settings.seed           = ai.seed           !== undefined ? ai.seed      : 20
         settings.timesteps      = ai.timesteps      || "20"

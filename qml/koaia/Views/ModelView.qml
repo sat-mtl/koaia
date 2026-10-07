@@ -39,6 +39,43 @@ Pane {
     readonly property string uvPath: scriptDir + (isWin32 ? "/uv.exe" : "/uv")
     readonly property string scriptPath: scriptDir + "/train-lora.py"
 
+    // Each preset is one tested train-lora.py invocation. SDXS-sketch is first and
+    // the default: it is the 512x512 ControlNet pipeline koaia is built around, and
+    // its control-aware UNet needs the *native* sketch ControlNet (7 down residuals)
+    // -- a generic SD1.5 canny one has 13 and will not load against this UNet.
+    // Declared on the root because a Section's children resolve names against the
+    // file's root object, not against the enclosing Section instance.
+    readonly property var modelPresets: [
+        {
+            label: "SDXS-sketch 512 (SD 1.5 + ControlNet)",
+            type: "sd15",
+            model: "IDKiro/sdxs-512-dreamshaper",
+            controlnet: "IDKiro/sdxs-512-dreamshaper-sketch",
+            minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512
+        },
+        {
+            label: "SD-Turbo 512 (SD 1.5)",
+            type: "sd15",
+            model: "stabilityai/sd-turbo",
+            controlnet: "",
+            minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512
+        },
+        {
+            label: "LCM Dreamshaper v7 (SD 1.5)",
+            type: "sd15",
+            model: "SimianLuo/LCM_Dreamshaper_v7",
+            controlnet: "",
+            minRes: 512, maxRes: 1024, optWidth: 1024, optHeight: 1024
+        },
+        {
+            label: "SDXL base 1.0",
+            type: "sdxl",
+            model: "stabilityai/stable-diffusion-xl-base-1.0",
+            controlnet: "",
+            minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024
+        }
+    ]
+
     property bool isSyncing: syncProcess.running
     property bool isBuilding: syncProcess.running || buildProcess.running
 
@@ -87,14 +124,42 @@ Pane {
         xhr.send()
     }
 
+    // UI.Process frames the child's output on '\n' alone and decodes every line
+    // with QString::fromUtf8 unconditionally (QmlProcess.cpp:82-115). Measured on
+    // a real sdxs-sketch build on Windows (69 KB of stderr): onnxruntime's native
+    // logger writes **UTF-16LE**, so each character arrives followed by a NUL that
+    // fromUtf8 keeps -- 23579 C0 bytes in that one capture. On top of it come 214
+    // ANSI escapes (its colourised warnings ignore NO_COLOR) and 139 CRs, and
+    // Python's newline translation ends all 1226 stdout lines in CRLF. A TextArea
+    // draws C0 as replacement boxes and turns a bare CR into a paragraph break:
+    // that is the mojibake in the build log.
+    //
+    // Order matters. The NULs sit *inside* the escape sequences, so they go first
+    // or the CSI pattern cannot match. A CR means "redraw this line", so only the
+    // last segment is the state the writer meant to leave behind.
+    function sanitizeConsole(text) {
+        var s = String(text).replace(/\x00/g, "")
+        s = s.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)/g, "")     // OSC ... BEL / ST
+        s = s.replace(/\x1b\[[0-9;?]*[\x20-\x2f]*[\x40-\x7e]/g, "") // CSI
+        s = s.replace(/\x1b[\x40-\x5a\x5c-\x5f]/g, "")              // two-byte Fe
+        var last = s.lastIndexOf("\r")
+        if (last >= 0)
+            s = s.substring(last + 1)
+        return s.replace(/[\x01-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "")
+    }
+
     function log(message) {
         var time = new Date();
         var timestamp = time.getHours() + ":" +
                        (time.getMinutes() < 10 ? "0" : "") + time.getMinutes() + ":" +
                        (time.getSeconds() < 10 ? "0" : "") + time.getSeconds();
-        logTextArea.append("[" + timestamp + "] " + message);
+        var clean = sanitizeConsole(message);
+        // An all-control line (a bare cursor move) carries nothing to show.
+        if (clean === "" && String(message) !== "")
+            return;
+        logTextArea.append("[" + timestamp + "] " + clean);
         logTextArea.cursorPosition = logTextArea.length
-        console.log(message);
+        console.log(clean);
     }
 
     // Sync process (runs uv sync first)
@@ -301,22 +366,32 @@ Pane {
                     RowLayout {
                         Layout.fillWidth: true
                         Label {
-                            text: "Model Type"
+                            text: "Preset"
                             Layout.preferredWidth: 100
                             font.pixelSize: appStyle.fontSizeBody
                         }
                         ComboBox {
                             id: modelTypeCombo
                             Layout.fillWidth: true
-                            model: ["SD 1.5 / Turbo", "SDXL"]
+                            model: modelPresets.map(function(p) { return p.label })
                             currentIndex: 0
                             font.pixelSize: appStyle.fontSizeBody
-                            property string modelTypeArg: currentIndex === 0 ? "sd15" : "sdxl"
-                            onCurrentIndexChanged: {
-                                modelSourceField.text = currentIndex === 0
-                                    ? "SimianLuo/LCM_Dreamshaper_v7"
-                                    : "stabilityai/stable-diffusion-xl-base-1.0"
+                            readonly property var preset: modelPresets[currentIndex]
+                            readonly property string modelTypeArg: preset.type
+                            // Applied on change and once on load, so the fields and the
+                            // build parameters start out matching the default preset
+                            // rather than train-lora.py's own 1024 defaults.
+                            function apply() {
+                                var p = preset
+                                modelSourceField.text = p.model
+                                controlNetField.text = p.controlnet
+                                minResolutionSpinBox.value = p.minRes
+                                maxResolutionSpinBox.value = p.maxRes
+                                optWidthSpinBox.value = p.optWidth
+                                optHeightSpinBox.value = p.optHeight
                             }
+                            Component.onCompleted: apply()
+                            onCurrentIndexChanged: apply()
                         }
                     }
 
@@ -331,8 +406,22 @@ Pane {
                             id: modelSourceField
                             Layout.fillWidth: true
                             font.pixelSize: appStyle.fontSizeBody
-                            text: "SimianLuo/LCM_Dreamshaper_v7"
                             placeholderText: "HuggingFace model ID or local path"
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label {
+                            text: "ControlNet"
+                            Layout.preferredWidth: 100
+                            font.pixelSize: appStyle.fontSizeBody
+                        }
+                        TextField {
+                            id: controlNetField
+                            Layout.fillWidth: true
+                            font.pixelSize: appStyle.fontSizeBody
+                            placeholderText: "HuggingFace ControlNet repo — empty for none"
                         }
                     }
 
@@ -462,7 +551,7 @@ Pane {
                                     Layout.fillWidth: true
                                     from: 256
                                     to: 2048
-                                    value: 1024
+                                    value: 512
                                     stepSize: 64
                                     font.pixelSize: appStyle.fontSizeBody
                                 }
@@ -479,7 +568,7 @@ Pane {
                                     Layout.fillWidth: true
                                     from: 256
                                     to: 2048
-                                    value: 1024
+                                    value: 512
                                     stepSize: 64
                                     font.pixelSize: appStyle.fontSizeBody
                                 }
@@ -505,7 +594,7 @@ Pane {
                                     Layout.fillWidth: true
                                     from: 256
                                     to: 2048
-                                    value: 1024
+                                    value: 512
                                     stepSize: 64
                                     font.pixelSize: appStyle.fontSizeBody
                                 }
@@ -522,7 +611,7 @@ Pane {
                                     Layout.fillWidth: true
                                     from: 256
                                     to: 2048
-                                    value: 1024
+                                    value: 512
                                     stepSize: 64
                                     font.pixelSize: appStyle.fontSizeBody
                                 }
@@ -880,6 +969,11 @@ Pane {
         if (isWin32)
             args.push("--cache-dir", "c:\\uv");
         args.push("run", "train-lora.py", "--type", modelTypeCombo.modelTypeArg, "--model", modelSourceField.text, "--output", outputPathField.text, "--min-batch", minBatchSpinBox.value.toString(), "--max-batch", maxBatchSpinBox.value.toString(), "--opt-batch", optBatchSpinBox.value.toString(), "--min-resolution", minResolutionSpinBox.value.toString(), "--max-resolution", maxResolutionSpinBox.value.toString(), "--opt-width", optWidthSpinBox.value.toString(), "--opt-height", optHeightSpinBox.value.toString());
+
+        // Exports controlnet.engine plus a control-aware unet.engine; without it the
+        // bundle has no ControlNet and every SD_*_CONTROLNET workflow refuses frames.
+        if (controlNetField.text !== "")
+            args.push("--controlnet", controlNetField.text);
 
         // Add LoRAs with weights
         for (var i = 0; i < loraListModel.count; i++) {

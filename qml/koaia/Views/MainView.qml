@@ -127,7 +127,7 @@ Pane {
 
         // AI Model section
         property string prompt: "origami, hyperrealistic, 4k, abstract, geometry"
-        property int workflow: 0
+        property int workflow: 1
         property string enginePath: ""
         property int seed: 20
         property string timesteps: "20"
@@ -209,6 +209,8 @@ Pane {
 
     Component.onCompleted: {
         loadConfigFromUrl(defaultConfigUrl, true)
+        // After the load, so the cable matches the workflow the config selected.
+        Qt.callLater(syncControlCable)
     }
 
     // Returns the absolute filesystem path for a file inside media/.
@@ -220,6 +222,36 @@ Pane {
     }
 
     function _markDirty() { if (!_suppressDirty) isDirty = true }
+
+    // Mirrors is_controlnet_workflow() in LibreDiffusion.cpp: the only workflows
+    // that read the "Control / Style" inlet at all.
+    readonly property var controlNetWorkflows: [2, 3, 10, 11]
+
+    // ControlNet takes its control map from StreamDiffusion's second inlet, and
+    // refuses the frame outright when nothing is on it. In koaia the Noise and
+    // Shape layers *are* the sketch, so the control image is the same composed
+    // Video Mapper texture that already drives "In". Every other workflow ignores
+    // that inlet, and a live texture cable there still costs a render pass per
+    // frame -- so the cable follows the workflow instead of being wired once in
+    // app.score. Resolved by port name, not index: the node's inlet order has
+    // moved before and a saved index silently rebinds to another port.
+    function syncControlCable() {
+        var src = processes.video_Mapper.out
+        var sink = processes.streamDiffusion.control_style
+        if (!src || !sink) {
+            // app.score no longer carries this cable, so an unresolved port means a
+            // ControlNet workflow silently gets no control image. Say so.
+            console.warn("[MainView] cannot resolve the Control / Style cable:",
+                         "Video Mapper out =", src, "StreamDiffusion inlet =", sink)
+            return
+        }
+        var existing = Score.cable(src, sink)
+        var wanted = controlNetWorkflows.indexOf(workflowCombo.currentIndex) >= 0
+        if (wanted && !existing)
+            Score.createCable(src, sink)
+        else if (!wanted && existing)
+            Score.remove(existing)
+    }
 
 
 
@@ -555,9 +587,15 @@ Pane {
                         border.width: 1
                         radius: appStyle.borderRadius
                     }
-                    UI.PortSource on text {
-                        port: processes.prompt_composer.keywords
-                    }
+                    // No UI.PortSource here, nor on any other typed input in this
+                    // section. PortSource also writes the port's value *back* into the
+                    // bound property, from Process::ControlInlet::executionValueChanged
+                    // with no equality or focus guard (PortSource.cpp:121-128). While
+                    // playing, avnd republishes every control input to the UI on each
+                    // tick (ExecutorUpdateControlValueInUi.hpp:44), and that snapshot
+                    // lags the keystroke that has not reached the executor yet -- so the
+                    // character the user just typed is overwritten with the pre-keystroke
+                    // text. The handler below is the only direction koaia needs.
                     Component.onCompleted: if (processes.prompt_composer.keywords)
                         Score.setValue(processes.prompt_composer.keywords, text)
                     onTextChanged: {
@@ -601,7 +639,9 @@ Pane {
                                     "V2V_TXT2IMG", "V2V_IMG2IMG",
                                     "FLUX2_KLEIN_TXT2IMG", "FLUX2_KLEIN_IMG2IMG",
                                     "FLUX2_KLEIN_INPAINT", "IMG2IMG_TURBO"]
-                            currentIndex: 0
+                            // SD_IMG2IMG: the composed Video / Noise / Shape stack is the
+                            // whole point of koaia, and txt2img discards it.
+                            currentIndex: 1
                             font.pixelSize: appStyle.fontSizeBody
                             UI.PortSource on currentIndex {
                                 port: processes.streamDiffusion.workflow
@@ -612,6 +652,7 @@ Pane {
                                 if (processes.streamDiffusion.workflow)
                                     Score.setValue(processes.streamDiffusion.workflow, currentIndex);
                                 appSettings.workflow = currentIndex;
+                                mainView.syncControlCable();
                             }
                         }
                     }
@@ -630,9 +671,6 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                             text: ""
                             placeholderText: "Path to engine folder"
-                            UI.PortSource on text {
-                                port: processes.streamDiffusion.engines
-                            }
                             Component.onCompleted: if (processes.streamDiffusion.engines)
                                 Score.setValue(processes.streamDiffusion.engines, text)
                             onTextChanged: {
@@ -720,9 +758,6 @@ Pane {
                             value: 20
                             stepSize: 1
                             font.pixelSize: appStyle.fontSizeBody
-                            UI.PortSource on value {
-                                port: processes.streamDiffusion.seed
-                            }
                             Component.onCompleted: if (processes.streamDiffusion.seed)
                                 Score.setValue(processes.streamDiffusion.seed, value)
                             onValueChanged: {
@@ -741,9 +776,6 @@ Pane {
                             text: "20"
                             placeholderText: "e.g. 20 or 30,45"
                             font.pixelSize: appStyle.fontSizeBody
-                            UI.PortSource on text {
-                                port: processes.streamDiffusion.timesteps
-                            }
                             Component.onCompleted: if (processes.streamDiffusion.timesteps)
                                 Score.setValue(processes.streamDiffusion.timesteps, text)
                             onTextChanged: {

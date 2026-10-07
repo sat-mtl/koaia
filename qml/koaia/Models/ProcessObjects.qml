@@ -148,6 +148,9 @@ QtObject {
         property var bottomright: Score.inlet(process_object, 4)
         property var translation: Score.inlet(process_object, 5)
         property var scale: Score.inlet(process_object, 6)
+        // The composed texture: what already feeds StreamDiffusion's "In", and the
+        // control image for the ControlNet workflows.
+        property var out: Score.outlet(process_object, 0)
     }
 
     // Denoise

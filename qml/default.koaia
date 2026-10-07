@@ -11,7 +11,7 @@
   },
   "aiModel": {
     "prompt": "origami, hyperrealistic, 4k, abstract, geometry",
-    "workflow": 0,
+    "workflow": 1,
     "enginePath": "",
     "seed": 20,
     "timesteps": "20",

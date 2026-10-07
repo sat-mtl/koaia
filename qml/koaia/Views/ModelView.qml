@@ -40,9 +40,11 @@ Pane {
     readonly property string scriptPath: scriptDir + "/train-lora.py"
 
     // Each preset is one tested train-lora.py invocation. SDXS-sketch is first and
-    // the default: it is the 512x512 ControlNet pipeline koaia is built around, and
-    // its control-aware UNet needs the *native* sketch ControlNet (7 down residuals)
-    // -- a generic SD1.5 canny one has 13 and will not load against this UNet.
+    // the default: it is the 512x512 ControlNet pipeline koaia is built around. Its
+    // ControlNet has to be the model's *native* one, because the exported pair has
+    // to agree on geometry -- this bundle loads as "control-aware UNet geometry =
+    // 6 down residuals, factors {1,1,2,2,4,4}" against "ControlNet engine SD1.5,
+    // 6 down residuals", and a ControlNet with a different count will not bind.
     // Declared on the root because a Section's children resolve names against the
     // file's root object, not against the enclosing Section instance.
     readonly property var modelPresets: [

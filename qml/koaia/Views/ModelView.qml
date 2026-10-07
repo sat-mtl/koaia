@@ -376,13 +376,19 @@ Pane {
                             model: modelPresets.map(function(p) { return p.label })
                             currentIndex: 0
                             font.pixelSize: appStyle.fontSizeBody
-                            readonly property var preset: modelPresets[currentIndex]
-                            readonly property string modelTypeArg: preset.type
+                            readonly property string modelTypeArg: modelPresets[currentIndex].type
                             // Applied on change and once on load, so the fields and the
                             // build parameters start out matching the default preset
                             // rather than train-lora.py's own 1024 defaults.
+                            //
+                            // Indexes the array rather than reading an intermediate
+                            // `preset: modelPresets[currentIndex]` binding: that binding
+                            // has not necessarily re-evaluated by the time this handler
+                            // runs, and apply() then writes the *previous* preset's values
+                            // back. Measured -- picking "SDXL base 1.0" logged
+                            // `idx=3 preset.label=SDXS-sketch 512`.
                             function apply() {
-                                var p = preset
+                                var p = modelPresets[currentIndex]
                                 modelSourceField.text = p.model
                                 controlNetField.text = p.controlnet
                                 minResolutionSpinBox.value = p.minRes

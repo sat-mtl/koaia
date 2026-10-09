@@ -1,0 +1,1 @@
+export QSG_RHI_BACKEND=metal

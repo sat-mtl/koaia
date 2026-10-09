@@ -46,7 +46,7 @@ jobs:
             platform: wasm
             artifact-name: wasm
             target-platform: wasm
-            artifact-path: packages/*.zip
+            artifact-file: '*.zip'
 
     steps:
       - name: Checkout repository
@@ -84,9 +84,13 @@ jobs:
             *) echo "No engine builder for ${{ matrix.platform }}; skipping." ;;
           esac
 
-      - name: Package custom ossia score app
+      # Two packages out of one score build; they differ only in the environment
+      # file, whose SAT_ADVANCED_IO flag is the suite-wide pro gate. Distinct
+      # app-names so the file names differ.
+      - name: Package custom ossia score app (basic)
         uses: ossia/actions/package-custom-app@master
         with:
+          output-path: packages
           app-name: "Koaia"
           qml-files: "qml"
           # Optional: Add your score file here
@@ -111,11 +115,43 @@ jobs:
           macos-notarize-apple-id: ${{ secrets.MAC_NOTARIZE_APPLE_ID }}
           macos-notarize-password: ${{ secrets.MAC_NOTARIZE_PASSWORD }}
 
-      - name: Upload packages
+      - name: Upload packages (basic)
         uses: actions/upload-artifact@v7
         with:
-          name: custom-app-${{ matrix.artifact-name }}
-          path: ${{ matrix.artifact-path || 'packages/' }}
+          name: koaia-${{ matrix.artifact-name }}
+          path: packages/${{ matrix.artifact-file || '' }}
+          retention-days: 30
+
+      - name: Package custom ossia score app (pro)
+        uses: ossia/actions/package-custom-app@master
+        with:
+          output-path: packages-pro
+          app-name: "Koaia Pro"
+          qml-files: "qml"
+          score-file: "score/app.score"
+          score-build-id: ${{ steps.score.outputs.artifact-id }}
+          platforms: "${{ matrix.platform }}"
+          app-organization: "SAT"
+          app-domain: "sat.qc.ca"
+          app-identifier: "ca.qc.sat.koaia"
+          app-description: "A tool for exploring generative ai"
+          app-environment: environment-pro
+          app-copyright: "Société des Arts Technologiques"
+          app-version: "1.0"
+          app-png: "qml/koaia/resources/images/koaia_logo.png"
+          app-icns: "qml/koaia/resources/images/koaia_logo.icns"
+          app-ico: "qml/koaia/resources/images/koaia_logo.ico"
+          macos-certificate-base64: ${{ secrets.MAC_CERT_B64 }}
+          macos-certificate-password: ${{ secrets.MAC_CERT_PASSWORD }}
+          macos-notarize-team-id: ${{ secrets.MAC_NOTARIZE_TEAM_ID }}
+          macos-notarize-apple-id: ${{ secrets.MAC_NOTARIZE_APPLE_ID }}
+          macos-notarize-password: ${{ secrets.MAC_NOTARIZE_PASSWORD }}
+
+      - name: Upload packages (pro)
+        uses: actions/upload-artifact@v7
+        with:
+          name: koaia-pro-${{ matrix.artifact-name }}
+          path: packages-pro/${{ matrix.artifact-file || '' }}
           retention-days: 30
 
   release:
@@ -130,7 +166,7 @@ jobs:
         uses: actions/download-artifact@v8
         with:
           path: all-packages
-          pattern: custom-app-*
+          pattern: koaia-*
           merge-multiple: true
 
       - name: Create Release (on tags)

@@ -63,5 +63,5 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: koaia-${{ matrix.artifact-name }}
-          path: packages/
+          path: packages/${{ matrix.artifact-file || '' }}
           retention-days: 30

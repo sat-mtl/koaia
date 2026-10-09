@@ -2,3 +2,6 @@ export SCORE_AUDIO_BACKEND=dummy
 export SCORE_DISABLE_LIBRARY=1
 export SCORE_DISABLE_AUDIO_PLUGINS=1
 export QSG_RHI_BACKEND=vulkan
+
+# Nothing in koaia reads SAT_ADVANCED_IO yet; see environment-pro.
+# export SAT_ADVANCED_IO=1

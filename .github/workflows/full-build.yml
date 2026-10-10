@@ -84,17 +84,15 @@ jobs:
             *) echo "No engine builder for ${{ matrix.platform }}; skipping." ;;
           esac
 
-      # Two packages out of one score build; they differ only in the environment
-      # file, whose SAT_ADVANCED_IO flag is the suite-wide pro gate. Distinct
-      # app-names so the file names differ.
       - name: Package custom ossia score app (basic)
         uses: ossia/actions/package-custom-app@master
         with:
           output-path: packages
           app-name: "Koaia"
           qml-files: "qml"
-          # Optional: Add your score file here
-          score-file: "score/app.score"
+          # Empty: MainView.qml builds the graph at runtime. Passed so that
+          # create-app.sh still copies the rest of score/ next to the QML.
+          score-file: "score/empty.score"
           score-build-id: ${{ steps.score.outputs.artifact-id }}
           platforms: "${{ matrix.platform }}"
           # App metadata
@@ -128,7 +126,7 @@ jobs:
           output-path: packages-pro
           app-name: "Koaia Pro"
           qml-files: "qml"
-          score-file: "score/app.score"
+          score-file: "score/empty.score"
           score-build-id: ${{ steps.score.outputs.artifact-id }}
           platforms: "${{ matrix.platform }}"
           app-organization: "SAT"

@@ -37,8 +37,9 @@ jobs:
         with:
           app-name: "Koaia"
           qml-files: "qml"
-          # Optional: Add your score file here
-          score-file: "score/app.score"
+          # Empty: MainView.qml builds the graph at runtime. Passed so that
+          # create-app.sh still copies the rest of score/ next to the QML.
+          score-file: "score/empty.score"
           release-tag: "continuous"
           platforms: "${{ matrix.platform }}"
           # App metadata

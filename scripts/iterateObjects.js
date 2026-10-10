@@ -3,7 +3,8 @@
  * in order to find inlet and outlet names easily.
  *
  * Usage:
- *   1. Open score/app.score in ossia score
+ *   1. Run koaia so ScoreGraph.js builds the graph, or open the
+ *      document it saves, in ossia score
  *   2. Select one or more processes
  *   3. Open the console (Help > Show Console or similar)
  *   4. Paste this entire script and press Enter
@@ -68,7 +69,7 @@ function func() {
 
         // txt += "   property var " + stringToCIdentifier(meta.name) + ";\n";
         txt += `QtObject { id: ${stringToCIdentifier(meta.name)}\n`;
-        txt += `   property var process_object : Score.find("${meta.name}");\n`;
+        txt += `   property var process_object : null; // ${meta.name}\n`;
         for(var i = 0; i < inls; i++) {
             let port = Score.inlet(obj, i);
             txt += "   property var " + stringToCIdentifier(port.name) + ` : Score.inlet(process_object, ${i});\n`;

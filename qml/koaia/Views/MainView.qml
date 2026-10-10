@@ -9,6 +9,7 @@ import Score.UI as UI
 import koaia
 import "../Scripts/ConfigManager.js" as ConfigManager
 import "../Scripts/ScoreBridge.js" as ScoreBridge
+import "../Scripts/ScoreGraph.js" as ScoreGraph
 
 Pane {
     id: mainView
@@ -220,17 +221,32 @@ Pane {
     }
 
     Component.onCompleted: {
+        buildScoreGraph()
         loadConfigFromUrl(defaultConfigUrl, true)
         // After the load, so the cable matches the workflow the config selected.
         Qt.callLater(syncControlCable)
     }
 
-    // Returns the absolute filesystem path for a file inside media/.
-    // Use this instead of hardcoding paths — works in dev and in packaged builds.
-    function mediaPath(filename) {
-        var url = Qt.resolvedUrl("../../media/" + filename)
-        var path = new URL(url.toString()).pathname
+    function buildScoreGraph() {
+        var p = ScoreGraph.build(Score, Util, localPath("."),
+                                 function(m) { console.warn(m) })
+        if (!p) {
+            console.error("[MainView] the score graph could not be built;"
+                          + " koaia cannot render")
+            return
+        }
+        processes.publish(p)
+    }
+
+    // Absolute filesystem path for something next to this file.
+    function localPath(rel) {
+        var path = new URL(Qt.resolvedUrl(rel).toString()).pathname.replace(/\/$/, "")
         return isWin32 ? path.substr(1) : path
+    }
+
+    // Returns the absolute filesystem path for a file inside media/.
+    function mediaPath(filename) {
+        return localPath("../../media/" + filename)
     }
 
     function _markDirty() { if (!_suppressDirty) isDirty = true }

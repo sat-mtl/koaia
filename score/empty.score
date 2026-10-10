@@ -1,0 +1,500 @@
+{
+  "Document": {
+    "ObjectName": "empty",
+    "id": 1,
+    "BaseScenario": {
+      "ObjectName": "Scenario::BaseScenario",
+      "id": 0,
+      "Constraint": {
+        "ObjectName": "Scenario::IntervalModel",
+        "id": 0,
+        "Metadata": {
+          "ScriptingName": "genai",
+          "Comment": "",
+          "Color": "Transparent1",
+          "Label": "",
+          "Touched": true
+        },
+        "Inlet": {
+          "uuid": "a1574bb0-cbd4-4c7d-9417-0c25cfd1187b",
+          "ObjectName": "Inlet",
+          "id": 0,
+          "Hidden": false,
+          "Custom": "Audio in",
+          "Exposed": "audio in"
+        },
+        "Outlet": {
+          "uuid": "a1d97535-18ac-444a-8417-0cbc1692d897",
+          "ObjectName": "Outlet",
+          "id": 0,
+          "Hidden": false,
+          "Custom": "Audio out",
+          "Exposed": "audio out",
+          "Address": "audio:/out/main",
+          "GainInlet": {
+            "uuid": "9a13fb32-269a-47bf-99a9-930188c1f19c",
+            "ObjectName": "Inlet",
+            "id": 10000,
+            "Hidden": false,
+            "Custom": "Gain",
+            "Exposed": "gain",
+            "Value": {},
+            "Init": {},
+            "Domain": {
+              "Float": {
+                "Min": 0.0,
+                "Max": 1.0
+              }
+            }
+          },
+          "PanInlet": {
+            "uuid": "9a13fb32-269a-47bf-99a9-930188c1f19c",
+            "ObjectName": "Inlet",
+            "id": 10001,
+            "Hidden": false,
+            "Custom": "Pan",
+            "Exposed": "pan",
+            "Value": {},
+            "Init": {},
+            "Domain": {}
+          },
+          "Gain": 1.0,
+          "Pan": [
+            1.0,
+            1.0
+          ],
+          "Propagate": true
+        },
+        "Processes": [],
+        "SmallViewRack": [],
+        "FullViewRack": [],
+        "DefaultDuration": 10584000000,
+        "MinDuration": 10584000000,
+        "MaxDuration": 11113200000,
+        "GuiDuration": 12761308597,
+        "Speed": 1.0,
+        "Rigidity": false,
+        "MinNull": false,
+        "MaxInf": true,
+        "Signatures": [],
+        "StartState": 0,
+        "EndState": 1,
+        "StartDate": 0,
+        "HeightPercentage": 0.0,
+        "NodalSlotHeight": 1212.0,
+        "QuantizationRate": -1.0,
+        "Zoom": 1453452.0042141231,
+        "Center": 637338703,
+        "NodalOffset": [
+          -432.0,
+          -268.0
+        ],
+        "NodalScale": 1.0,
+        "ViewMode": 1,
+        "SmallViewShown": true,
+        "HasSignature": false
+      },
+      "StartTimeNode": {
+        "ObjectName": "Scenario::TimeSyncModel",
+        "id": 0,
+        "Metadata": {
+          "ScriptingName": "Sync.start",
+          "Comment": "",
+          "Color": "Gray",
+          "Label": "",
+          "Touched": true
+        },
+        "Date": 0,
+        "Events": [
+          0
+        ],
+        "MusicalSync": -1.0,
+        "AutoTrigger": false,
+        "Start": true,
+        "Active": false,
+        "Expression": " { true == false } "
+      },
+      "EndTimeNode": {
+        "ObjectName": "Scenario::TimeSyncModel",
+        "id": 1,
+        "Metadata": {
+          "ScriptingName": "Sync.end",
+          "Comment": "",
+          "Color": "Gray",
+          "Label": "",
+          "Touched": true
+        },
+        "Date": 10584000000,
+        "Events": [
+          1
+        ],
+        "MusicalSync": -1.0,
+        "AutoTrigger": false,
+        "Start": false,
+        "Active": true,
+        "Expression": " { true == false } "
+      },
+      "StartEvent": {
+        "ObjectName": "Scenario::EventModel",
+        "id": 0,
+        "Metadata": {
+          "ScriptingName": "Event.start",
+          "Comment": "",
+          "Color": "Emphasis4",
+          "Label": "",
+          "Touched": true
+        },
+        "TimeNode": 0,
+        "States": [
+          0
+        ],
+        "Condition": "",
+        "Date": 0,
+        "Offset": 0
+      },
+      "EndEvent": {
+        "ObjectName": "Scenario::EventModel",
+        "id": 1,
+        "Metadata": {
+          "ScriptingName": "Event.end",
+          "Comment": "",
+          "Color": "Emphasis4",
+          "Label": "",
+          "Touched": true
+        },
+        "TimeNode": 1,
+        "States": [
+          1
+        ],
+        "Condition": "",
+        "Date": 10584000000,
+        "Offset": 0
+      },
+      "StartState": {
+        "ObjectName": "Scenario::StateModel",
+        "id": 0,
+        "Metadata": {
+          "ScriptingName": "State.start",
+          "Comment": "",
+          "Color": "Base1",
+          "Label": "",
+          "Touched": true
+        },
+        "Event": 0,
+        "PreviousConstraint": null,
+        "NextConstraint": 0,
+        "HeightPercentage": 0.0,
+        "Messages": {
+          "Name": "",
+          "Accessors": [],
+          "Unit": "none",
+          "Previous": [],
+          "Following": [],
+          "User": null,
+          "Priorities": [
+            1,
+            2,
+            0
+          ],
+          "Children": [
+            {
+              "Name": "Window",
+              "Accessors": [],
+              "Unit": "none",
+              "Previous": [],
+              "Following": [],
+              "User": null,
+              "Priorities": [
+                1,
+                2,
+                0
+              ],
+              "Children": [
+                {
+                  "Name": "size",
+                  "Accessors": [],
+                  "Unit": "none",
+                  "Previous": [],
+                  "Following": [],
+                  "User": {
+                    "Vec2f": [
+                      2048.0,
+                      2048.0
+                    ]
+                  },
+                  "Priorities": [
+                    1,
+                    2,
+                    0
+                  ]
+                },
+                {
+                  "Name": "position",
+                  "Accessors": [],
+                  "Unit": "none",
+                  "Previous": [],
+                  "Following": [],
+                  "User": {
+                    "Vec2f": [
+                      1758.0,
+                      90.0
+                    ]
+                  },
+                  "Priorities": [
+                    1,
+                    2,
+                    0
+                  ]
+                },
+                {
+                  "Name": "rendersize",
+                  "Accessors": [],
+                  "Unit": "none",
+                  "Previous": [],
+                  "Following": [],
+                  "User": {
+                    "Vec2f": [
+                      2048.0,
+                      2048.0
+                    ]
+                  },
+                  "Priorities": [
+                    1,
+                    2,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "Name": "Window-preview",
+              "Accessors": [],
+              "Unit": "none",
+              "Previous": [],
+              "Following": [],
+              "User": null,
+              "Priorities": [
+                1,
+                2,
+                0
+              ],
+              "Children": [
+                {
+                  "Name": "size",
+                  "Accessors": [],
+                  "Unit": "none",
+                  "Previous": [],
+                  "Following": [],
+                  "User": {
+                    "Vec2f": [
+                      512.0,
+                      512.0
+                    ]
+                  },
+                  "Priorities": [
+                    1,
+                    2,
+                    0
+                  ]
+                },
+                {
+                  "Name": "position",
+                  "Accessors": [],
+                  "Unit": "none",
+                  "Previous": [],
+                  "Following": [],
+                  "User": {
+                    "Vec2f": [
+                      1108.0,
+                      69.0
+                    ]
+                  },
+                  "Priorities": [
+                    1,
+                    2,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "Name": "shader",
+              "Accessors": [],
+              "Unit": "none",
+              "Previous": [],
+              "Following": [],
+              "User": null,
+              "Priorities": [
+                1,
+                2,
+                0
+              ],
+              "Children": [
+                {
+                  "Name": "size",
+                  "Accessors": [],
+                  "Unit": "none",
+                  "Previous": [],
+                  "Following": [],
+                  "User": {
+                    "Vec2f": [
+                      512.0,
+                      512.0
+                    ]
+                  },
+                  "Priorities": [
+                    1,
+                    2,
+                    0
+                  ]
+                },
+                {
+                  "Name": "position",
+                  "Accessors": [],
+                  "Unit": "none",
+                  "Previous": [],
+                  "Following": [],
+                  "User": {
+                    "Vec2f": [
+                      590.0,
+                      71.0
+                    ]
+                  },
+                  "Priorities": [
+                    1,
+                    2,
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "Name": "shape",
+              "Accessors": [],
+              "Unit": "none",
+              "Previous": [],
+              "Following": [],
+              "User": null,
+              "Priorities": [
+                1,
+                2,
+                0
+              ],
+              "Children": [
+                {
+                  "Name": "size",
+                  "Accessors": [],
+                  "Unit": "none",
+                  "Previous": [],
+                  "Following": [],
+                  "User": {
+                    "Vec2f": [
+                      512.0,
+                      512.0
+                    ]
+                  },
+                  "Priorities": [
+                    1,
+                    2,
+                    0
+                  ]
+                },
+                {
+                  "Name": "position",
+                  "Accessors": [],
+                  "Unit": "none",
+                  "Previous": [],
+                  "Following": [],
+                  "User": {
+                    "Vec2f": [
+                      74.0,
+                      71.0
+                    ]
+                  },
+                  "Priorities": [
+                    1,
+                    2,
+                    0
+                  ]
+                }
+              ]
+            }
+          ]
+        },
+        "Controls": [],
+        "StateProcesses": []
+      },
+      "EndState": {
+        "ObjectName": "Scenario::StateModel",
+        "id": 1,
+        "Metadata": {
+          "ScriptingName": "State.end",
+          "Comment": "",
+          "Color": "Base1",
+          "Label": "",
+          "Touched": true
+        },
+        "Event": 1,
+        "PreviousConstraint": 0,
+        "NextConstraint": null,
+        "HeightPercentage": 0.0,
+        "Messages": {
+          "Name": "",
+          "Accessors": [],
+          "Unit": "none",
+          "Previous": [],
+          "Following": [],
+          "User": null,
+          "Priorities": [
+            1,
+            2,
+            0
+          ]
+        },
+        "Controls": [],
+        "StateProcesses": []
+      }
+    },
+    "Speed": 1.0,
+    "Cables": [],
+    "BusIntervals": []
+  },
+  "Plugins": [
+    {
+      "uuid": "1f923578-08c3-49be-9ba9-69c144ee2e32",
+      "Refresh": false,
+      "Reconnect": false,
+      "MidiRatio": 1.0
+    },
+    {
+      "uuid": "6e610e1f-9de2-4c36-90dd-0ef570002a21",
+      "RootNode": {},
+      "Children": [
+        {
+          "Device": {
+            "Name": "Camera",
+            "Protocol": "d615690b-f2e2-447b-b70e-a800552db69c",
+            "Input": "avfoundation",
+            "Device": "FaceTime HD Camera",
+            "Size": [
+              1280,
+              720
+            ],
+            "FPS": 30.0,
+            "Codec": 0,
+            "PixelFormat": 23,
+            "ColorRange": 1,
+            "Custom": false
+          }
+        }
+      ]
+    },
+    {
+      "uuid": "05e72689-e02c-4c9d-a0bf-fe84c32d3d96",
+      "Data": ""
+    }
+  ],
+  "Version": 4,
+  "Commit": "717866661bc3f34805e72045d0298bbcc5130d39",
+  "Tag": "3.8.2"
+}

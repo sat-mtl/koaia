@@ -1,29 +1,13 @@
 import QtQuick
 
+// Port handles for the UI. Every process_object stays null until publish(),
+// so the bindings below read null before the graph exists.
 QtObject {
     id: root
 
-    property QtObject genai: QtObject {
-        property var process_object: Score.find("genai")
-    }
-
-    // Image input
-    property QtObject images_19: QtObject {
-        property var process_object: Score.find("Images.19")
-        property var index: Score.inlet(process_object, 0)
-        property var opacity: Score.inlet(process_object, 1)
-        property var position: Score.inlet(process_object, 2)
-        property var scale_X: Score.inlet(process_object, 3)
-        property var scale_Y: Score.inlet(process_object, 4)
-        property var images: Score.inlet(process_object, 5)
-        property var tile: Score.inlet(process_object, 6)
-        property var scale: Score.inlet(process_object, 7)
-        property var _c_identifier: Score.outlet(process_object, 0)
-    }
-
     // Shape
     property QtObject shape: QtObject {
-        property var process_object: Score.find("Basic Shape")
+        property var process_object: null
         property var color: Score.inlet(process_object, 0)
         property var maskShapeMode: Score.inlet(process_object, 1)
         property var shapeWidth: Score.inlet(process_object, 2)
@@ -37,13 +21,13 @@ QtObject {
 
     // Smoke
     property QtObject smoke: QtObject {
-        property var process_object: Score.find("Smoke")
+        property var process_object: null
         property var _c_identifier: Score.outlet(process_object, 0)
     }
 
     // Voronoi
     property QtObject voronoi: QtObject {
-        property var process_object: Score.find("Voronoi")
+        property var process_object: null
         property var seed: Score.inlet(process_object, 0)
         property var iregularity: Score.inlet(process_object, 1)
         property var blur: Score.inlet(process_object, 2)
@@ -53,14 +37,14 @@ QtObject {
 
     // White Noise
     property QtObject white_Noise: QtObject {
-        property var process_object: Score.find("White Noise")
+        property var process_object: null
         property var seed: Score.inlet(process_object, 0)
         property var _c_identifier: Score.outlet(process_object, 0)
     }
 
     // Perlin Noise
     property QtObject perlin_Noise: QtObject {
-        property var process_object: Score.find("Perlin Noise")
+        property var process_object: null
         property var seed: Score.inlet(process_object, 0)
         property var scale: Score.inlet(process_object, 1)
         property var _c_identifier: Score.outlet(process_object, 0)
@@ -68,7 +52,7 @@ QtObject {
 
     // Simplex Noise
     property QtObject simplex_Noise: QtObject {
-        property var process_object: Score.find("Simplex Noise")
+        property var process_object: null
         property var offset: Score.inlet(process_object, 0)
         property var scale: Score.inlet(process_object, 1)
         property var _c_identifier: Score.outlet(process_object, 0)
@@ -76,7 +60,7 @@ QtObject {
 
     // Video Mixer
     property QtObject video_Mixer: QtObject {
-        property var process_object: Score.find("Video Mixer")
+        property var process_object: null
         property var alpha1: Score.inlet(process_object, 8)
         property var alpha2: Score.inlet(process_object, 9)
         property var alpha3: Score.inlet(process_object, 10)
@@ -99,7 +83,7 @@ QtObject {
     property QtObject streamDiffusion: QtObject {
         // Bound by port name: an added port shifts every later index, so indices
         // silently rebind to the wrong control.
-        property var process_object:     Score.find("StreamDiffusion")
+        property var process_object:     null
         property var video_input:        Score.inlet(process_object, "In")
         property var control_style:      Score.inlet(process_object, "Control / Style")
         property var embedding:          Score.inlet(process_object, "Embedding")
@@ -131,7 +115,7 @@ QtObject {
 
     // Prompt Composer
     property QtObject prompt_composer: QtObject {
-        property var process_object: Score.find("Prompt composer")
+        property var process_object: null
         property var keywords: Score.inlet(process_object, 0)
         property var weights: Score.inlet(process_object, 1)
         property var input_0: Score.inlet(process_object, 2)
@@ -140,7 +124,7 @@ QtObject {
 
     // Video Mapper
     property QtObject video_Mapper: QtObject {
-        property var process_object: Score.find("Video Mapper")
+        property var process_object: null
         property var _c_identifier: Score.inlet(process_object, 0)
         property var topleft: Score.inlet(process_object, 1)
         property var bottomleft: Score.inlet(process_object, 2)
@@ -155,7 +139,7 @@ QtObject {
 
     // Denoise
     property QtObject denoise: QtObject {
-        property var process_object: Score.find("Denoise")
+        property var process_object: null
         property var _c_identifier: Score.inlet(process_object, 0)
         property var noiseReduction: Score.inlet(process_object, 1)
         property var sharpness: Score.inlet(process_object, 2)
@@ -164,7 +148,7 @@ QtObject {
 
     // Video Mapper 1
     property QtObject video_Mapper_1: QtObject {
-        property var process_object: Score.find("Video Mapper.1")
+        property var process_object: null
         property var _c_identifier: Score.inlet(process_object, 0)
         property var topleft: Score.inlet(process_object, 1)
         property var bottomleft: Score.inlet(process_object, 2)
@@ -176,6 +160,22 @@ QtObject {
 
     // GenAI Input Video
     property QtObject genai_inputvideo: QtObject {
-        property var process_object: Score.find("genai_inputvideo")
+        property var process_object: null
+    }
+
+    function publish(p) {
+        shape.process_object = p.shape
+        smoke.process_object = p.smoke
+        voronoi.process_object = p.voronoi
+        white_Noise.process_object = p.white_Noise
+        perlin_Noise.process_object = p.perlin_Noise
+        simplex_Noise.process_object = p.simplex_Noise
+        video_Mixer.process_object = p.video_Mixer
+        streamDiffusion.process_object = p.streamDiffusion
+        prompt_composer.process_object = p.prompt_composer
+        video_Mapper.process_object = p.video_Mapper
+        denoise.process_object = p.denoise
+        video_Mapper_1.process_object = p.video_Mapper_1
+        genai_inputvideo.process_object = p.genai_inputvideo
     }
 }

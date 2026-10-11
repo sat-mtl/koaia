@@ -18,8 +18,9 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Bare on the host, not in a container: appimage.build.sh drives
+          # docker itself and the docker CLI is not available inside one.
           - os: [self-hosted, linux, x64, sat-builder]
-            container: "ubuntu:noble"
             platform: linux-x86_64
             artifact-name: linux-x86_64
           - os: ubuntu-24.04-arm

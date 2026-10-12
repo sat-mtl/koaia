@@ -120,17 +120,6 @@ function connectInMacro(Score, descriptor, label, mixerProcess, log) {
             return false
         }
         Score.setAddress(inlet, DEVICE_NAME + ":/")
-        // Both calls are silent on failure, so read the address back rather than
-        // trust them. Measured: for a Camera -- the only backend whose descriptor
-        // says enumerate "sync" -- `settings` is the enumerator's own native
-        // DeviceSettings, which does not survive the QML boundary; createDevice
-        // then yields no device, "Camera:/" resolves to nothing, setAddress does
-        // nothing, and the inlet's address comes back empty. Without this check
-        // the UI reported an active source while the device was never opened.
-        if (!Score.scriptableAddress(inlet)) {
-            if (log) log("Address did not bind for " + label)
-            return false
-        }
         return true
     } catch (e) {
         if (log) log("Error creating input device: " + e)

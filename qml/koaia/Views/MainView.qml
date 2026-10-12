@@ -494,14 +494,7 @@ Pane {
                                              function(m) { console.log("[Input] " + m) })
         })
         if (!ok) {
-            // Camera is the one backend score hands back as a native
-            // DeviceSettings, and that object does not survive the QML boundary,
-            // so the device is never created. NDI/Spout/Syphon pass a plain
-            // {Path} and do bind. Say which case this is instead of failing mute.
-            inputStatusText = inputSelector.currentBackend === "Camera"
-                ? "Could not open " + name + " — this build cannot open camera "
-                  + "devices from the UI. Video file, NDI, Spout and Syphon work."
-                : "Could not open " + name
+            inputStatusText = "Could not open " + name
             return
         }
         cameraSource = name

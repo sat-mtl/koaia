@@ -30,7 +30,8 @@ function createDefaultConfig() {
         version: CONFIG_VERSION,
         metadata: { timestamp: new Date().toISOString(), application: "Koaia" },
         input: {
-            videoPath: "", videoAmount: 0.0, cameraAmount: 0.0
+            videoPath: "", videoAmount: 0.0, cameraAmount: 0.0,
+            backend: "", sourceName: ""
         },
         aiModel: {
             prompt: "origami, hyperrealistic, 4k, abstract, geometry",
@@ -63,7 +64,12 @@ function exportConfig(s) {
         input: {
             videoPath:    s.videoPath    || "",
             videoAmount:  r(s.videoAmount  || 0),
-            cameraAmount: r(s.cameraAmount || 0)
+            cameraAmount: r(s.cameraAmount || 0),
+            // Which lane of the input picker was in use, and the device it had
+            // open. Restoring the device is best-effort: enumeration is async and
+            // the machine may not have it any more.
+            backend:      s.inputBackend || "",
+            sourceName:   s.inputSource  || ""
         },
         aiModel: {
             prompt:         s.prompt        || "",
@@ -160,6 +166,8 @@ function applyConfig(config, settings, mediaBasePath) {
         settings.videoPath    = rawPath
         settings.videoAmount  = i.videoAmount  || 0
         settings.cameraAmount = i.cameraAmount || 0
+        settings.inputBackend = i.backend     || ""
+        settings.inputSource  = i.sourceName  || ""
     }
     var ai = config.aiModel
     if (ai) {

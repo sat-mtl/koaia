@@ -33,12 +33,6 @@ jobs:
           - os: windows-11-arm
             platform: windows-arm64
             artifact-name: windows-arm64
-          - os: [self-hosted, linux, x64, sat-builder]
-            container: "ubuntu:noble"
-            platform: wasm
-            artifact-name: wasm
-            target-platform: wasm
-            artifact-file: '*.zip'
 
     steps:
       - name: Checkout repository

@@ -112,6 +112,11 @@ Pane {
         for (var i = 0; i < need.length; i++)
             if (!builderSupports(need[i]))
                 out.push(need[i])
+        // Not every capability has a flag of its own: klein-sprint passes --lora,
+        // which every builder accepts and an older one silently ignores.
+        if (preset.needsBuilderSymbol && _builderSource !== ""
+                && _builderSource.indexOf(preset.needsBuilderSymbol) < 0)
+            out.push(preset.needsBuilderLabel || preset.needsBuilderSymbol)
         return out
     }
 
@@ -1240,7 +1245,7 @@ Pane {
         if (rifeCheckBox.checked && !builderSupports("--rife"))
             unsupported.push("--rife");
         if (unsupported.length > 0)
-            errors.push("The engine builder in this package does not accept "
+            errors.push("The engine builder in this package lacks "
                         + unsupported.join(", ") + ". It is staged from koaia's "
                         + "librediffusion pin; bump that to use this preset.");
         var conflict = outputPathField.text !== "" ? bundleConflict() : "";

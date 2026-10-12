@@ -205,6 +205,13 @@ Pane {
                                 return presetView.isBuilt(card.modelData)
                             }
 
+                            // The packaged train-lora.py can be older than this
+                            // catalogue; say so on the card rather than letting the
+                            // build fail on an unknown flag.
+                            readonly property var unsupported:
+                                presetView.builder
+                                ? presetView.builder.unsupportedFlags(card.modelData) : []
+
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.margins: appStyle.spacing
@@ -262,15 +269,20 @@ Pane {
                                         wrapMode: Text.WordWrap
                                         font.pixelSize: appStyle.fontSizeSmall
                                         color: appStyle.errorColor
-                                        text: card.modelData.requires
-                                              ? "Needs " + card.modelData.requires
-                                              : ""
+                                        text: {
+                                            if (card.unsupported.length > 0)
+                                                return "The packaged engine builder does not accept "
+                                                     + card.unsupported.join(", ")
+                                            return card.modelData.requires
+                                                 ? "Needs " + card.modelData.requires : ""
+                                        }
                                     }
                                 }
 
                                 Label {
                                     Layout.alignment: Qt.AlignVCenter
-                                    text: card.built ? "built" : "not built"
+                                    text: card.unsupported.length > 0 ? "unavailable"
+                                        : card.built ? "built" : "not built"
                                     font.pixelSize: appStyle.fontSizeSmall
                                     color: card.built ? appStyle.buttonBgActive
                                                       : appStyle.textColorSecondary

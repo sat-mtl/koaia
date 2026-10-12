@@ -95,6 +95,26 @@ Pane {
     // have no widget of their own, so they are carried from here.
     property var activePreset: BuildPresets.presets[0]
 
+    // train-lora.py is staged from the 3rdparty/librediffusion pin, which can lag
+    // the recipes in BuildPresets.js -- as it does today, by the two commits that
+    // added --unet and --rife. An unknown flag surfaces as argparse "unrecognized
+    // arguments" a minute into a run that looked like it had started, so read the
+    // script once and check up front. An unreadable script blocks nothing.
+    readonly property string _builderSource:
+        Util.fileExists(scriptPath) ? String(Util.readFile(scriptPath)) : ""
+
+    function builderSupports(flag) {
+        return _builderSource === "" || _builderSource.indexOf('"' + flag + '"') >= 0
+    }
+
+    function unsupportedFlags(preset) {
+        var need = BuildPresets.requiredFlags(preset), out = []
+        for (var i = 0; i < need.length; i++)
+            if (!builderSupports(need[i]))
+                out.push(need[i])
+        return out
+    }
+
     property bool _applyingPreset: false
 
     // Applies a preset to every field, including the ones that have no widget.
@@ -823,7 +843,8 @@ Pane {
                         text: "Build the RIFE frame-interpolation engine"
                         font.pixelSize: appStyle.fontSizeBody
                         checked: false
-                        enabled: !activePreset || activePreset.type !== "klein"
+                        enabled: (!activePreset || activePreset.type !== "klein")
+                                 && builderSupports("--rife")
                     }
 
                     Label {
@@ -1215,6 +1236,13 @@ Pane {
         if (maxResolutionSpinBox.value < minResolutionSpinBox.value) errors.push("Max resolution must be >= min resolution");
         if (activePreset && activePreset.ipadapterNeeded === true && ipadapterField.text === "")
             errors.push("This preset needs an IP-Adapter checkpoint path");
+        var unsupported = activePreset ? unsupportedFlags(activePreset) : [];
+        if (rifeCheckBox.checked && !builderSupports("--rife"))
+            unsupported.push("--rife");
+        if (unsupported.length > 0)
+            errors.push("The engine builder in this package does not accept "
+                        + unsupported.join(", ") + ". It is staged from koaia's "
+                        + "librediffusion pin; bump that to use this preset.");
         var conflict = outputPathField.text !== "" ? bundleConflict() : "";
         if (conflict !== "")
             errors.push("The output folder already holds a different bundle (" + conflict

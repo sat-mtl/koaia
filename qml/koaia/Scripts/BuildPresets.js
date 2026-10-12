@@ -441,6 +441,16 @@ function extraArgs(p) {
     return a
 }
 
+// The flag names a preset needs beyond the ones every build passes. The staged
+// train-lora.py comes from koaia's 3rdparty/librediffusion pin, which can be
+// older than the recipes here, so the builder checks these before running.
+function requiredFlags(p) {
+    var a = extraArgs(p), out = []
+    for (var i = 0; i < a.length; i += 2)
+        out.push(a[i])
+    return out
+}
+
 // One-line human summary of extraArgs, for the builder to show what a preset
 // adds beyond the visible fields.
 function extraSummary(p) {

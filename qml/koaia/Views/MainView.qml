@@ -10,6 +10,7 @@ import koaia
 import "../Scripts/ConfigManager.js" as ConfigManager
 import "../Scripts/ScoreBridge.js" as ScoreBridge
 import "../Scripts/ScoreGraph.js" as ScoreGraph
+import "../Scripts/InputDevices.js" as InputDevices
 
 Pane {
     id: mainView
@@ -21,14 +22,21 @@ Pane {
     property bool _suppressDirty: false
     property url currentConfigFile
 
+    // Input source, owned here rather than in the picker: the Start button, the
+    // file-existence check and the saved config all read it.
+    property string videoPath: ""
+    property var discoveredSources: []
+    property string inputStatusText: ""
+    property string cameraSource: ""
+
     // Video file existence check — scans parent dir for the exact filename
     readonly property string _videoParentUrl: {
-        var p = imagePathField.text.replace(/\\/g, '/')
+        var p = videoPath.replace(/\\/g, '/')
         var dir = p.substring(0, p.lastIndexOf('/'))
         return dir ? ((isWin32 ? "file:///" : "file://") + dir) : ""
     }
     readonly property string _videoFileName: {
-        var p = imagePathField.text.replace(/\\/g, '/')
+        var p = videoPath.replace(/\\/g, '/')
         return p.substring(p.lastIndexOf('/') + 1)
     }
     readonly property bool videoFileExists: _videoFileName !== "" && videoFileModel.count > 0
@@ -225,6 +233,9 @@ Pane {
         loadConfigFromUrl(defaultConfigUrl, true)
         // After the load, so the cable matches the workflow the config selected.
         Qt.callLater(syncControlCable)
+        // Start discovery for whatever backend the picker defaults to, so the
+        // device list is populated before anyone touches it.
+        Qt.callLater(function() { selectInputBackend(inputSelector.currentBackend) })
     }
 
     function buildScoreGraph() {
@@ -428,11 +439,80 @@ Pane {
         console.log("[MainView] Config loaded from:", fileUrlStr)
     }
 
+    readonly property bool hasInput: videoPath !== "" || cameraSource !== ""
+
+    // ---- Input source ---------------------------------------------------------
+    // The picker is pure presentation; these three functions are the Score side.
+
+    function setVideoPath(path) {
+        videoPath = path
+        appSettings.videoPath = path
+        var p = processes.genai_inputvideo.process_object
+        if (!p || path === "")
+            return
+        // The Gfx::Video process re-opens on assignment, which the running graph
+        // does not survive, so bounce the transport around it.
+        var wasPlaying = isProcessing
+        if (wasPlaying)
+            isProcessing = false
+        p.path = path
+        if (wasPlaying)
+            Qt.callLater(function() { isProcessing = true })
+    }
+
+    function selectInputBackend(name) {
+        var desc = inputSelector.descriptor(name)
+        if (!desc || desc.kind !== "device") {
+            InputDevices.clearEnumerator()
+            discoveredSources = []
+            inputStatusText = ""
+            if (cameraSource !== "") {
+                cameraSource = ""
+                InputDevices.disconnect(Score)
+            }
+            return
+        }
+        cameraSource = ""
+        inputStatusText = "Looking for " + name + " sources…"
+        InputDevices.reenumerate(Score, desc, name, function(labels) {
+            discoveredSources = labels
+            if (labels.length > 0)
+                inputStatusText = ""
+        }, function(m) { console.log("[Input] " + m) })
+    }
+
+    function selectInputSource(name) {
+        var desc = inputSelector.descriptor(inputSelector.currentBackend)
+        var ok = false
+        Score.withMacro(function() {
+            ok = InputDevices.connectInMacro(Score, desc, name,
+                                             processes.video_Mixer.process_object,
+                                             function(m) { console.log("[Input] " + m) })
+        })
+        if (!ok) {
+            inputStatusText = "Could not open " + name
+            return
+        }
+        cameraSource = name
+        inputStatusText = "Active source: " + name
+        // Swapping a device in place leaves the running gfx graph bound to the
+        // destroyed node, so rebuild rather than hot-swap.
+        if (isProcessing) {
+            isProcessing = false
+            Qt.callLater(function() { isProcessing = true })
+        }
+    }
+
     // Called after every config load — pushes appSettings values into UI controls,
     // which in turn fire onValueChanged and push to Score.
     function restoreSavedSettings() {
         // Input section
-        imagePathField.text = appSettings.videoPath;
+        inputSelector.videoFilePath = appSettings.videoPath;
+        mainView.videoPath = appSettings.videoPath;
+        // A saved config only ever carries a video path, so show that lane rather
+        // than landing on an empty camera list.
+        if (appSettings.videoPath !== "")
+            inputSelector.currentBackend = "Video file";
         imageAmountSlider.value = appSettings.videoAmount;
         cameraAmountSlider.value = appSettings.cameraAmount;
 
@@ -555,50 +635,21 @@ Pane {
                 title: "Input"
                 description: "Configure input sources for image, video, and camera feeds"
 
-                RowLayout {
+                InputSourceSelector {
+                    id: inputSelector
                     Layout.fillWidth: true
-                    Label {
-                        text: "Video input"
-                        Layout.preferredWidth: 100
-                        font.pixelSize: appStyle.fontSizeBody
-                    }
-                    TextField {
-                        id: imagePathField
-                        Layout.fillWidth: true
-                        font.pixelSize: appStyle.fontSizeBody
-                        placeholderText: "/path/to/video.mp4"
+                    // NDI/Spout/Syphon are the Pro build's input protocols; the
+                    // packaging already exports the flag that gates them.
+                    allowedBackends: Util.environmentVariable("SAT_ADVANCED_IO")
+                                     ? ["Camera", "Video file", "NDI", "Spout", "Syphon"]
+                                     : ["Camera", "Video file"]
+                    sources: mainView.discoveredSources
+                    statusText: mainView.inputStatusText
 
-                        property var videoProcess: processes.genai_inputvideo.process_object
-
-                        onTextChanged: {
-                            appSettings.videoPath = text;
-                            if (videoProcess && text !== "") {
-                                var wasPlaying = isProcessing;
-                                if (wasPlaying) isProcessing = false;  // handler calls Score.stop()
-                                videoProcess.path = text;
-                                if (wasPlaying) Qt.callLater(function() { isProcessing = true; });  // handler calls Score.play()
-                            }
-                        }
-                    }
-                    Button {
-                        text: "Browse"
-                        font.pixelSize: appStyle.fontSizeBody
-                        onClicked: imageFileDialog.open()
-                    }
-                }
-
-                FileDialog {
-                    id: imageFileDialog
-                    title: "Select Video File"
-                    nameFilters: ["Video Files (*.mp4 *.avi *.mov *.mkv *.webm *.flv)"]
-                    onAccepted: {
-                        if (!selectedFile) {
-                            console.log("No file selected");
-                            return;
-                        }
-                        var filePath = new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0);
-                        imagePathField.text = filePath;
-                    }
+                    onBackendSelected: name => mainView.selectInputBackend(name)
+                    onSourceSelected: name => mainView.selectInputSource(name)
+                    onVideoFileSelected: path => mainView.setVideoPath(path)
+                    onRefreshRequested: () => mainView.selectInputBackend(inputSelector.currentBackend)
                 }
 
                 RowLayout {
@@ -610,7 +661,7 @@ Pane {
                         label: "Video"
                         value: 0.0
                         port: processes.video_Mixer.alpha7
-                        enabled: imagePathField.text !== ""
+                        enabled: mainView.videoPath !== ""
 
                         Connections {
                             target: imageAmountSlider.slider
@@ -625,6 +676,9 @@ Pane {
                         label: "Camera"
                         value: 0.0
                         port: processes.video_Mixer.alpha8
+                        // Was always enabled and always a no-op: nothing was ever
+                        // bound to the mixer's eighth texture inlet.
+                        enabled: mainView.cameraSource !== ""
                         Connections {
                             target: cameraAmountSlider.slider
                             function onValueChanged() {
@@ -635,14 +689,14 @@ Pane {
                 }
 
                 Label {
-                    visible: imagePathField.text === ""
-                    text: "Select a video file to enable"
+                    visible: mainView.videoPath === "" && mainView.cameraSource === ""
+                    text: "Select a video file or a camera to enable"
                     font.pixelSize: appStyle.fontSizeSmall
                     color: appStyle.textColorSecondary
                     Layout.fillWidth: true
                 }
                 Label {
-                    visible: imagePathField.text !== "" && !mainView.videoFileExists
+                    visible: mainView.videoPath !== "" && !mainView.videoFileExists
                     text: "File not found"
                     font.pixelSize: appStyle.fontSizeSmall
                     color: "#FF3B30"
@@ -1462,14 +1516,14 @@ Pane {
                 font.bold: true
                 highlighted: isProcessing
                 Layout.preferredWidth: 230
-                enabled: isProcessing || (imagePathField.text !== "" && enginePathField.text !== "")
+                enabled: isProcessing || (mainView.hasInput && enginePathField.text !== "")
                 onClicked: isProcessing = !isProcessing
 
                 ToolTip.visible: !enabled && hovered
-                ToolTip.text: imagePathField.text === "" && enginePathField.text === ""
-                    ? "Set a video input path and an engine path (Advanced Options) before starting"
-                    : imagePathField.text === ""
-                        ? "Set a video input path before starting"
+                ToolTip.text: !mainView.hasInput && enginePathField.text === ""
+                    ? "Choose an input source and an engine path (Advanced Options) before starting"
+                    : !mainView.hasInput
+                        ? "Choose an input source before starting"
                         : "Set an engine path (Advanced Options) before starting"
                 ToolTip.delay: 500
             }

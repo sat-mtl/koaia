@@ -381,6 +381,10 @@ var presets = [
         loras: [{ path: "radames/FLUX.2-klein-Sana-Sprint" }],
         minRes: 320, maxRes: 576, optWidth: 320, optHeight: 576,
         minBatch: 1, optBatch: 1, maxBatch: 1, kleinQuality: "both",
+        // --lora is accepted by every builder, but a builder without the klein
+        // fusion path ignores it and emits a plain klein bundle under this name.
+        needsBuilderSymbol: "klein_fuse_loras",
+        needsBuilderLabel: "LoRA fusion for klein",
         steps: "1-2",
         requires: "the FLUX.2-klein-4B snapshot in the model cache",
         note: "The LoRA is fused into a transformer-only copy first."

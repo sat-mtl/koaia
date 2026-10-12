@@ -271,7 +271,7 @@ Pane {
                                         color: appStyle.errorColor
                                         text: {
                                             if (card.unsupported.length > 0)
-                                                return "The packaged engine builder does not accept "
+                                                return "The packaged engine builder lacks "
                                                      + card.unsupported.join(", ")
                                             return card.modelData.requires
                                                  ? "Needs " + card.modelData.requires : ""

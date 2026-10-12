@@ -103,6 +103,13 @@ ColumnLayout {
             editable: selector.typableSource
             model: selector.sources
             currentIndex: selector.sources.indexOf(selector.currentSource)
+            // Nothing is selected until the user picks, so currentIndex is -1 and
+            // a stock ComboBox then draws an empty box however full its model is.
+            // That reads as "no devices found" and was reported as exactly that.
+            displayText: currentIndex >= 0 ? currentText
+                       : selector.sources.length > 0
+                         ? qsTr("%1 available — click to choose").arg(selector.sources.length)
+                         : qsTr("No device found yet")
             onActivated: index => {
                 selector.currentSource = selector.sources[index] || ""
                 if (selector.currentSource !== "")

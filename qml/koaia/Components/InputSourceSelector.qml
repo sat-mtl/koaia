@@ -50,6 +50,11 @@ ColumnLayout {
     signal videoFileSelected(string path)
     signal refreshRequested
 
+    // videoFilePath is the single source of truth: the text field, the file
+    // dialog and the settings restore all write it, never the field's text.
+    // Notifying from the property keeps those three routes equivalent.
+    onVideoFilePathChanged: videoFileSelected(videoFilePath)
+
     function descriptor(name) { return Backends.descriptor(name) }
 
     onCurrentBackendChanged: syncBackendCombo()
@@ -157,10 +162,7 @@ ColumnLayout {
             font.pixelSize: appStyle.fontSizeBody
             placeholderText: "/path/to/video.mp4"
             text: selector.videoFilePath
-            onTextChanged: {
-                selector.videoFilePath = text
-                selector.videoFileSelected(text)
-            }
+            onTextEdited: selector.videoFilePath = text
         }
 
         Button {
@@ -177,7 +179,7 @@ ColumnLayout {
         onAccepted: {
             if (!selectedFile)
                 return
-            videoPathField.text = new URL(selectedFile).pathname.substr(
+            selector.videoFilePath = new URL(selectedFile).pathname.substr(
                 Qt.platform.os === "windows" ? 1 : 0)
         }
     }

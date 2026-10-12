@@ -6,6 +6,7 @@ import QtQuick.Dialogs
 import Qt.labs.folderlistmodel
 import Score.UI as UI
 import koaia
+import "../Scripts/BuildPresets.js" as BuildPresets
 
 Pane {
     id: modelView
@@ -17,6 +18,8 @@ Pane {
         id: buildSettings
         category: "BuildState"
         property bool lastLogExpanded: false
+        property string uvCacheDir: ""
+        property string modelCacheDir: ""
     }
 
     readonly property bool isWin32: Qt.platform.os === "windows"
@@ -39,44 +42,102 @@ Pane {
     readonly property string uvPath: scriptDir + (isWin32 ? "/uv.exe" : "/uv")
     readonly property string scriptPath: scriptDir + "/train-lora.py"
 
-    // Each preset is one tested train-lora.py invocation. SDXS-sketch is first and
-    // the default: it is the 512x512 ControlNet pipeline koaia is built around. Its
-    // ControlNet has to be the model's *native* one, because the exported pair has
-    // to agree on geometry -- this bundle loads as "control-aware UNet geometry =
-    // 6 down residuals, factors {1,1,2,2,4,4}" against "ControlNet engine SD1.5,
+    // uv is NOT run in scriptDir: inside the Linux AppImage that path is a
+    // read-only squashfs mount and `uv sync` dies with
+    //   error: failed to create directory `.../engine-builder/.venv`: Read-only file system
+    // On Windows the package directory may equally be somewhere the user cannot
+    // write. So the venv, both caches and the env file live in a per-user
+    // workspace, and only pyproject.toml + uv.lock are copied there.
+    //
+    // This works because the project declares no [build-system] and no local path
+    // dependencies -- uv installs dependencies only -- and train-lora.py puts its
+    // own `src` on sys.path from __file__ (train-lora.py:33-35), so it can be run
+    // by absolute path from anywhere.
+    readonly property string workspaceDir:
+        urlToLocalPath(StandardPaths.writableLocation(StandardPaths.AppDataLocation))
+        + "/engine-builder"
+
+    // The three caches an engine build touches are distinct and only one of them
+    // is uv's:
+    //   * uv's wheel cache (--cache-dir) -- ~11 GB of torch/TensorRT wheels.
+    //     Must sit on the same volume as the venv or uv cannot hardlink out of it
+    //     and copies every file instead, costing the 11 GB twice.
+    //   * the HuggingFace snapshot cache (HF_HOME) -- the model weights, GBs per
+    //     model. train-lora.py never takes a flag for it, only the env var.
+    //   * the ONNX/engine/timing-cache triple, which lives in --output.
+    readonly property string uvCacheDir:
+        uvCacheField.text !== "" ? uvCacheField.text : workspaceDir + "/uv-cache"
+    readonly property string modelCacheDir:
+        modelCacheField.text !== "" ? modelCacheField.text : workspaceDir + "/hf-cache"
+
+    readonly property string envFilePath: workspaceDir + "/build.env"
+
+    function urlToLocalPath(u) {
+        var s = "" + u
+        if (s.indexOf("file://") === 0) s = s.substring("file://".length)
+        if (isWin32 && s.length > 1 && s.charAt(0) === "/")
+            s = s.substring(1)
+        return decodeURIComponent(s)
+    }
+
+    // The validated train-lora.py invocations, shared with BuildPresetView. SDXS-sketch
+    // is first and the default: it is the 512x512 ControlNet pipeline koaia is built
+    // around. Its ControlNet has to be the model's *native* one, because the exported
+    // pair has to agree on geometry -- this bundle loads as "control-aware UNet geometry
+    // = 6 down residuals, factors {1,1,2,2,4,4}" against "ControlNet engine SD1.5,
     // 6 down residuals", and a ControlNet with a different count will not bind.
     // Declared on the root because a Section's children resolve names against the
     // file's root object, not against the enclosing Section instance.
-    readonly property var modelPresets: [
-        {
-            label: "SDXS-sketch 512 (SD 1.5 + ControlNet)",
-            type: "sd15",
-            model: "IDKiro/sdxs-512-dreamshaper",
-            controlnet: "IDKiro/sdxs-512-dreamshaper-sketch",
-            minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512
-        },
-        {
-            label: "SD-Turbo 512 (SD 1.5)",
-            type: "sd15",
-            model: "stabilityai/sd-turbo",
-            controlnet: "",
-            minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512
-        },
-        {
-            label: "LCM Dreamshaper v7 (SD 1.5)",
-            type: "sd15",
-            model: "SimianLuo/LCM_Dreamshaper_v7",
-            controlnet: "",
-            minRes: 512, maxRes: 1024, optWidth: 1024, optHeight: 1024
-        },
-        {
-            label: "SDXL base 1.0",
-            type: "sdxl",
-            model: "stabilityai/stable-diffusion-xl-base-1.0",
-            controlnet: "",
-            minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024
+    readonly property var modelPresets: BuildPresets.presets
+
+    // The preset the visible fields were last filled from. --type, --unet,
+    // --hw-compat, --klein-quality, the per-axis geometry flags and :runtime LoRAs
+    // have no widget of their own, so they are carried from here.
+    property var activePreset: BuildPresets.presets[0]
+
+    property bool _applyingPreset: false
+
+    // Applies a preset to every field, including the ones that have no widget.
+    // Called by BuildPresetView and by the Preset combo. Reentrancy-guarded
+    // because moving the combo calls straight back in through onCurrentIndexChanged.
+    function applyBuildPreset(preset, outputDir) {
+        if (_applyingPreset)
+            return
+        _applyingPreset = true
+        activePreset = preset
+        // Matched on slug, not identity: a preset handed over from BuildPresetView's
+        // Repeater arrives as a converted copy, so indexOf() never finds it.
+        for (var i = 0; i < BuildPresets.presets.length; i++) {
+            if (BuildPresets.presets[i].slug === preset.slug) {
+                if (modelTypeCombo.currentIndex !== i)
+                    modelTypeCombo.currentIndex = i
+                break
+            }
         }
-    ]
+        modelSourceField.text = preset.model
+        controlNetField.text = preset.controlnet || ""
+        ipadapterField.text = ""
+        minResolutionSpinBox.value = preset.minRes
+        maxResolutionSpinBox.value = preset.maxRes
+        optWidthSpinBox.value = preset.optWidth
+        optHeightSpinBox.value = preset.optHeight
+        minBatchSpinBox.value = preset.minBatch
+        optBatchSpinBox.value = preset.optBatch
+        maxBatchSpinBox.value = preset.maxBatch
+        loraListModel.clear()
+        var ls = preset.loras || []
+        for (var j = 0; j < ls.length; j++) {
+            loraListModel.append({
+                path: ls[j].path,
+                weight: ls[j].weight !== undefined ? ls[j].weight : 1.0,
+                runtime: !!ls[j].runtime
+            })
+        }
+        if (outputDir !== undefined && outputDir !== "")
+            outputPathField.text = outputDir
+        _applyingPreset = false
+        log("[Preset] " + preset.label + " -> " + preset.slug)
+    }
 
     property bool isSyncing: syncProcess.running
     property bool isBuilding: syncProcess.running || buildProcess.running
@@ -103,6 +164,8 @@ Pane {
         logExpanded = buildSettings.lastLogExpanded
         buildStatus = "idle"
         buildProgressValue = 0
+        uvCacheField.text = buildSettings.uvCacheDir
+        modelCacheField.text = buildSettings.modelCacheDir
         loadLog()
     }
 
@@ -180,7 +243,6 @@ Pane {
     UI.Process {
         id: syncProcess
         program: uvPath
-        arguments: isWin32 ? ["sync", "--cache-dir", "c:\\uv"] : ["sync"]
 
         onLineReceived: (line, isError) => {
             if (isError) {
@@ -390,7 +452,6 @@ Pane {
                             model: modelPresets.map(function(p) { return p.label })
                             currentIndex: 0
                             font.pixelSize: appStyle.fontSizeBody
-                            readonly property string modelTypeArg: modelPresets[currentIndex].type
                             // Applied on change and once on load, so the fields and the
                             // build parameters start out matching the default preset
                             // rather than train-lora.py's own 1024 defaults.
@@ -402,13 +463,7 @@ Pane {
                             // back. Measured -- picking "SDXL base 1.0" logged
                             // `idx=3 preset.label=SDXS-sketch 512`.
                             function apply() {
-                                var p = modelPresets[currentIndex]
-                                modelSourceField.text = p.model
-                                controlNetField.text = p.controlnet
-                                minResolutionSpinBox.value = p.minRes
-                                maxResolutionSpinBox.value = p.maxRes
-                                optWidthSpinBox.value = p.optWidth
-                                optHeightSpinBox.value = p.optHeight
+                                modelView.applyBuildPreset(modelPresets[currentIndex])
                             }
                             Component.onCompleted: apply()
                             onCurrentIndexChanged: apply()
@@ -443,6 +498,56 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                             placeholderText: "HuggingFace ControlNet repo — empty for none"
                         }
+                    }
+
+                    // train-lora.py loads the IP-Adapter checkpoint off disk, so unlike
+                    // the model and ControlNet this one cannot be a repo id.
+                    RowLayout {
+                        Layout.fillWidth: true
+                        visible: activePreset && activePreset.ipadapterNeeded === true
+                        Label {
+                            text: "IP-Adapter"
+                            Layout.preferredWidth: 100
+                            font.pixelSize: appStyle.fontSizeBody
+                            color: ipadapterField.text === "" ? appStyle.errorColor
+                                                              : appStyle.textColor
+                        }
+                        TextField {
+                            id: ipadapterField
+                            Layout.fillWidth: true
+                            font.pixelSize: appStyle.fontSizeBody
+                            placeholderText: activePreset && activePreset.ipadapterHint
+                                             ? "local path to " + activePreset.ipadapterHint
+                                             : "local path to the IP-Adapter checkpoint"
+                        }
+                        Button {
+                            text: "…"
+                            font.pixelSize: appStyle.fontSizeBody
+                            onClicked: ipadapterFileDialog.open()
+                        }
+                    }
+
+                    FileDialog {
+                        id: ipadapterFileDialog
+                        title: "Select IP-Adapter Checkpoint"
+                        nameFilters: ["IP-Adapter checkpoints (*.bin *.safetensors)", "All files (*)"]
+                        onAccepted: {
+                            if (!selectedFile)
+                                return;
+                            ipadapterField.text = new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0);
+                        }
+                    }
+
+                    // The preset carries flags with no widget of their own; show them so
+                    // the command is never a surprise.
+                    Label {
+                        Layout.fillWidth: true
+                        visible: text !== ""
+                        wrapMode: Text.WordWrap
+                        font.pixelSize: appStyle.fontSizeSmall
+                        font.family: "monospace"
+                        color: appStyle.textColorSecondary
+                        text: activePreset ? BuildPresets.extraSummary(activePreset) : ""
                     }
 
                     RowLayout {
@@ -483,6 +588,76 @@ Pane {
                                 return;
                             var folderPath = new URL(selectedFolder).pathname.substr(isWin32 ? 1 : 0);
                             outputPathField.text = folderPath;
+                        }
+                    }
+                }
+
+                Section {
+                    title: "Caches"
+                    description: "A first build downloads ~11 GB of wheels and several GB of model "
+                               + "weights. Both are reused by every later build, so put them on a "
+                               + "volume with room — and keep the wheel cache on the same volume as "
+                               + "the build, or uv copies instead of hardlinking."
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label {
+                            text: "Wheel cache"
+                            Layout.preferredWidth: 100
+                            font.pixelSize: appStyle.fontSizeBody
+                        }
+                        TextField {
+                            id: uvCacheField
+                            Layout.fillWidth: true
+                            font.pixelSize: appStyle.fontSizeBody
+                            placeholderText: modelView.workspaceDir + "/uv-cache"
+                            onTextChanged: buildSettings.uvCacheDir = text
+                        }
+                        Button {
+                            text: "Browse"
+                            font.pixelSize: appStyle.fontSizeBody
+                            onClicked: uvCacheFolderDialog.open()
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        Label {
+                            text: "Model cache"
+                            Layout.preferredWidth: 100
+                            font.pixelSize: appStyle.fontSizeBody
+                        }
+                        TextField {
+                            id: modelCacheField
+                            Layout.fillWidth: true
+                            font.pixelSize: appStyle.fontSizeBody
+                            placeholderText: modelView.workspaceDir + "/hf-cache"
+                            onTextChanged: buildSettings.modelCacheDir = text
+                        }
+                        Button {
+                            text: "Browse"
+                            font.pixelSize: appStyle.fontSizeBody
+                            onClicked: modelCacheFolderDialog.open()
+                        }
+                    }
+
+                    FolderDialog {
+                        id: uvCacheFolderDialog
+                        title: "Select Wheel Cache Folder"
+                        onAccepted: {
+                            if (!selectedFolder)
+                                return;
+                            uvCacheField.text = new URL(selectedFolder).pathname.substr(isWin32 ? 1 : 0);
+                        }
+                    }
+
+                    FolderDialog {
+                        id: modelCacheFolderDialog
+                        title: "Select Model Cache Folder"
+                        onAccepted: {
+                            if (!selectedFolder)
+                                return;
+                            modelCacheField.text = new URL(selectedFolder).pathname.substr(isWin32 ? 1 : 0);
                         }
                     }
                 }
@@ -639,6 +814,18 @@ Pane {
                         }
                     }
 
+                    // RIFE interpolates decoded RGB, so it is model-agnostic: any bundle
+                    // can carry the plan the node's "Interpolation exp" control needs.
+                    // Klein always ships it; everything else has to opt in at build time.
+                    CheckBox {
+                        id: rifeCheckBox
+                        Layout.topMargin: 4
+                        text: "Build the RIFE frame-interpolation engine"
+                        font.pixelSize: appStyle.fontSizeBody
+                        checked: false
+                        enabled: !activePreset || activePreset.type !== "klein"
+                    }
+
                     Label {
                         Layout.topMargin: 4
                         text: {
@@ -693,6 +880,7 @@ Pane {
                             SpinBox {
                                 id: weightSpinBox
                                 editable: true
+                                enabled: runtime !== true
                                 Layout.minimumWidth: 150
                                 implicitWidth: 150
                                 from: 0
@@ -708,6 +896,15 @@ Pane {
                                     return Math.round(parseFloat(text) * 100);
                                 }
                                 onValueChanged: loraListModel.setProperty(index, "weight", realValue)
+                            }
+                            // ":runtime" keeps the LoRA UNFUSED and gives the engine a
+                            // lora_scale input the node's knob drives live. Mutually
+                            // exclusive with a baked weight, so the spinbox goes dead.
+                            CheckBox {
+                                text: "Runtime"
+                                font.pixelSize: appStyle.fontSizeSmall
+                                checked: runtime === true
+                                onToggled: loraListModel.setProperty(index, "runtime", checked)
                             }
                             Button {
                                 text: "X"
@@ -725,7 +922,8 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                             onClicked: loraListModel.append({
                                 "path": "",
-                                "weight": 1.0
+                                "weight": 1.0,
+                                "runtime": false
                             })
                         }
                         Item {
@@ -950,6 +1148,63 @@ Pane {
 
     }
 
+    // Lays out the writable workspace uv runs in. Copies the two project files
+    // verbatim so a package update cannot leave a stale lock behind.
+    function prepareWorkspace() {
+        if (!Util.makeDir(workspaceDir) && !Util.isDir(workspaceDir)) {
+            log("[Error] Cannot create the build workspace at: " + workspaceDir);
+            return false;
+        }
+        Util.makeDir(uvCacheDir);
+        Util.makeDir(modelCacheDir);
+        var files = ["pyproject.toml", "uv.lock"];
+        for (var i = 0; i < files.length; i++) {
+            var src = scriptDir + "/" + files[i];
+            if (!Util.fileExists(src)) {
+                log("[Error] Missing from the package: " + src);
+                return false;
+            }
+            Util.writeFile(workspaceDir + "/" + files[i], Util.readFile(src));
+        }
+        // uv's --cache-dir covers only the wheels; the model weights follow HF_HOME,
+        // which train-lora.py reads straight out of the environment and which
+        // Score.UI.Process cannot set -- so hand it to the child through uv.
+        Util.writeFile(envFilePath,
+                       "HF_HOME=" + modelCacheDir.replace(/\\/g, "/") + "\n");
+        return true;
+    }
+
+    // builder.py reuses any existing <name>.engine in the output directory keyed on
+    // FILENAME ALONE (tensorrt/builder.py:99 "Found cached engine"). Resolution,
+    // batch, ControlNet and even the base model do not invalidate it. So building a
+    // second preset into a folder that already holds a bundle yields the FIRST
+    // bundle, in seconds, with exit code 0 and .engine files present -- which is
+    // exactly what this view reports as success. Refuse instead.
+    function bundleConflict() {
+        var manifest = outputPathField.text + "/bundle.json";
+        if (!Util.fileExists(manifest))
+            return "";
+        var b;
+        try {
+            b = JSON.parse(String(Util.readFile(manifest)));
+        } catch (e) {
+            return "the folder holds an unreadable bundle.json";
+        }
+        var diffs = [];
+        if (b.base_model && b.base_model !== modelSourceField.text)
+            diffs.push("model " + b.base_model + " != " + modelSourceField.text);
+        var cn = controlNetField.text === "" ? null : controlNetField.text;
+        if ((b.controlnet_repo || null) !== cn)
+            diffs.push("controlnet " + (b.controlnet_repo || "none") + " != " + (cn || "none"));
+        if (b.resolution && (b.resolution.opt_width !== optWidthSpinBox.value
+                             || b.resolution.opt_height !== optHeightSpinBox.value))
+            diffs.push("size " + b.resolution.opt_width + "x" + b.resolution.opt_height
+                       + " != " + optWidthSpinBox.value + "x" + optHeightSpinBox.value);
+        if (b.batch && b.batch.max !== maxBatchSpinBox.value)
+            diffs.push("max batch " + b.batch.max + " != " + maxBatchSpinBox.value);
+        return diffs.join(", ");
+    }
+
     // Start build: first sync, then run
     function startBuild() {
         var errors = [];
@@ -958,11 +1213,21 @@ Pane {
         if (maxBatchSpinBox.value < minBatchSpinBox.value) errors.push("Max batch must be >= min batch");
         if (optBatchSpinBox.value < minBatchSpinBox.value || optBatchSpinBox.value > maxBatchSpinBox.value) errors.push("Opt batch must be between min and max batch");
         if (maxResolutionSpinBox.value < minResolutionSpinBox.value) errors.push("Max resolution must be >= min resolution");
+        if (activePreset && activePreset.ipadapterNeeded === true && ipadapterField.text === "")
+            errors.push("This preset needs an IP-Adapter checkpoint path");
+        var conflict = outputPathField.text !== "" ? bundleConflict() : "";
+        if (conflict !== "")
+            errors.push("The output folder already holds a different bundle (" + conflict
+                        + "). Engines are reused by filename, so this would silently keep the "
+                        + "old ones. Pick an empty folder or delete that one.");
         if (errors.length > 0) {
             for (var i = 0; i < errors.length; i++)
                 log("[Error] " + errors[i]);
             return;
         }
+
+        if (!prepareWorkspace())
+            return;
 
         buildStatus = "running"
         buildProgressValue = 0
@@ -972,35 +1237,58 @@ Pane {
         syncProcess.clearOutput();
         buildProcess.clearOutput();
 
-        log("[Syncing environment in " + scriptDir + "]");
-        log("$ " + uvPath + " sync");
+        syncProcess.arguments = ["--cache-dir", uvCacheDir, "sync"];
+        syncProcess.workingDirectory = workspaceDir;
+        buildProcess.workingDirectory = workspaceDir;
+
+        log("[Syncing environment in " + workspaceDir + "]");
+        log("$ " + uvPath + " " + syncProcess.arguments.join(" "));
+        log("[Wheel cache " + uvCacheDir + "]");
+        log("[Model cache " + modelCacheDir + "]");
         log("----------------------------------------");
 
-        // Set working directory and start sync
-        syncProcess.workingDirectory = scriptDir;
-        buildProcess.workingDirectory = scriptDir;
         syncProcess.start();
     }
 
     // Called after successful sync
     function runBuildProcess() {
-        // Build argument list with argparse-style flags
-        var args = [];
-        if (isWin32)
-            args.push("--cache-dir", "c:\\uv");
-        args.push("run", "train-lora.py", "--type", modelTypeCombo.modelTypeArg, "--model", modelSourceField.text, "--output", outputPathField.text, "--min-batch", minBatchSpinBox.value.toString(), "--max-batch", maxBatchSpinBox.value.toString(), "--opt-batch", optBatchSpinBox.value.toString(), "--min-resolution", minResolutionSpinBox.value.toString(), "--max-resolution", maxResolutionSpinBox.value.toString(), "--opt-width", optWidthSpinBox.value.toString(), "--opt-height", optHeightSpinBox.value.toString());
+        var p = activePreset;
+        // --env-file is the only way to hand HF_HOME to train-lora.py: Score.UI.Process
+        // exposes program/arguments/workingDirectory and no environment.
+        var args = ["--cache-dir", uvCacheDir,
+                    "run", "--env-file", envFilePath, "python", scriptPath,
+                    "--type", p.type,
+                    "--model", modelSourceField.text,
+                    "--output", outputPathField.text,
+                    "--min-batch", minBatchSpinBox.value.toString(),
+                    "--max-batch", maxBatchSpinBox.value.toString(),
+                    "--opt-batch", optBatchSpinBox.value.toString(),
+                    "--min-resolution", minResolutionSpinBox.value.toString(),
+                    "--max-resolution", maxResolutionSpinBox.value.toString(),
+                    "--opt-width", optWidthSpinBox.value.toString(),
+                    "--opt-height", optHeightSpinBox.value.toString()];
 
         // Exports controlnet.engine plus a control-aware unet.engine; without it the
         // bundle has no ControlNet and every SD_*_CONTROLNET workflow refuses frames.
         if (controlNetField.text !== "")
             args.push("--controlnet", controlNetField.text);
 
+        if (ipadapterField.text !== "")
+            args.push("--ipadapter", ipadapterField.text);
+
+        if (rifeCheckBox.checked && rifeCheckBox.enabled)
+            args.push("--rife");
+
+        args = args.concat(BuildPresets.extraArgs(p));
+
         // Add LoRAs with weights
         for (var i = 0; i < loraListModel.count; i++) {
             var lora = loraListModel.get(i);
             if (lora.path !== "") {
                 var loraArg = lora.path;
-                if (lora.weight !== 1.0) {
+                if (lora.runtime) {
+                    loraArg += ":runtime";
+                } else if (lora.weight !== 1.0) {
                     loraArg += ":" + lora.weight.toFixed(2);
                 }
                 args.push("--lora");

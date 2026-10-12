@@ -94,6 +94,15 @@ var presets = [
         steps: "1", note: "Portrait geometry is baked per-axis, not a runtime knob."
     },
     {
+        slug: "sd-turbo-768x512", family: "SD 1.5",
+        label: "SD-Turbo 768x512", type: "sd15",
+        model: "stabilityai/sd-turbo",
+        minRes: 512, maxRes: 768, optWidth: 768, optHeight: 512,
+        minWidth: 768, maxWidth: 768, minHeight: 512, maxHeight: 512,
+        minBatch: 1, optBatch: 1, maxBatch: 1,
+        steps: "1", note: "Landscape counterpart of the above; a separate engine."
+    },
+    {
         slug: "sdxs", family: "SD 1.5",
         label: "SDXS 512", type: "sd15",
         model: "IDKiro/sdxs-512-dreamshaper",

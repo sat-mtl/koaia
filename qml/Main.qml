@@ -61,8 +61,9 @@ ApplicationWindow {
     }
 
     property int currentViewIndex: 0
-    readonly property int modelViewIndex: 0
-    readonly property int mainViewIndex: 1
+    readonly property int presetViewIndex: 0
+    readonly property int modelViewIndex: 1
+    readonly property int mainViewIndex: 2
 
     AboutDialog {
         id: aboutDialog
@@ -153,6 +154,15 @@ ApplicationWindow {
                     }
                 }
                 CustomButton {
+                    id: presetButton
+                    text: "PRESETS"
+                    Layout.fillWidth: true
+                    Layout.topMargin: appStyle.spacing
+                    isActive: currentViewIndex === presetViewIndex
+                    onClicked: currentViewIndex = presetViewIndex
+                }
+
+                CustomButton {
                     id: modelButton
                     text: "BUILD"
                     Layout.fillWidth: true
@@ -160,7 +170,7 @@ ApplicationWindow {
                     isActive: currentViewIndex === modelViewIndex
                     onClicked: currentViewIndex = modelViewIndex
                 }
-                
+
                 CustomButton {
                     id: runButton
                     text: "RUN"
@@ -183,7 +193,11 @@ ApplicationWindow {
             Layout.fillHeight: true
             currentIndex: currentViewIndex
 
+            BuildPresetView {
+                builder: modelView
+            }
             ModelView {
+                id: modelView
             }
             MainView {
             }

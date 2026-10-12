@@ -149,6 +149,8 @@ Pane {
         minBatchSpinBox.value = preset.minBatch
         optBatchSpinBox.value = preset.optBatch
         maxBatchSpinBox.value = preset.maxBatch
+        loraScaleSpinBox.value = Math.round((preset.loraScale !== undefined
+                                             ? preset.loraScale : 1.0) * 100)
         loraListModel.clear()
         var ls = preset.loras || []
         for (var j = 0; j < ls.length; j++) {
@@ -1338,11 +1340,10 @@ Pane {
         // Log the command
         var cmdLine = uvPath + " " + args.join(" ");
         log("[Starting build]");
-        log("$ cd " + scriptDir + " && " + cmdLine);
+        log("$ cd " + workspaceDir + " && " + cmdLine);
         log("----------------------------------------");
 
-        // Set working directory, arguments and start
-        buildProcess.workingDirectory = scriptDir;
+        buildProcess.workingDirectory = workspaceDir;
         buildProcess.arguments = args;
         buildProcess.start();
     }

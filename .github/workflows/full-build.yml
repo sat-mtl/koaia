@@ -88,6 +88,19 @@ jobs:
           app-icns: "qml/koaia/resources/images/koaia_logo.icns"
           app-ico: "qml/koaia/resources/images/koaia_logo.ico"
 
+      # score-addon-librediffusion LoadLibrary's librediffusion.dll at run time, so
+      # app-bin.exe imports none of the GPU stack and create-app ships none of it.
+      # Without this step the Windows package starts and then cannot reach the GPU.
+      # Defaults to on: koaia is a CUDA-only tool and a package without the runtime
+      # is not a package anyone can use. Costs ~2 GB.
+      - name: Bundle the GPU runtime (basic)
+        if: matrix.platform == 'windows' && vars.KOAIA_BUNDLE_GPU != '0'
+        shell: bash
+        env:
+          KOAIA_GPU_RUNTIME: ${{ vars.KOAIA_GPU_RUNTIME }}
+        run: |
+          for z in packages/*windows*.zip; do ./scripts/bundle-gpu-windows.sh "$z"; done
+
       - name: Upload packages (basic)
         uses: actions/upload-artifact@v7
         with:
@@ -114,6 +127,14 @@ jobs:
           app-png: "qml/koaia/resources/images/koaia_logo.png"
           app-icns: "qml/koaia/resources/images/koaia_logo.icns"
           app-ico: "qml/koaia/resources/images/koaia_logo.ico"
+
+      - name: Bundle the GPU runtime (pro)
+        if: matrix.platform == 'windows' && vars.KOAIA_BUNDLE_GPU != '0'
+        shell: bash
+        env:
+          KOAIA_GPU_RUNTIME: ${{ vars.KOAIA_GPU_RUNTIME }}
+        run: |
+          for z in packages-pro/*windows*.zip; do ./scripts/bundle-gpu-windows.sh "$z"; done
 
       - name: Upload packages (pro)
         uses: actions/upload-artifact@v7

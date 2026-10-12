@@ -99,6 +99,10 @@ jobs:
         env:
           KOAIA_GPU_RUNTIME: ${{ vars.KOAIA_GPU_RUNTIME }}
         run: |
+          if [ -z "${KOAIA_GPU_RUNTIME}" ]; then
+            echo "::error::KOAIA_GPU_RUNTIME is unset, so this package would ship without CUDA/cuDNN/TensorRT and could not reach the GPU. Point the repository variable at the GPU runtime, or set KOAIA_BUNDLE_GPU=0 to ship without it deliberately."
+            exit 1
+          fi
           for z in packages/*windows*.zip; do ./scripts/bundle-gpu-windows.sh "$z"; done
 
       - name: Upload packages (basic)
@@ -134,6 +138,10 @@ jobs:
         env:
           KOAIA_GPU_RUNTIME: ${{ vars.KOAIA_GPU_RUNTIME }}
         run: |
+          if [ -z "${KOAIA_GPU_RUNTIME}" ]; then
+            echo "::error::KOAIA_GPU_RUNTIME is unset, so this package would ship without CUDA/cuDNN/TensorRT and could not reach the GPU. Point the repository variable at the GPU runtime, or set KOAIA_BUNDLE_GPU=0 to ship without it deliberately."
+            exit 1
+          fi
           for z in packages-pro/*windows*.zip; do ./scripts/bundle-gpu-windows.sh "$z"; done
 
       - name: Upload packages (pro)

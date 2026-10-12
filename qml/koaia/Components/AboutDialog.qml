@@ -11,8 +11,8 @@ Dialog {
     property string appDetails: "Explore generative AI and create custom visual effects by combining input layers, filters, with a live preview and NDI streaming output."
     property string appWebsite: "https://gitlab.com/sat-mtl"
     property string logoPath: "../resources/images/koaia_logo.png"
-    property string satLogoPathLight: "../resources/images/SAT_Noir.png"
-    property string satLogoPathDark: "../resources/images/SAT_Blanc_Transparent.png"
+    property string satLogoPathLight: "../resources/images/logo-sat-black.png"
+    property string satLogoPathDark: "../resources/images/logo-sat-white.png"
     property string satWebsite: "https://www.sat.qc.ca"
     
     property string satLogoPath: {

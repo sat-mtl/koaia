@@ -474,10 +474,14 @@ Pane {
         }
         cameraSource = ""
         inputStatusText = "Looking for " + name + " sources…"
+        // Keep reporting the count rather than blanking the line once sources
+        // arrive: a silent line next to an unselected combo looks like nothing
+        // happened, which is how a working enumeration got reported as broken.
         InputDevices.reenumerate(Score, desc, name, function(labels) {
             discoveredSources = labels
-            if (labels.length > 0)
-                inputStatusText = ""
+            inputStatusText = labels.length > 0
+                ? labels.length + " " + name + " source(s) found"
+                : "Looking for " + name + " sources…"
         }, function(m) { console.log("[Input] " + m) })
     }
 
@@ -490,7 +494,14 @@ Pane {
                                              function(m) { console.log("[Input] " + m) })
         })
         if (!ok) {
-            inputStatusText = "Could not open " + name
+            // Camera is the one backend score hands back as a native
+            // DeviceSettings, and that object does not survive the QML boundary,
+            // so the device is never created. NDI/Spout/Syphon pass a plain
+            // {Path} and do bind. Say which case this is instead of failing mute.
+            inputStatusText = inputSelector.currentBackend === "Camera"
+                ? "Could not open " + name + " — this build cannot open camera "
+                  + "devices from the UI. Video file, NDI, Spout and Syphon work."
+                : "Could not open " + name
             return
         }
         cameraSource = name

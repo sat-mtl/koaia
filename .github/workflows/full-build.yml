@@ -93,8 +93,20 @@ jobs:
       # Without this step the Windows package starts and then cannot reach the GPU.
       # Defaults to on: koaia is a CUDA-only tool and a package without the runtime
       # is not a package anyone can use. Costs ~2 GB.
+      # bundle-gpu-linux.sh repacks the AppImage, so it needs appimagetool. The
+      # builders do not all carry one; fetch it only when it is missing.
+      - name: Provide appimagetool
+        if: matrix.platform == 'linux-x86_64' && vars.KOAIA_BUNDLE_GPU != '0'
+        shell: bash
+        run: |
+          if command -v appimagetool >/dev/null; then exit 0; fi
+          url=https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          curl -fsSL -o "$RUNNER_TEMP/appimagetool" "$url"
+          chmod +x "$RUNNER_TEMP/appimagetool"
+          echo "APPIMAGETOOL=$RUNNER_TEMP/appimagetool" >> "$GITHUB_ENV"
+
       - name: Bundle the GPU runtime (basic)
-        if: matrix.platform == 'windows' && vars.KOAIA_BUNDLE_GPU != '0'
+        if: (matrix.platform == 'windows' || matrix.platform == 'linux-x86_64') && vars.KOAIA_BUNDLE_GPU != '0'
         shell: bash
         env:
           KOAIA_GPU_RUNTIME: ${{ vars.KOAIA_GPU_RUNTIME }}
@@ -103,7 +115,11 @@ jobs:
             echo "::error::KOAIA_GPU_RUNTIME is unset, so this package would ship without CUDA/cuDNN/TensorRT and could not reach the GPU. Point the repository variable at the GPU runtime, or set KOAIA_BUNDLE_GPU=0 to ship without it deliberately."
             exit 1
           fi
-          for z in packages/*windows*.zip; do ./scripts/bundle-gpu-windows.sh "$z"; done
+          if [ "${{ matrix.platform }}" = windows ]; then
+            for z in packages/*windows*.zip; do ./scripts/bundle-gpu-windows.sh "$z"; done
+          else
+            for a in packages/*linux*.AppImage; do ./scripts/bundle-gpu-linux.sh "$a"; done
+          fi
 
       - name: Upload packages (basic)
         uses: actions/upload-artifact@v7
@@ -133,7 +149,7 @@ jobs:
           app-ico: "qml/koaia/resources/images/koaia_logo.ico"
 
       - name: Bundle the GPU runtime (pro)
-        if: matrix.platform == 'windows' && vars.KOAIA_BUNDLE_GPU != '0'
+        if: (matrix.platform == 'windows' || matrix.platform == 'linux-x86_64') && vars.KOAIA_BUNDLE_GPU != '0'
         shell: bash
         env:
           KOAIA_GPU_RUNTIME: ${{ vars.KOAIA_GPU_RUNTIME }}
@@ -142,7 +158,11 @@ jobs:
             echo "::error::KOAIA_GPU_RUNTIME is unset, so this package would ship without CUDA/cuDNN/TensorRT and could not reach the GPU. Point the repository variable at the GPU runtime, or set KOAIA_BUNDLE_GPU=0 to ship without it deliberately."
             exit 1
           fi
-          for z in packages-pro/*windows*.zip; do ./scripts/bundle-gpu-windows.sh "$z"; done
+          if [ "${{ matrix.platform }}" = windows ]; then
+            for z in packages-pro/*windows*.zip; do ./scripts/bundle-gpu-windows.sh "$z"; done
+          else
+            for a in packages-pro/*linux*.AppImage; do ./scripts/bundle-gpu-linux.sh "$a"; done
+          fi
 
       - name: Upload packages (pro)
         uses: actions/upload-artifact@v7

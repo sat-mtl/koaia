@@ -1,0 +1,6 @@
+# Spout shares a D3D11 texture. Qt Quick's Vulkan device is created without
+# VK_KHR_external_memory_win32, so SpoutInput cannot import the share handle:
+# it logs "No memory type supports the shared KMT handle" once per frame and
+# the input never produces pixels. Measured on a 3090: 769 failures under
+# Vulkan, zero under D3D11, with the sender's frames live in the mixer.
+export QSG_RHI_BACKEND=d3d11

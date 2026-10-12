@@ -19,10 +19,6 @@ jobs:
             container: "ubuntu:noble"
             platform: linux-x86_64
             artifact-name: linux-x86_64
-          - os: macos-latest
-            container: ""
-            platform: macos-arm
-            artifact-name: macos-arm
           - os: windows-latest
             container: ""
             platform: windows
@@ -53,12 +49,6 @@ jobs:
           app-png: "qml/koaia/resources/images/koaia_logo.png" 
           app-icns: "qml/koaia/resources/images/koaia_logo.icns"
           app-ico: "qml/koaia/resources/images/koaia_logo.ico"
-          # Optional: macOS code signing (requires secrets to be set in repository)
-          macos-certificate-base64: ${{ secrets.MAC_CERT_B64 }}
-          macos-certificate-password: ${{ secrets.MAC_CERT_PASSWORD }}
-          macos-notarize-team-id: ${{ secrets.MAC_NOTARIZE_TEAM_ID }}
-          macos-notarize-apple-id: ${{ secrets.MAC_NOTARIZE_APPLE_ID }}
-          macos-notarize-password: ${{ secrets.MAC_NOTARIZE_PASSWORD }}
 
       - name: Upload packages
         uses: actions/upload-artifact@v7

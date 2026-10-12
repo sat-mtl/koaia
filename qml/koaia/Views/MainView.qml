@@ -28,6 +28,8 @@ Pane {
     property var discoveredSources: []
     property string inputStatusText: ""
     property string cameraSource: ""
+    // The device a loaded config asked for, held until enumeration turns it up.
+    property string _pendingSource: ""
 
     // Video file existence check — scans parent dir for the exact filename
     readonly property string _videoParentUrl: {
@@ -145,6 +147,8 @@ Pane {
         property string videoPath: ""
         property real videoAmount: 0.0
         property real cameraAmount: 0.0
+        property string inputBackend: ""
+        property string inputSource: ""
 
         // AI Model section
         property string prompt: "origami, hyperrealistic, 4k, abstract, geometry"
@@ -461,6 +465,7 @@ Pane {
     }
 
     function selectInputBackend(name) {
+        appSettings.inputBackend = name
         var desc = inputSelector.descriptor(name)
         if (!desc || desc.kind !== "device") {
             InputDevices.clearEnumerator()
@@ -468,6 +473,7 @@ Pane {
             inputStatusText = ""
             if (cameraSource !== "") {
                 cameraSource = ""
+                appSettings.inputSource = ""
                 InputDevices.disconnect(Score)
             }
             return
@@ -482,6 +488,13 @@ Pane {
             inputStatusText = labels.length > 0
                 ? labels.length + " " + name + " source(s) found"
                 : "Looking for " + name + " sources…"
+            // Deferred: selecting from inside the enumerator's own callback
+            // re-enters the device list while score is still walking it.
+            if (_pendingSource !== "" && labels.indexOf(_pendingSource) !== -1) {
+                var want = _pendingSource
+                _pendingSource = ""
+                Qt.callLater(function() { selectInputSource(want) })
+            }
         }, function(m) { console.log("[Input] " + m) })
     }
 
@@ -498,6 +511,7 @@ Pane {
             return
         }
         cameraSource = name
+        appSettings.inputSource = name
         inputStatusText = "Active source: " + name
         // Swapping a device in place leaves the running gfx graph bound to the
         // destroyed node, so rebuild rather than hot-swap.
@@ -513,10 +527,14 @@ Pane {
         // Input section
         inputSelector.videoFilePath = appSettings.videoPath;
         mainView.videoPath = appSettings.videoPath;
-        // A saved config only ever carries a video path, so show that lane rather
-        // than landing on an empty camera list.
-        if (appSettings.videoPath !== "")
+        // The saved backend wins; a config from before this was stored only ever
+        // carries a video path, so fall back to that lane rather than landing on
+        // an empty camera list.
+        if (appSettings.inputBackend !== "")
+            inputSelector.currentBackend = appSettings.inputBackend;
+        else if (appSettings.videoPath !== "")
             inputSelector.currentBackend = "Video file";
+        _pendingSource = appSettings.inputSource;
         imageAmountSlider.value = appSettings.videoAmount;
         cameraAmountSlider.value = appSettings.cameraAmount;
 

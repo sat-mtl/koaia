@@ -133,5 +133,5 @@ if [[ -n "$REPACK_TO" ]]; then
     exit 1
   fi
   ( cd "$TMP" && APPIMAGE_EXTRACT_AND_RUN=1 "$TOOL" -n squashfs-root "$REPACK_TO" >/dev/null 2>&1 )
-  echo "repacked: $REPACK_TO ($(du -m "$REPACK_TO" | cut -f1) MB)"
+  echo "repacked: $REPACK_TO ($(( $(stat -c %s "$REPACK_TO") / 1048576 )) MB)"
 fi

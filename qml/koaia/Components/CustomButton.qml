@@ -46,6 +46,7 @@ Item {
             id: buttonText
             text: "Button"
             anchors.centerIn: parent
+            horizontalAlignment: Text.AlignHCenter
             color: root.isActive 
                    ? appStyle.primaryColor 
                    : (mouseArea.containsMouse ? appStyle.sidebarTextColor : appStyle.sidebarTextColorInactive)

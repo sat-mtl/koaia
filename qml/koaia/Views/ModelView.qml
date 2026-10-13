@@ -65,10 +65,14 @@ Pane {
     //   * the HuggingFace snapshot cache (HF_HOME) -- the model weights, GBs per
     //     model. train-lora.py never takes a flag for it, only the env var.
     //   * the ONNX/engine/timing-cache triple, which lives in --output.
+    // On Windows the caches go at the root of C:. Wheel and snapshot paths are
+    // already deep, and under the workspace they cross the 260-character limit,
+    // which uv and pip report as a missing file rather than a path error.
+    readonly property string cacheRoot: isWin32 ? "c:" : workspaceDir
     readonly property string uvCacheDir:
-        uvCacheField.text !== "" ? uvCacheField.text : workspaceDir + "/uv-cache"
+        uvCacheField.text !== "" ? uvCacheField.text : cacheRoot + "/uv-cache"
     readonly property string modelCacheDir:
-        modelCacheField.text !== "" ? modelCacheField.text : workspaceDir + "/hf-cache"
+        modelCacheField.text !== "" ? modelCacheField.text : cacheRoot + "/hf-cache"
 
     readonly property string envFilePath: workspaceDir + "/build.env"
 
@@ -88,7 +92,6 @@ Pane {
     // 6 down residuals", and a ControlNet with a different count will not bind.
     // Declared on the root because a Section's children resolve names against the
     // file's root object, not against the enclosing Section instance.
-    readonly property var modelPresets: BuildPresets.presets
 
     // The preset the visible fields were last filled from. --type, --unet,
     // --hw-compat, --klein-quality, the per-axis geometry flags and :runtime LoRAs
@@ -139,15 +142,6 @@ Pane {
         // Refill the custom-flags line from the preset. Edits are kept until the
         // next preset is chosen, so this is the one place that overwrites them.
         customFlags = BuildPresets.extraSummary(preset)
-        // Matched on slug, not identity: a preset handed over from BuildPresetView's
-        // Repeater arrives as a converted copy, so indexOf() never finds it.
-        for (var i = 0; i < BuildPresets.presets.length; i++) {
-            if (BuildPresets.presets[i].slug === preset.slug) {
-                if (modelTypeCombo.currentIndex !== i)
-                    modelTypeCombo.currentIndex = i
-                break
-            }
-        }
         modelSourceField.text = preset.model
         controlNetField.text = preset.controlnet || ""
         ipadapterField.text = ""
@@ -202,6 +196,9 @@ Pane {
         buildProgressValue = 0
         uvCacheField.text = buildSettings.uvCacheDir
         modelCacheField.text = buildSettings.modelCacheDir
+        // Fill the fields from the default preset. Without this they would start
+        // on train-lora.py's own 1024 defaults, which match no preset.
+        applyBuildPreset(BuildPresets.presets[0])
         loadLog()
     }
 
@@ -478,37 +475,6 @@ Pane {
                     RowLayout {
                         Layout.fillWidth: true
                         Label {
-                            text: "Preset"
-                            Layout.preferredWidth: 100
-                            font.pixelSize: appStyle.fontSizeBody
-                        }
-                        ComboBox {
-                            id: modelTypeCombo
-                            Layout.fillWidth: true
-                            model: modelPresets.map(function(p) { return p.label })
-                            currentIndex: 0
-                            font.pixelSize: appStyle.fontSizeBody
-                            // Applied on change and once on load, so the fields and the
-                            // build parameters start out matching the default preset
-                            // rather than train-lora.py's own 1024 defaults.
-                            //
-                            // Indexes the array rather than reading an intermediate
-                            // `preset: modelPresets[currentIndex]` binding: that binding
-                            // has not necessarily re-evaluated by the time this handler
-                            // runs, and apply() then writes the *previous* preset's values
-                            // back. Measured -- picking "SDXL base 1.0" logged
-                            // `idx=3 preset.label=SDXS-sketch 512`.
-                            function apply() {
-                                modelView.applyBuildPreset(modelPresets[currentIndex])
-                            }
-                            Component.onCompleted: apply()
-                            onCurrentIndexChanged: apply()
-                        }
-                    }
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Label {
                             text: "Model Source"
                             Layout.preferredWidth: 100
                             font.pixelSize: appStyle.fontSizeBody
@@ -532,7 +498,7 @@ Pane {
                             id: controlNetField
                             Layout.fillWidth: true
                             font.pixelSize: appStyle.fontSizeBody
-                            placeholderText: "HuggingFace ControlNet repo — empty for none"
+                            placeholderText: "HuggingFace ControlNet repo: empty for none"
                         }
                     }
 
@@ -641,7 +607,7 @@ Pane {
                     title: "Caches"
                     description: "A first build downloads ~11 GB of wheels and several GB of model "
                                + "weights. Both are reused by every later build, so put them on a "
-                               + "volume with room — and keep the wheel cache on the same volume as "
+                               + "volume with room, and keep the wheel cache on the same volume as "
                                + "the build, or uv copies instead of hardlinking."
 
                     RowLayout {
@@ -1025,7 +991,7 @@ Pane {
             }
         }
 
-        // Build button — always visible, anchored below config
+        // Build button: always visible, anchored below config
         RowLayout {
             Layout.fillWidth: true
             spacing: appStyle.spacing
@@ -1040,7 +1006,7 @@ Pane {
             }
         }
 
-        // Progress bar — thin, inline status, only visible when active
+        // Progress bar: thin, inline status, only visible when active
         RowLayout {
             Layout.fillWidth: true
             spacing: 8
@@ -1072,7 +1038,7 @@ Pane {
             }
         }
 
-        // Built engines — visible once an output path is set
+        // Built engines: visible once an output path is set
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 6
@@ -1140,7 +1106,7 @@ Pane {
             }
         }
 
-        // Collapsible output — closed by default, auto-opens on build start
+        // Collapsible output: closed by default, auto-opens on build start
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 0

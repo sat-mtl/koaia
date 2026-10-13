@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
-# Stage the GPU runtime koaia needs — librediffusion plus CUDA 13, cuDNN 9 and
-# TensorRT 11 — into an already-packaged Windows Koaia directory.
+# Stage the GPU runtime koaia needs: librediffusion plus CUDA 13, cuDNN 9 and
+# TensorRT 11: into an already-packaged Windows Koaia directory.
 #
 # WHY THIS EXISTS. score-addon-librediffusion never links librediffusion: it
 # LoadLibrary's it at run time (see its CMakeLists, "loads the librediffusion
@@ -19,7 +19,7 @@
 # and nvinfer_11.dll imports nothing but KERNEL32/USER32/SHELL32/ole32/ntdll.
 # TensorRT dlopen()s the CUDA runtime, cuBLAS, cuFFT, cuRAND, cuDNN, nvrtc and
 # nvJitLink instead of importing them, and cuDNN's cudnn64_9.dll is a dispatch
-# shim that dlopen()s its own engine libraries — exactly the reason livepose's
+# shim that dlopen()s its own engine libraries, exactly the reason livepose's
 # bundle-cuda-windows.sh ships the whole cuDNN bin/ rather than the one DLL its
 # import table names. So the closure below is seeded from the import walk and
 # completed with a named set, each entry justified.
@@ -27,7 +27,7 @@
 # THE BUILDER RESOURCES ARE NOT OPTIONAL. nvinfer_builder_resource_{ptx,sm86,
 # sm120}_11.dll are ~700 MB of the total and are dlopen()ed only when TensorRT
 # builds an engine. Dropping them leaves a package that runs pre-built engines
-# and silently cannot build new ones — on the 3090 (sm86), on Blackwell (sm120)
+# and silently cannot build new ones, on the 3090 (sm86), on Blackwell (sm120)
 # and through the PTX fallback alike. koaia's whole BUILD view depends on them.
 #
 # WHAT IS DELIBERATELY NOT HERE: libc++.dll, libunwind.dll and

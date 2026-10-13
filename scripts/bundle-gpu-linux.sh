@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# Stage the GPU runtime koaia needs — librediffusion plus CUDA 13, cuDNN 9 and
-# TensorRT 11 — into an already-packaged Linux Koaia AppImage, and repack it.
+# Stage the GPU runtime koaia needs: librediffusion plus CUDA 13, cuDNN 9 and
+# TensorRT 11: into an already-packaged Linux Koaia AppImage, and repack it.
 #
 # This is the Linux half of bundle-gpu-windows.sh, and it exists for the same
 # reason: score-addon-librediffusion never links librediffusion, it dlopen()s it
 # at run time, so the packaged app-bin imports none of this and create-app-linux
 # has nothing to copy. A package built without this step starts, shows the UI,
 # and cannot reach the GPU at all. Read that script's header for why an import
-# walk is not sufficient and why the builder resources are not optional — both
+# walk is not sufficient and why the builder resources are not optional, both
 # apply here unchanged.
 #
 # TWO THINGS ARE LINUX-SPECIFIC.
@@ -20,7 +20,7 @@
 #    they talk to; a bundled copy older than the host's server segfaults the app
 #    during plugin init, before any window appears. Current packaging ships only
 #    the six xcb-util-* helpers and none of these, so this is a guard against
-#    that regression rather than a live fix — expect it to remove nothing.
+#    that regression rather than a live fix, expect it to remove nothing.
 #    The helpers are kept deliberately: distributions do not all ship them
 #    (Ubuntu has no xcb-util-cursor, which Qt 6.5+ requires).
 #
@@ -118,7 +118,7 @@ if ((${#missing[@]})); then
   exit 1
 fi
 if ((res == 0)); then
-  echo "error: no libnvinfer_builder_resource* in $RUNTIME — TensorRT could not build engines" >&2
+  echo "error: no libnvinfer_builder_resource* in $RUNTIME, TensorRT could not build engines" >&2
   exit 1
 fi
 echo "gpu: staged $staged libraries and $res builder resources"

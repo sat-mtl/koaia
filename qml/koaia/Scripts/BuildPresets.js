@@ -330,7 +330,8 @@ var presets = [
         model: "stabilityai/sdxl-turbo",
         ipadapterNeeded: true, ipadapterHint: "h94/IP-Adapter sdxl_models/ip-adapter_sdxl_vit-h.bin",
         minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2",
+        // Turbo is a 1-step model: see sd-turbo above.
+        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1-2",
         requires: "a local ip-adapter_sdxl_vit-h.bin: train-lora.py loads the checkpoint "
                 + "from disk, so fill in the IP-Adapter field before building"
     },

@@ -2,7 +2,7 @@
 // © Société des arts technologiques
 //
 // Single source of truth for the ossia/score video-input device backends.
-// Pure data + helpers — NO Score.* calls here. The host app reads a
+// Pure data + helpers, NO Score.* calls here. The host app reads a
 // descriptor's `uuid` and performs Score.createDevice/setAddress itself, so
 // this library stays portable across apps.
 //

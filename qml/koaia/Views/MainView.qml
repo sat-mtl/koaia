@@ -49,7 +49,6 @@ Pane {
         return (isWin32 ? "file:///" : "file://") + enginePathField.text.replace(/\\/g, '/')
     }
     readonly property bool engineHasFiles:  engineFilesModel.count > 0
-    readonly property bool engineHasOnnx:   engineOnnxModel.count > 0
 
     // A bundle exported with --controlnet carries controlnet.engine AND a
     // control-aware unet.engine; the two only make sense together, so the file's
@@ -79,13 +78,35 @@ Pane {
         folder: mainView._engineFolderUrl
     }
 
-    FolderListModel {
-        id: engineOnnxModel
-        showFiles: true
-        showDirs: false
-        nameFilters: ["*.onnx"]
-        folder: mainView._engineFolderUrl ? mainView._engineFolderUrl + "/onnx" : ""
+    // The bundles under the Build tab's engines folder, offered by the engine
+    // selector. Rescanned whenever this view is shown, so a bundle built in the
+    // meantime is listed without a restart.
+    property string enginesRoot: ""
+    property var knownEngines: []
+
+    function refreshKnownEngines() {
+        var found = []
+        var root = enginesRoot.replace(/[\/\\]+$/, "")
+        if (root !== "") {
+            var dirs = Util.listDirectories(root)
+            for (var i = 0; i < dirs.length; i++)
+                if (Util.listFiles(dirs[i], "*.engine").length > 0)
+                    found.push(String(dirs[i]))
+        }
+        var current = enginePathField.text
+        if (current !== "" && found.indexOf(current) < 0)
+            found.unshift(current)
+        // Replacing the model resets an editable ComboBox's text: put it back.
+        knownEngines = found
+        setEnginePath(current)
     }
+
+    function setEnginePath(path) {
+        enginePathField.currentIndex = knownEngines.indexOf(path)
+        enginePathField.editText = path
+    }
+
+    onVisibleChanged: if (visible) refreshKnownEngines()
 
     property bool isProcessing: false
     onIsProcessingChanged: {
@@ -541,7 +562,7 @@ Pane {
         // AI Model section
         promptTextField.text = appSettings.prompt;
         workflowCombo.currentIndex = appSettings.workflow;
-        enginePathField.text = appSettings.enginePath;
+        setEnginePath(appSettings.enginePath);
         seedSpinBox.value = appSettings.seed;
         timestepsField.text = appSettings.timesteps;
         guidanceSlider.value = appSettings.guidance;
@@ -731,7 +752,11 @@ Pane {
                 title: "AI model"
                 description: "Configure AI image generation parameters including prompts, seed, and steps"
 
-                property bool showAdvancedOptions: appSettings.enginePath === ""
+                // Open at startup when no engine is set, since that is where it is
+                // chosen. Assigned once rather than bound: a binding closed the panel
+                // as soon as the engine path became non-empty, mid-typing.
+                property bool showAdvancedOptions: false
+                Component.onCompleted: showAdvancedOptions = appSettings.enginePath === ""
 
                 Label {
                     text: "Prompt"
@@ -830,12 +855,15 @@ Pane {
                             font.pixelSize: appStyle.fontSizeBody
                             color: enginePathField.text === "" ? "#FF3B30" : appStyle.textColor
                         }
-                        TextField {
+                        // Editable: the list holds the bundles under the engines folder,
+                        // and any other path can still be typed or browsed to.
+                        ComboBox {
                             id: enginePathField
+                            readonly property string text: editText
                             Layout.fillWidth: true
+                            editable: true
+                            model: mainView.knownEngines
                             font.pixelSize: appStyle.fontSizeBody
-                            text: ""
-                            placeholderText: "Path to engine folder"
                             Component.onCompleted: if (processes.streamDiffusion.engines)
                                 Score.setValue(processes.streamDiffusion.engines, text)
                             onTextChanged: {
@@ -868,17 +896,10 @@ Pane {
                         Layout.fillWidth: true
                     }
                     Label {
-                        visible: enginePathField.text !== "" && mainView.engineHasFiles && !mainView.engineHasOnnx
-                        text: "Missing onnx subfolder"
-                        font.pixelSize: appStyle.fontSizeSmall
-                        color: "#FF9500"
-                        Layout.fillWidth: true
-                    }
-                    Label {
                         visible: enginePathField.text !== "" && mainView.engineHasFiles
-                        text: engineFilesModel.count + " engine" + (engineFilesModel.count === 1 ? "" : "s") + " found" + (mainView.engineHasOnnx ? "" : ", onnx missing")
+                        text: engineFilesModel.count + " engine" + (engineFilesModel.count === 1 ? "" : "s") + " found"
                         font.pixelSize: appStyle.fontSizeSmall
-                        color: mainView.engineHasOnnx ? "#34C759" : "#FF9500"
+                        color: "#34C759"
                         Layout.fillWidth: true
                     }
 
@@ -891,7 +912,7 @@ Pane {
                                 return;
                             }
                             var folderPath = new URL(selectedFolder).pathname.substr(isWin32 ? 1 : 0);
-                            enginePathField.text = folderPath;
+                            mainView.setEnginePath(folderPath);
                         }
                     }
                     /* JM: this has to be dynamic, with e.g. a Repeater

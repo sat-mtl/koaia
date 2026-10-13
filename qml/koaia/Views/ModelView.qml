@@ -24,6 +24,8 @@ Pane {
 
     readonly property bool isWin32: Qt.platform.os === "windows"
 
+    signal engineBuilt(string path)
+
     // The engine builder ships inside the package, so nothing here depends on
     // score's package manager or on a configured library root. create-app.sh
     // copies the contents of koaia/score/ next to the QML tree, giving
@@ -393,6 +395,7 @@ Pane {
             if (engineModel.count > 0) {
                 buildStatus = "success"
                 log("[Build complete] " + engineModel.count + " engine file(s) found.")
+                modelView.engineBuilt(outputPathField.text)
             } else {
                 buildStatus = "failed"
                 log("[Warning] Build process exited 0 but no .engine files found in: " + outputPathField.text)

@@ -194,12 +194,20 @@ ApplicationWindow {
             currentIndex: currentViewIndex
 
             BuildPresetView {
+                id: presetView
                 builder: modelView
             }
             ModelView {
                 id: modelView
+                // The bundle just built is the one the user wants to run next.
+                onEngineBuilt: (path) => {
+                    runView.refreshKnownEngines()
+                    runView.setEnginePath(path)
+                }
             }
             MainView {
+                id: runView
+                enginesRoot: presetView.enginesRoot
             }
         }
     }

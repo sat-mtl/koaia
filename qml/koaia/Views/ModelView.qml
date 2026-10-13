@@ -95,6 +95,12 @@ Pane {
     // have no widget of their own, so they are carried from here.
     property var activePreset: BuildPresets.presets[0]
 
+    // The flags with no widget of their own, as an editable line. Filled from the
+    // preset by applyBuildPreset and passed to train-lora.py verbatim, so what is
+    // shown is what runs. Split on whitespace: a path containing a space has to go
+    // in the field it belongs to, not here.
+    property string customFlags: BuildPresets.extraSummary(BuildPresets.presets[0])
+
     // train-lora.py is staged from the 3rdparty/librediffusion pin, which can lag
     // the recipes in BuildPresets.js -- as it does today, by the two commits that
     // added --unet and --rife. An unknown flag surfaces as argparse "unrecognized
@@ -130,6 +136,9 @@ Pane {
             return
         _applyingPreset = true
         activePreset = preset
+        // Refill the custom-flags line from the preset. Edits are kept until the
+        // next preset is chosen, so this is the one place that overwrites them.
+        customFlags = BuildPresets.extraSummary(preset)
         // Matched on slug, not identity: a preset handed over from BuildPresetView's
         // Repeater arrives as a converted copy, so indexOf() never finds it.
         for (var i = 0; i < BuildPresets.presets.length; i++) {
@@ -565,16 +574,25 @@ Pane {
                         }
                     }
 
-                    // The preset carries flags with no widget of their own; show them so
-                    // the command is never a surprise.
-                    Label {
+                    // The preset's widget-less flags, editable: the command is never a
+                    // surprise, and a flag the UI has no field for can still be reached.
+                    RowLayout {
                         Layout.fillWidth: true
-                        visible: text !== ""
-                        wrapMode: Text.WordWrap
-                        font.pixelSize: appStyle.fontSizeSmall
-                        font.family: "monospace"
-                        color: appStyle.textColorSecondary
-                        text: activePreset ? BuildPresets.extraSummary(activePreset) : ""
+                        Label {
+                            text: "Custom Flags"
+                            Layout.preferredWidth: 100
+                            font.pixelSize: appStyle.fontSizeBody
+                            color: appStyle.textColor
+                        }
+                        TextField {
+                            id: customFlagsField
+                            Layout.fillWidth: true
+                            font.pixelSize: appStyle.fontSizeSmall
+                            font.family: "monospace"
+                            placeholderText: "--flag value  --flag value"
+                            text: modelView.customFlags
+                            onTextEdited: modelView.customFlags = text
+                        }
                     }
 
                     RowLayout {
@@ -1314,7 +1332,12 @@ Pane {
         if (rifeCheckBox.checked && rifeCheckBox.enabled)
             args.push("--rife");
 
-        args = args.concat(BuildPresets.extraArgs(p));
+        // From the Custom Flags line, not the preset: the field starts as the
+        // preset's flags, so this matches unless the user edited it -- and then
+        // the edit is what runs, which is the point of showing it.
+        var custom = customFlags.trim();
+        if (custom !== "")
+            args = args.concat(custom.split(/\s+/));
 
         // Add LoRAs with weights
         for (var i = 0; i < loraListModel.count; i++) {

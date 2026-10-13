@@ -155,7 +155,7 @@ ApplicationWindow {
                 }
                 CustomButton {
                     id: presetButton
-                    text: "PRESETS"
+                    text: "BUILD (PRESETS)"
                     Layout.fillWidth: true
                     Layout.topMargin: appStyle.spacing
                     isActive: currentViewIndex === presetViewIndex
@@ -164,7 +164,7 @@ ApplicationWindow {
 
                 CustomButton {
                     id: modelButton
-                    text: "BUILD"
+                    text: "BUILD (CUSTOM)"
                     Layout.fillWidth: true
                     Layout.topMargin: appStyle.spacing
                     isActive: currentViewIndex === modelViewIndex

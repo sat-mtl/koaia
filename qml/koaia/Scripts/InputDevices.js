@@ -1,6 +1,6 @@
 // Score device lifecycle for the input-source picker.
 //
-// InputSourceSelector is pure presentation; this is the half that talks to
+// The Input section's Live row is pure presentation; this is the half that talks to
 // score. Ported from livepose's RunView.qml (_clearEnumerator / reenumerate /
 // onDeviceAdded / onDeviceRemoved / _enumeratedSettings / _createInputDevice),
 // with the sink changed from the pose detector's inlet to the video mixer's

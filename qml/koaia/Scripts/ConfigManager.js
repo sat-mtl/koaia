@@ -166,14 +166,21 @@ function applyConfig(config, settings, mediaBasePath) {
         settings.videoPath    = rawPath
         settings.videoAmount  = i.videoAmount  || 0
         settings.cameraAmount = i.cameraAmount || 0
-        settings.inputBackend = i.backend     || ""
-        settings.inputSource  = i.sourceName  || ""
+        // The live device and the engine belong to this machine, not to the look a
+        // config describes: a config that does not name them (default.koaia, which
+        // is applied at every launch) keeps what the user last chose.
+        if (i.backend)
+            settings.inputBackend = i.backend
+        if (i.sourceName)
+            settings.inputSource = i.sourceName
     }
     var ai = config.aiModel
     if (ai) {
         settings.prompt         = ai.prompt        || ""
         settings.workflow       = ai.workflow       !== undefined ? ai.workflow : 1
-        settings.enginePath     = ai.enginePath     || ""
+        // Same as the live device above: an engine the config does not name stays.
+        if (ai.enginePath)
+            settings.enginePath = ai.enginePath
         settings.seed           = ai.seed           !== undefined ? ai.seed      : 20
         settings.timesteps      = ai.timesteps      || "20"
         settings.guidance       = ai.guidance       !== undefined ? ai.guidance  : 1.0

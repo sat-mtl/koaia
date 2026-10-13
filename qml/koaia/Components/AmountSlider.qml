@@ -19,6 +19,7 @@ RowLayout {
     
     Label {
         text: root.label
+        visible: root.label !== ""
         Layout.preferredWidth: 60
         font.pixelSize: appStyle.fontSizeBody
         color: root.enabled ? appStyle.textColor : appStyle.textColorSecondary

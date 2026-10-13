@@ -163,6 +163,11 @@ QtObject {
         property var process_object: null
     }
 
+    // GenAI Input Image: the Media row's process when its type is Image
+    property QtObject genai_inputimage: QtObject {
+        property var process_object: null
+    }
+
     function publish(p) {
         shape.process_object = p.shape
         smoke.process_object = p.smoke
@@ -177,5 +182,6 @@ QtObject {
         denoise.process_object = p.denoise
         video_Mapper_1.process_object = p.video_Mapper_1
         genai_inputvideo.process_object = p.genai_inputvideo
+        genai_inputimage.process_object = p.genai_inputimage
     }
 }

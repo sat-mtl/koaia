@@ -1285,8 +1285,13 @@ Pane {
         }
         // --env-file is the only way to hand HF_HOME to train-lora.py: Score.UI.Process
         // exposes program/arguments/workingDirectory and no environment.
+        //
+        // Passed as a bare filename, not envFilePath: uv 0.12.9 splits --env-file on
+        // whitespace to accept several files, so an absolute path through "Koaia Pro"
+        // arrives as "Pro/engine-builder/build.env" and the run dies. workingDirectory
+        // is already workspaceDir, which is where build.env is written.
         var args = ["--cache-dir", uvCacheDir,
-                    "run", "--env-file", envFilePath, "python", scriptPath,
+                    "run", "--env-file", "build.env", "python", scriptPath,
                     "--type", p.type,
                     "--model", modelSourceField.text,
                     "--output", outputPathField.text,

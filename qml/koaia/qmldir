@@ -12,7 +12,6 @@ AboutDialog 1.0 Components/AboutDialog.qml
 CustomLabel 1.0 Components/CustomLabel.qml
 CustomFrame 1.0 Components/CustomFrame.qml
 CustomButton 1.0 Components/CustomButton.qml
-InputSourceSelector 1.0 Components/InputSourceSelector.qml
 ProcessObjects 1.0 Models/ProcessObjects.qml
 ConfigManager 1.0 Scripts/ConfigManager.js
 BuildPresets 1.0 Scripts/BuildPresets.js

@@ -11,6 +11,7 @@ import "../Scripts/ConfigManager.js" as ConfigManager
 import "../Scripts/ScoreBridge.js" as ScoreBridge
 import "../Scripts/ScoreGraph.js" as ScoreGraph
 import "../Scripts/InputDevices.js" as InputDevices
+import "../Scripts/InputBackends.js" as InputBackends
 
 Pane {
     id: mainView
@@ -30,6 +31,17 @@ Pane {
     property string cameraSource: ""
     // The device a loaded config asked for, held until enumeration turns it up.
     property string _pendingSource: ""
+
+    // The Live row's types. NDI/Spout/Syphon are the Pro build's input protocols,
+    // gated by the flag the packaging exports; the platform filter drops Spout
+    // off Windows and Syphon off macOS.
+    readonly property var liveBackends: ["None"].concat(InputBackends.filterBackends(
+        Util.environmentVariable("SAT_ADVANCED_IO")
+            ? ["Camera", "NDI", "Spout", "Syphon"] : ["Camera"], Qt.platform.os))
+    readonly property bool liveIsDevice: InputBackends.isDevice(liveTypeCombo.currentText)
+    // The source the Live combo shows as chosen: the open device, or the one a
+    // config asked for while enumeration has not found it yet.
+    property string liveSourceName: ""
 
     // Video file existence check: scans parent dir for the exact filename
     readonly property string _videoParentUrl: {
@@ -170,6 +182,7 @@ Pane {
         property real cameraAmount: 0.0
         property string inputBackend: ""
         property string inputSource: ""
+        property string mediaType: "Video"
 
         // AI Model section
         property string prompt: "origami, hyperrealistic, 4k, abstract, geometry"
@@ -260,7 +273,7 @@ Pane {
         Qt.callLater(syncControlCable)
         // Start discovery for whatever backend the picker defaults to, so the
         // device list is populated before anyone touches it.
-        Qt.callLater(function() { selectInputBackend(inputSelector.currentBackend) })
+        Qt.callLater(function() { selectInputBackend(liveTypeCombo.currentText) })
     }
 
     function buildScoreGraph() {
@@ -469,29 +482,63 @@ Pane {
     // ---- Input source ---------------------------------------------------------
     // The picker is pure presentation; these three functions are the Score side.
 
+    readonly property var imageExtensions: [".png", ".jpg", ".jpeg", ".bmp", ".webp", ".tif", ".tiff", ".gif"]
+
+    function isImagePath(path) {
+        var lower = path.toLowerCase()
+        return imageExtensions.some(function(e) { return lower.endsWith(e) })
+    }
+
+    // The Media row's file goes to Gfx::Video or Gfx::Images depending on its type.
+    // A file whose extension says otherwise switches the type, so an image picked
+    // under "All Files" still shows.
     function setVideoPath(path) {
         videoPath = path
         appSettings.videoPath = path
-        var p = processes.genai_inputvideo.process_object
-        if (!p || path === "")
+        mediaPathField.text = path
+        if (path === "")
             return
-        // The Gfx::Video process re-opens on assignment, which the running graph
-        // does not survive, so bounce the transport around it.
+        var kind = isImagePath(path) ? "Image" : "Video"
+        if (mediaTypeCombo.currentText !== kind) {
+            mediaTypeCombo.currentIndex = mediaTypeCombo.model.indexOf(kind)
+            appSettings.mediaType = kind
+        }
+        applyMedia()
+    }
+
+    function applyMedia() {
+        var video = processes.genai_inputvideo.process_object
+        var image = processes.genai_inputimage.process_object
+        if (!video || !image)
+            return
+        // The media processes re-open on assignment and the cable swap changes the
+        // graph, neither of which a running graph survives: bounce the transport.
         var wasPlaying = isProcessing
         if (wasPlaying)
             isProcessing = false
-        p.path = path
+        var kind = mediaTypeCombo.currentText
+        Score.withMacro(function() {
+            ScoreGraph.routeMedia(Score, processes.video_Mixer.process_object, video, image,
+                                  kind, function(m) { console.warn(m) })
+        })
+        if (videoPath !== "") {
+            if (kind === "Image")
+                ScoreGraph.setImagePath(Score, image, videoPath)
+            else
+                video.path = videoPath
+        }
         if (wasPlaying)
             Qt.callLater(function() { isProcessing = true })
     }
 
     function selectInputBackend(name) {
         appSettings.inputBackend = name
-        var desc = inputSelector.descriptor(name)
+        var desc = InputBackends.descriptor(name)
         if (!desc || desc.kind !== "device") {
             InputDevices.clearEnumerator()
             discoveredSources = []
             inputStatusText = ""
+            liveSourceName = ""
             if (cameraSource !== "") {
                 cameraSource = ""
                 appSettings.inputSource = ""
@@ -520,7 +567,7 @@ Pane {
     }
 
     function selectInputSource(name) {
-        var desc = inputSelector.descriptor(inputSelector.currentBackend)
+        var desc = InputBackends.descriptor(liveTypeCombo.currentText)
         var ok = false
         Score.withMacro(function() {
             ok = InputDevices.connectInMacro(Score, desc, name,
@@ -532,8 +579,13 @@ Pane {
             return
         }
         cameraSource = name
+        liveSourceName = name
         appSettings.inputSource = name
         inputStatusText = "Active source: " + name
+        // A live source at zero opacity is invisible in the mix, which is how a
+        // working camera got reported as broken: picking one makes it show.
+        if (cameraAmountSlider.slider.value === 0)
+            cameraAmountSlider.slider.value = 1.0
         // Swapping a device in place leaves the running gfx graph bound to the
         // destroyed node, so rebuild rather than hot-swap.
         if (isProcessing) {
@@ -546,16 +598,15 @@ Pane {
     // which in turn fire onValueChanged and push to Score.
     function restoreSavedSettings() {
         // Input section
-        inputSelector.videoFilePath = appSettings.videoPath;
-        mainView.videoPath = appSettings.videoPath;
-        // The saved backend wins; a config from before this was stored only ever
-        // carries a video path, so fall back to that lane rather than landing on
-        // an empty camera list.
-        if (appSettings.inputBackend !== "")
-            inputSelector.currentBackend = appSettings.inputBackend;
-        else if (appSettings.videoPath !== "")
-            inputSelector.currentBackend = "Video file";
+        mediaTypeCombo.currentIndex = Math.max(0, mediaTypeCombo.model.indexOf(appSettings.mediaType));
+        // Hands the file to the process its type uses and routes the mixer to it.
+        setVideoPath(appSettings.videoPath);
+        // A backend saved before the Live row existed may be "Video file", which
+        // now lives in the Media row: anything not offered here means no live source.
+        var live = liveBackends.indexOf(appSettings.inputBackend);
+        liveTypeCombo.currentIndex = live >= 0 ? live : 0;
         _pendingSource = appSettings.inputSource;
+        liveSourceName = appSettings.inputSource;
         imageAmountSlider.value = appSettings.videoAmount;
         cameraAmountSlider.value = appSettings.cameraAmount;
 
@@ -676,36 +727,73 @@ Pane {
 
             Section {
                 title: "Input"
-                description: "Configure input sources for image, video, and camera feeds"
+                description: "A media file and a live source, each with its own opacity in the mix"
 
-                InputSourceSelector {
-                    id: inputSelector
+                GridLayout {
+                    id: inputGrid
                     Layout.fillWidth: true
-                    // NDI/Spout/Syphon are the Pro build's input protocols; the
-                    // packaging already exports the flag that gates them.
-                    allowedBackends: Util.environmentVariable("SAT_ADVANCED_IO")
-                                     ? ["Camera", "Video file", "NDI", "Spout", "Syphon"]
-                                     : ["Camera", "Video file"]
-                    sources: mainView.discoveredSources
-                    statusText: mainView.inputStatusText
+                    columns: 4
+                    columnSpacing: appStyle.spacing
+                    rowSpacing: appStyle.spacing
 
-                    onBackendSelected: name => mainView.selectInputBackend(name)
-                    onSourceSelected: name => mainView.selectInputSource(name)
-                    onVideoFileSelected: path => mainView.setVideoPath(path)
-                    onRefreshRequested: () => mainView.selectInputBackend(inputSelector.currentBackend)
-                }
+                    Item { Layout.preferredWidth: 50 }
+                    Label {
+                        text: "Type"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: appStyle.textColorSecondary
+                    }
+                    Label {
+                        text: "Source"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: appStyle.textColorSecondary
+                    }
+                    Label {
+                        text: "Opacity"
+                        font.pixelSize: appStyle.fontSizeSmall
+                        color: appStyle.textColorSecondary
+                    }
 
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: appStyle.spacing
+                    // ---- Media: a video or an image file, into genai_inputvideo ----
+                    Label {
+                        text: "Media"
+                        Layout.preferredWidth: 50
+                        font.pixelSize: appStyle.fontSizeBody
+                    }
+                    ComboBox {
+                        id: mediaTypeCombo
+                        Layout.preferredWidth: 110
+                        font.pixelSize: appStyle.fontSizeBody
+                        model: ["Video", "Image"]
+                        onActivated: {
+                            appSettings.mediaType = currentText
+                            mainView.applyMedia()
+                        }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: appStyle.spacing
+                        TextField {
+                            id: mediaPathField
+                            Layout.fillWidth: true
+                            font.pixelSize: appStyle.fontSizeBody
+                            placeholderText: mediaTypeCombo.currentText === "Image"
+                                             ? "/path/to/image.png" : "/path/to/video.mp4"
+                            onEditingFinished: if (text !== mainView.videoPath) mainView.setVideoPath(text)
+                        }
+                        Button {
+                            text: "Browse"
+                            font.pixelSize: appStyle.fontSizeBody
+                            onClicked: mediaFileDialog.open()
+                        }
+                    }
                     AmountSlider {
                         id: imageAmountSlider
-                        Layout.fillWidth: true
-                        label: "Video"
+                        label: ""
+                        Layout.preferredWidth: 160
+                        Layout.fillWidth: false
                         value: 0.0
                         port: processes.video_Mixer.alpha7
                         enabled: mainView.videoPath !== ""
-
                         Connections {
                             target: imageAmountSlider.slider
                             function onValueChanged() {
@@ -713,14 +801,69 @@ Pane {
                             }
                         }
                     }
+
+                    // ---- Live: a camera or a network/shared-texture stream, into the mixer's camera layer ----
+                    Label {
+                        text: "Live"
+                        Layout.preferredWidth: 50
+                        font.pixelSize: appStyle.fontSizeBody
+                    }
+                    ComboBox {
+                        id: liveTypeCombo
+                        Layout.preferredWidth: 110
+                        font.pixelSize: appStyle.fontSizeBody
+                        model: mainView.liveBackends
+                        onActivated: {
+                            mainView.liveSourceName = ""
+                            mainView.selectInputBackend(currentText)
+                        }
+                    }
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: appStyle.spacing
+                        enabled: mainView.liveIsDevice
+                        ComboBox {
+                            id: liveSourceCombo
+                            Layout.fillWidth: true
+                            font.pixelSize: appStyle.fontSizeBody
+                            // NDI/Spout/Syphon sources can be named before they appear.
+                            editable: InputBackends.isTypable(liveTypeCombo.currentText)
+                            model: mainView.discoveredSources
+                            // Camera mode names run long ("Integrated Camera (/dev/video0):
+                            // MJPG: 800x480@30"); the list may be wider than the field.
+                            popup.width: Math.max(width, 480)
+                            currentIndex: mainView.discoveredSources.indexOf(mainView.liveSourceName)
+                            // Nothing is selected until the user picks, and a stock ComboBox
+                            // then draws an empty box however full its model is, which reads
+                            // as "no devices found".
+                            displayText: !mainView.liveIsDevice ? ""
+                                       : currentIndex >= 0 ? currentText
+                                       : mainView.discoveredSources.length > 0
+                                         ? qsTr("%1 available, click to choose").arg(mainView.discoveredSources.length)
+                                         : qsTr("No device found yet")
+                            onActivated: index => {
+                                var name = mainView.discoveredSources[index] || ""
+                                if (name !== "")
+                                    mainView.selectInputSource(name)
+                            }
+                            onAccepted: {
+                                if (editable && editText !== "")
+                                    mainView.selectInputSource(editText)
+                            }
+                        }
+                        Button {
+                            text: "Refresh"
+                            font.pixelSize: appStyle.fontSizeBody
+                            onClicked: mainView.selectInputBackend(liveTypeCombo.currentText)
+                        }
+                    }
                     AmountSlider {
                         id: cameraAmountSlider
-                        Layout.fillWidth: true
-                        label: "Camera"
+                        label: ""
+                        Layout.preferredWidth: 160
+                        Layout.fillWidth: false
                         value: 0.0
                         port: processes.video_Mixer.alpha8
-                        // Was always enabled and always a no-op: nothing was ever
-                        // bound to the mixer's eighth texture inlet.
                         enabled: mainView.cameraSource !== ""
                         Connections {
                             target: cameraAmountSlider.slider
@@ -729,11 +872,35 @@ Pane {
                             }
                         }
                     }
+
+                    Item { Layout.preferredWidth: 50 }
+                    Label {
+                        Layout.columnSpan: 3
+                        Layout.fillWidth: true
+                        visible: mainView.liveIsDevice && mainView.inputStatusText !== ""
+                        text: mainView.inputStatusText
+                        wrapMode: Text.WordWrap
+                        color: appStyle.textColorSecondary
+                        font.pixelSize: appStyle.fontSizeSmall
+                    }
+                }
+
+                FileDialog {
+                    id: mediaFileDialog
+                    title: mediaTypeCombo.currentText === "Image" ? "Select Image File" : "Select Video File"
+                    nameFilters: mediaTypeCombo.currentText === "Image"
+                                 ? ["Images (*.png *.jpg *.jpeg *.bmp *.webp *.tif *.tiff)", "All Files (*)"]
+                                 : ["Video Files (*.mp4 *.avi *.mov *.mkv *.webm *.flv)", "All Files (*)"]
+                    onAccepted: {
+                        if (!selectedFile)
+                            return
+                        mainView.setVideoPath(new URL(selectedFile).pathname.substr(isWin32 ? 1 : 0))
+                    }
                 }
 
                 Label {
                     visible: mainView.videoPath === "" && mainView.cameraSource === ""
-                    text: "Select a video file or a camera to enable"
+                    text: "Choose a media file or a live source to enable"
                     font.pixelSize: appStyle.fontSizeSmall
                     color: appStyle.textColorSecondary
                     Layout.fillWidth: true

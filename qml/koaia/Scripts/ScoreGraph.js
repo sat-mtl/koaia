@@ -5,6 +5,7 @@
 
 var ISF      = "74ca45ff-92c9-44a0-8f1a-754dea05ee1b"  // Gfx::Filter (ISF Shader)
 var VIDEO    = "32dc5341-7748-4c31-a226-82e6bd685744"  // Gfx::Video
+var IMAGES   = "e96c5c0b-7e09-49fb-a851-ff6f4811bb00"  // Gfx::Images
 var SDIFF    = "a202d577-f92e-4d47-b863-62be5c02084e"  // StreamDiffusion
 var COMPOSER = "a4227e94-cf7d-4776-9aa0-2f384be7d97f"  // Prompt composer
 
@@ -77,12 +78,17 @@ function build(Score, Util, qmlDir, log) {
         }
 
         p.genai_inputvideo = Score.createProcess(root, VIDEO, "")
+        // Gfx::Video plays a still image as a one-frame clip and then shows
+        // nothing, so an image file goes through Gfx::Images instead. Both feed the
+        // same mixer inlet; routeMedia() cables whichever one the Media row uses.
+        p.genai_inputimage = Score.createProcess(root, IMAGES, "")
         p.streamDiffusion  = Score.createProcess(root, SDIFF, "")
         p.prompt_composer  = Score.createProcess(root, COMPOSER, "")
-        if (!p.genai_inputvideo || !p.streamDiffusion || !p.prompt_composer)
-            throw new Error("could not create the video / diffusion / composer processes")
+        if (!p.genai_inputvideo || !p.genai_inputimage || !p.streamDiffusion || !p.prompt_composer)
+            throw new Error("could not create the video / image / diffusion / composer processes")
 
         Score.setName(p.genai_inputvideo, "genai_inputvideo")
+        Score.setName(p.genai_inputimage, "genai_inputimage")
         Score.setName(p.streamDiffusion, "StreamDiffusion")
         Score.setName(p.prompt_composer, "Prompt composer")
 
@@ -115,6 +121,34 @@ function build(Score, Util, qmlDir, log) {
         out = p
     })
     return out
+}
+
+// The mixer inlet the media layer uses: t7, after the six generator layers.
+var MEDIA_INLET = 6
+// Gfx::Images takes its file list on this inlet.
+var IMAGES_PATH_INLET = 5
+
+// Points the mixer's media inlet at the video or the image process. Only one may
+// be cabled: a texture inlet with two cables has no defined result.
+function routeMedia(Score, mixer, video, image, kind, log) {
+    var inlet = Score.inlet(mixer, MEDIA_INLET)
+    if (!inlet)
+        return
+    var src = kind === "Image" ? image : video
+    var want = Score.outlet(src, 0)
+    for (var n = Score.cables(inlet) - 1; n >= 0; n--) {
+        var c = Score.cable(inlet, n)
+        if (c && Score.endSync(c) !== want)
+            Score.remove(c)
+    }
+    if (Score.cables(inlet) === 0)
+        _cable(Score, src, 0, mixer, MEDIA_INLET, log)
+}
+
+function setImagePath(Score, image, path) {
+    var port = Score.inlet(image, IMAGES_PATH_INLET)
+    if (port)
+        Score.setValue(port, path)
 }
 
 function _cable(Score, src, srcPort, sink, sinkPort, log) {

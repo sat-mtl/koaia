@@ -7,7 +7,7 @@
 # is a copy it can drift: re-run this against a fresh checkout whenever the
 # upstream build script or its pinned dependency set changes.
 #
-# Last synced from librediffusion c791f0c1a44373e8d9f22251425ace123a701216
+# Last synced from librediffusion f0716ccfad65992b25a3a29e7d28f1e11b03de58
 #
 #   scripts/sync-engine-builder.sh /path/to/librediffusion
 set -euo pipefail

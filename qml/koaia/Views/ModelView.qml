@@ -628,7 +628,7 @@ Pane {
                             id: uvCacheField
                             Layout.fillWidth: true
                             font.pixelSize: appStyle.fontSizeBody
-                            placeholderText: modelView.workspaceDir + "/uv-cache"
+                            placeholderText: modelView.cacheRoot + "/uv-cache"
                             onTextChanged: buildSettings.uvCacheDir = text
                         }
                         Button {
@@ -649,7 +649,7 @@ Pane {
                             id: modelCacheField
                             Layout.fillWidth: true
                             font.pixelSize: appStyle.fontSizeBody
-                            placeholderText: modelView.workspaceDir + "/hf-cache"
+                            placeholderText: modelView.cacheRoot + "/hf-cache"
                             onTextChanged: buildSettings.modelCacheDir = text
                         }
                         Button {

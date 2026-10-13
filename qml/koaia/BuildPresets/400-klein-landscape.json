@@ -1,0 +1,18 @@
+{
+  "slug": "klein-landscape",
+  "family": "FLUX.2-klein",
+  "label": "FLUX.2-klein 576x320",
+  "type": "klein",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "kleinQuality": "both",
+  "minRes": 320,
+  "maxRes": 576,
+  "optWidth": 576,
+  "optHeight": 320,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "2",
+  "requires": "the FLUX.2-klein-4B snapshot in the model cache",
+  "note": "Landscape needs its own VAE pair, so it is a separate bundle."
+}

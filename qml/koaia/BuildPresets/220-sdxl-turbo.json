@@ -1,0 +1,16 @@
+{
+  "comment": "Turbo is a 1-step model, so batch stays at 1: see sd-turbo.",
+  "slug": "sdxl-turbo",
+  "family": "SDXL",
+  "label": "SDXL-Turbo 1024",
+  "type": "sdxl",
+  "model": "stabilityai/sdxl-turbo",
+  "minRes": 1024,
+  "maxRes": 1024,
+  "optWidth": 1024,
+  "optHeight": 1024,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1-2"
+}

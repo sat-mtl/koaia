@@ -1,0 +1,20 @@
+{
+  "comment": "--ipadapter also exports clip_image_encoder.engine + ip_image_proj.engine, without which the node silently ignores the Control/Style texture.",
+  "slug": "lcm-dreamshaper-ip",
+  "family": "SD 1.5 - IP-Adapter",
+  "label": "LCM Dreamshaper + IP-Adapter",
+  "type": "sd15",
+  "model": "SimianLuo/LCM_Dreamshaper_v7",
+  "ipadapterNeeded": true,
+  "ipadapterHint": "h94/IP-Adapter models/ip-adapter_sd15.bin",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 2,
+  "steps": "1-2",
+  "requires": "a local ip-adapter_sd15.bin: train-lora.py loads the checkpoint from disk, so fill in the IP-Adapter field before building",
+  "note": "Not available for sdxs: its attention differs."
+}

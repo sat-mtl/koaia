@@ -1,0 +1,26 @@
+{
+  "comment": "--lora is accepted by every builder, but a builder without the klein fusion path ignores it and emits a plain klein bundle under this name.",
+  "slug": "klein-sprint",
+  "family": "FLUX.2-klein",
+  "label": "FLUX.2-klein Sana-Sprint",
+  "type": "klein",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "kleinQuality": "both",
+  "loras": [
+    {
+      "path": "radames/FLUX.2-klein-Sana-Sprint"
+    }
+  ],
+  "minRes": 320,
+  "maxRes": 576,
+  "optWidth": 320,
+  "optHeight": 576,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1-2",
+  "needsBuilderSymbol": "klein_fuse_loras",
+  "needsBuilderLabel": "LoRA fusion for klein",
+  "requires": "the FLUX.2-klein-4B snapshot in the model cache",
+  "note": "The LoRA is fused into a transformer-only copy first."
+}

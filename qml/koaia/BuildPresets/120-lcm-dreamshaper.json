@@ -1,0 +1,15 @@
+{
+  "slug": "lcm-dreamshaper",
+  "family": "SD 1.5",
+  "label": "LCM Dreamshaper v7",
+  "type": "sd15",
+  "model": "SimianLuo/LCM_Dreamshaper_v7",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 2,
+  "steps": "1-2"
+}

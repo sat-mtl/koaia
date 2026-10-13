@@ -1,0 +1,16 @@
+{
+  "slug": "sdxl-base",
+  "family": "SDXL",
+  "label": "SDXL base 1.0",
+  "type": "sdxl",
+  "model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "minRes": 1024,
+  "maxRes": 1024,
+  "optWidth": 1024,
+  "optHeight": 1024,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 2,
+  "steps": "many",
+  "note": "Undistilled: needs many steps. Prefer a turbo/LCM variant."
+}

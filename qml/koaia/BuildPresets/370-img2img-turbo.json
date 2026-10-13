@@ -1,0 +1,16 @@
+{
+  "comment": "A separate C++ node path: a skip-VAE pix2pix-turbo pipeline, not SD.",
+  "slug": "img2img-turbo",
+  "family": "img2img-turbo",
+  "label": "img2img-turbo edge2image",
+  "type": "img2img-turbo",
+  "model": "edge_to_image",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1"
+}

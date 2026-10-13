@@ -1,0 +1,20 @@
+{
+  "slug": "sd-turbo-512x768",
+  "family": "SD 1.5",
+  "label": "SD-Turbo 512x768",
+  "type": "sd15",
+  "model": "stabilityai/sd-turbo",
+  "minRes": 512,
+  "maxRes": 768,
+  "optWidth": 512,
+  "optHeight": 768,
+  "minWidth": 512,
+  "maxWidth": 512,
+  "minHeight": 768,
+  "maxHeight": 768,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1",
+  "note": "Portrait geometry is baked per-axis, not a runtime knob."
+}

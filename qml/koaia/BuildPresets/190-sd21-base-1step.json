@@ -1,0 +1,16 @@
+{
+  "slug": "sd21-base-1step",
+  "family": "SD 1.5",
+  "label": "SD 2.1 base 1-step",
+  "type": "sd15",
+  "model": "sd-research/stable-diffusion-2-1-base",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1",
+  "note": "SD 2.1 exports through the sd15 path (1024-dim CLIP)."
+}

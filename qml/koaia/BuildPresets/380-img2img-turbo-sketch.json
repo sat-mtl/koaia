@@ -1,0 +1,15 @@
+{
+  "slug": "img2img-turbo-sketch",
+  "family": "img2img-turbo",
+  "label": "img2img-turbo sketch2image",
+  "type": "img2img-turbo",
+  "model": "sketch_to_image_stochastic",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1"
+}

@@ -1,0 +1,19 @@
+{
+  "comment": "train-lora.py does NOT download klein: it looks the snapshot up in the HF cache and exits if it is absent. Native geometry is 320x576 unless an explicit --opt-width/--opt-height is passed.",
+  "slug": "klein",
+  "family": "FLUX.2-klein",
+  "label": "FLUX.2-klein 320x576",
+  "type": "klein",
+  "model": "black-forest-labs/FLUX.2-klein-4B",
+  "kleinQuality": "both",
+  "minRes": 320,
+  "maxRes": 576,
+  "optWidth": 320,
+  "optHeight": 576,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "2",
+  "requires": "the FLUX.2-klein-4B snapshot in the model cache (hf download black-forest-labs/FLUX.2-klein-4B --exclude flux-2-klein-4b.safetensors)",
+  "note": "~18 GB bundle. 'both' builds the bf16 and fp8 pair; fp8 needs SM 8.9+."
+}

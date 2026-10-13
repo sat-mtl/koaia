@@ -1,0 +1,15 @@
+{
+  "slug": "dreamshaper-8-lcm",
+  "family": "SD 1.5",
+  "label": "Dreamshaper 8 LCM",
+  "type": "sd15",
+  "model": "Lykon/dreamshaper-8-lcm",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 2,
+  "steps": "1-2"
+}

@@ -1,0 +1,16 @@
+{
+  "slug": "lcm-dreamshaper-depth",
+  "family": "SD 1.5 - ControlNet",
+  "label": "LCM Dreamshaper + Depth",
+  "type": "sd15",
+  "model": "SimianLuo/LCM_Dreamshaper_v7",
+  "controlnet": "lllyasviel/control_v11f1p_sd15_depth",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 2,
+  "steps": "1-2"
+}

@@ -1,0 +1,15 @@
+{
+  "slug": "sd21-base-4step",
+  "family": "SD 1.5",
+  "label": "SD 2.1 base 4-step",
+  "type": "sd15",
+  "model": "sd-research/stable-diffusion-2-1-base",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 4,
+  "steps": "4"
+}

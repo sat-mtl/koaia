@@ -1,0 +1,15 @@
+{
+  "slug": "sdxl-turbo-512",
+  "family": "SDXL",
+  "label": "SDXL-Turbo 512",
+  "type": "sdxl",
+  "model": "stabilityai/sdxl-turbo",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1"
+}

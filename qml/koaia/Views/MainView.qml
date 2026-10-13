@@ -531,6 +531,50 @@ Pane {
             Qt.callLater(function() { isProcessing = true })
     }
 
+    // Runs `attempt` with the transport stopped and restarts it afterwards. score
+    // refuses to remove a device while playing and Score.stop() only requests the
+    // stop, so `attempt` is retried until it stops answering "busy".
+    function withTransportStopped(attempt, done) {
+        var wasPlaying = isProcessing
+        if (wasPlaying)
+            isProcessing = false
+        var tries = 0
+        function step() {
+            var r = false
+            Score.withMacro(function() { r = attempt() })
+            if (r === "busy" && ++tries < 60) {
+                retryTimer.callback = step
+                retryTimer.start()
+                return
+            }
+            if (done)
+                done(r === true)
+            if (wasPlaying)
+                Qt.callLater(function() { isProcessing = true })
+        }
+        step()
+    }
+
+    Timer {
+        id: retryTimer
+        interval: 50
+        property var callback: null
+        onTriggered: if (callback) callback()
+    }
+
+    // The Live type changed: whatever was open belongs to the old type.
+    function changeLiveBackend(name) {
+        liveSourceName = ""
+        if (cameraSource !== "") {
+            cameraSource = ""
+            appSettings.inputSource = ""
+            withTransportStopped(function() { return InputDevices.disconnect(Score) })
+        }
+        selectInputBackend(name)
+    }
+
+    // Starts discovery for `name`. Leaves an open source alone: Refresh and the
+    // startup scan call this too.
     function selectInputBackend(name) {
         appSettings.inputBackend = name
         var desc = InputBackends.descriptor(name)
@@ -538,24 +582,19 @@ Pane {
             InputDevices.clearEnumerator()
             discoveredSources = []
             inputStatusText = ""
-            liveSourceName = ""
-            if (cameraSource !== "") {
-                cameraSource = ""
-                appSettings.inputSource = ""
-                InputDevices.disconnect(Score)
-            }
             return
         }
-        cameraSource = ""
-        inputStatusText = "Looking for " + name + " sources…"
+        inputStatusText = cameraSource !== "" ? "Active source: " + cameraSource
+                                               : "Looking for " + name + " sources…"
         // Keep reporting the count rather than blanking the line once sources
         // arrive: a silent line next to an unselected combo looks like nothing
         // happened, which is how a working enumeration got reported as broken.
         InputDevices.reenumerate(Score, desc, name, function(labels) {
             discoveredSources = labels
-            inputStatusText = labels.length > 0
-                ? labels.length + " " + name + " source(s) found"
-                : "Looking for " + name + " sources…"
+            if (cameraSource === "")
+                inputStatusText = labels.length > 0
+                    ? labels.length + " " + name + " source(s) found"
+                    : "Looking for " + name + " sources…"
             // Deferred: selecting from inside the enumerator's own callback
             // re-enters the device list while score is still walking it.
             if (_pendingSource !== "" && labels.indexOf(_pendingSource) !== -1) {
@@ -568,30 +607,28 @@ Pane {
 
     function selectInputSource(name) {
         var desc = InputBackends.descriptor(liveTypeCombo.currentText)
-        var ok = false
-        Score.withMacro(function() {
-            ok = InputDevices.connectInMacro(Score, desc, name,
-                                             processes.video_Mixer.process_object,
-                                             function(m) { console.log("[Input] " + m) })
-        })
-        if (!ok) {
-            inputStatusText = "Could not open " + name
-            return
-        }
-        cameraSource = name
         liveSourceName = name
-        appSettings.inputSource = name
-        inputStatusText = "Active source: " + name
-        // A live source at zero opacity is invisible in the mix, which is how a
-        // working camera got reported as broken: picking one makes it show.
-        if (cameraAmountSlider.slider.value === 0)
-            cameraAmountSlider.slider.value = 1.0
-        // Swapping a device in place leaves the running gfx graph bound to the
-        // destroyed node, so rebuild rather than hot-swap.
-        if (isProcessing) {
-            isProcessing = false
-            Qt.callLater(function() { isProcessing = true })
-        }
+        inputStatusText = "Opening " + name + "…"
+        // The swap happens with the transport stopped: score keeps the old device
+        // while playing, and a running graph stays bound to it anyway.
+        withTransportStopped(function() {
+            return InputDevices.connectInMacro(Score, desc, name,
+                                               processes.video_Mixer.process_object,
+                                               function(m) { console.log("[Input] " + m) })
+        }, function(ok) {
+            if (!ok) {
+                cameraSource = ""
+                inputStatusText = "Could not open " + name
+                return
+            }
+            cameraSource = name
+            appSettings.inputSource = name
+            inputStatusText = "Active source: " + name
+            // A live source at zero opacity is invisible in the mix, which is how a
+            // working camera got reported as broken: picking one makes it show.
+            if (cameraAmountSlider.slider.value === 0)
+                cameraAmountSlider.slider.value = 1.0
+        })
     }
 
     // Called after every config load: pushes appSettings values into UI controls,
@@ -813,10 +850,7 @@ Pane {
                         Layout.preferredWidth: 110
                         font.pixelSize: appStyle.fontSizeBody
                         model: mainView.liveBackends
-                        onActivated: {
-                            mainView.liveSourceName = ""
-                            mainView.selectInputBackend(currentText)
-                        }
+                        onActivated: mainView.changeLiveBackend(currentText)
                     }
                     RowLayout {
                         Layout.fillWidth: true

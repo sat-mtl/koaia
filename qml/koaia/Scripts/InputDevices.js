@@ -100,8 +100,17 @@ function _enumeratedSettings(label) {
     return null
 }
 
-// Binds `label` to the mixer's t8 inlet. Call inside a Score macro.
-// Returns true when the device was created and addressed.
+// score refuses Score.removeDevice while the transport is playing, and then
+// Score.createDevice refuses the name the old device still holds. Neither call
+// throws, so check the device list itself.
+function _removeLive(Score) {
+    try { Score.removeDevice(DEVICE_NAME) } catch (e) {}
+    return !Score.device(DEVICE_NAME)
+}
+
+// Binds `label` to the mixer's t8 inlet. Call inside a Score macro, with the
+// transport stopped. Returns true when the device was created and addressed,
+// "busy" when the old device could not be removed yet, false otherwise.
 function connectInMacro(Score, descriptor, label, mixerProcess, log) {
     if (!descriptor || descriptor.kind !== "device" || !mixerProcess)
         return false
@@ -112,8 +121,13 @@ function connectInMacro(Score, descriptor, label, mixerProcess, log) {
         return false
     }
     try {
-        Score.removeDevice(DEVICE_NAME)
+        if (!_removeLive(Score))
+            return "busy"
         Score.createDevice(DEVICE_NAME, descriptor.uuid, settings)
+        if (!Score.device(DEVICE_NAME)) {
+            if (log) log("Could not create the input device for: " + label)
+            return false
+        }
         var inlet = Score.inlet(mixerProcess, MIXER_TEXTURE_INLET)
         if (!inlet) {
             if (log) log("The video mixer has no texture inlet " + MIXER_TEXTURE_INLET)
@@ -127,6 +141,7 @@ function connectInMacro(Score, descriptor, label, mixerProcess, log) {
     }
 }
 
+// true once no live device is left, "busy" while score still refuses the removal.
 function disconnect(Score) {
-    try { Score.removeDevice(DEVICE_NAME) } catch (e) {}
+    return _removeLive(Score) ? true : "busy"
 }

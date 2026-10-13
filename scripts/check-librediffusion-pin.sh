@@ -44,7 +44,7 @@ if [[ -z "$theirs" ]]; then
 fi
 
 if [[ "$ours" == "$theirs" ]]; then
-    echo "check-librediffusion-pin: OK — both at ${ours:0:9}"
+    echo "check-librediffusion-pin: OK: both at ${ours:0:9}"
     exit 0
 fi
 

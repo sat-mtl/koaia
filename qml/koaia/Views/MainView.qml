@@ -31,7 +31,7 @@ Pane {
     // The device a loaded config asked for, held until enumeration turns it up.
     property string _pendingSource: ""
 
-    // Video file existence check — scans parent dir for the exact filename
+    // Video file existence check: scans parent dir for the exact filename
     readonly property string _videoParentUrl: {
         var p = videoPath.replace(/\\/g, '/')
         var dir = p.substring(0, p.lastIndexOf('/'))
@@ -324,7 +324,7 @@ Pane {
         if (want === workflowCombo.currentIndex)
             return
         console.log("[MainView] engine bundle", engineHasControlNet ? "has" : "has no",
-                    "controlnet.engine — workflow", workflowCombo.currentIndex, "->", want)
+                    "controlnet.engine, workflow", workflowCombo.currentIndex, "->", want)
         // Assigning the combo is what drives everything else: onCurrentIndexChanged
         // writes the port and calls syncControlCable(), which is what puts the
         // Video Mapper texture on the "Control / Style" inlet.
@@ -521,7 +521,7 @@ Pane {
         }
     }
 
-    // Called after every config load — pushes appSettings values into UI controls,
+    // Called after every config load: pushes appSettings values into UI controls,
     // which in turn fire onValueChanged and push to Score.
     function restoreSavedSettings() {
         // Input section
@@ -876,7 +876,7 @@ Pane {
                     }
                     Label {
                         visible: enginePathField.text !== "" && mainView.engineHasFiles
-                        text: engineFilesModel.count + " engine" + (engineFilesModel.count === 1 ? "" : "s") + " found" + (mainView.engineHasOnnx ? "" : " — onnx missing")
+                        text: engineFilesModel.count + " engine" + (engineFilesModel.count === 1 ? "" : "s") + " found" + (mainView.engineHasOnnx ? "" : ", onnx missing")
                         font.pixelSize: appStyle.fontSizeSmall
                         color: mainView.engineHasOnnx ? "#34C759" : "#FF9500"
                         Layout.fillWidth: true

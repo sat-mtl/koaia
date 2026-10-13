@@ -113,7 +113,7 @@ ColumnLayout {
             // That reads as "no devices found" and was reported as exactly that.
             displayText: currentIndex >= 0 ? currentText
                        : selector.sources.length > 0
-                         ? qsTr("%1 available — click to choose").arg(selector.sources.length)
+                         ? qsTr("%1 available, click to choose").arg(selector.sources.length)
                          : qsTr("No device found yet")
             onActivated: index => {
                 selector.currentSource = selector.sources[index] || ""

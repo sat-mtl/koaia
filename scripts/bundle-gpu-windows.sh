@@ -71,15 +71,21 @@ unpack() {
 
 pack() {
   local dir="$1" zip="$2"
-  rm -f "$zip"
-  if command -v zip >/dev/null 2>&1; then
-    (cd "$dir" && zip -qr "$zip" .)
-  elif [[ -n "$SEVENZIP" ]]; then
-    (cd "$dir" && "$SEVENZIP" a -tzip "$zip" . >/dev/null)
-  else
+  # Check for a packer BEFORE touching the target, and build the archive beside
+  # it before moving it into place: this used to delete the package first, so a
+  # missing zip/7z left no archive at all and the input could not be recovered.
+  if ! command -v zip >/dev/null 2>&1 && [[ -z "$SEVENZIP" ]]; then
     echo "error: need zip or 7z to write $zip" >&2
     exit 1
   fi
+  local tmp="$zip.new"
+  rm -f "$tmp"
+  if command -v zip >/dev/null 2>&1; then
+    (cd "$dir" && zip -qr "$tmp" .)
+  else
+    (cd "$dir" && "$SEVENZIP" a -tzip "$tmp" . >/dev/null)
+  fi
+  mv -f "$tmp" "$zip"
 }
 
 TMP="$(mktemp -d)"
@@ -233,5 +239,5 @@ echo "Package is now $(du -sm "$PKG_DIR" | cut -f1) MB"
 
 if [[ -n "$REPACK_ZIP" ]]; then
   pack "$PKG_DIR" "$REPACK_ZIP"
-  echo "Repacked $REPACK_ZIP ($(du -sm "$REPACK_ZIP" | cut -f1) MB)"
+  echo "Repacked $REPACK_ZIP ($(( $(stat -c %s "$REPACK_ZIP") / 1048576 )) MB)"
 fi

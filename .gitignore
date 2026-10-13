@@ -1,5 +1,6 @@
 # Build outputs
 packages/
+packages-pro/
 build/
 dist/
 book/

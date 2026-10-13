@@ -1,6 +1,15 @@
 // Build presets: the train-lora.py invocations from librediffusion's README
 // ("Engine build recipes (validated)"). One entry = one TensorRT bundle.
 //
+// The recipes are data and live in ../BuildPresets/NNN-<slug>.json, one file per
+// bundle, shipped with the app; this file is only the logic that turns one of
+// them into train-lora.py flags. Adding a recipe means dropping in a file.
+//
+// The NNN prefix is the catalogue order and it matters twice: the first file is
+// the preset the builder starts on, and BuildPresetView's sections follow the
+// order in which families first appear. A "comment" field is read by nobody: it
+// is where a recipe's rationale lives, since JSON carries no comments.
+//
 // A build preset is not a runtime preset. This produces the engines; the
 // StreamDiffusion node's own .scp presets then configure a bundle that already
 // exists. The two meet only at `slug`, which is the bundle folder name, so
@@ -12,414 +21,76 @@
 // near-duplicate entries like hyper-sd15-{1,2,4}step exist.
 .pragma library
 
-var presets = [
-    // ---- SD 1.5 + ControlNet -------------------------------------------------
-    // First and default: the 512x512 ControlNet pipeline koaia is built around.
-    // sdxs needs its NATIVE sketch ControlNet -- the exported UNet/ControlNet pair
-    // must agree on residual count (7 here), and a generic SD1.5 ControlNet (13)
-    // will not bind.
-    {
-        slug: "sdxs-sketch", family: "SD 1.5 - ControlNet",
-        label: "SDXS-sketch 512", type: "sd15",
-        model: "IDKiro/sdxs-512-dreamshaper",
-        controlnet: "IDKiro/sdxs-512-dreamshaper-sketch",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 1, maxBatch: 1,
-        steps: "1", note: "koaia's default. Native sketch ControlNet."
-    },
-    {
-        slug: "sdxs-sketch-portable", family: "SD 1.5 - ControlNet",
-        label: "SDXS-sketch 512 (portable)", type: "sd15",
-        model: "IDKiro/sdxs-512-dreamshaper",
-        controlnet: "IDKiro/sdxs-512-dreamshaper-sketch",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 1, maxBatch: 1, hwCompat: "ampere_plus",
-        steps: "1", note: "Runs on any Ampere-or-newer GPU, not just this one."
-    },
-    {
-        slug: "lcm-dreamshaper-canny", family: "SD 1.5 - ControlNet",
-        label: "LCM Dreamshaper + Canny", type: "sd15",
-        model: "SimianLuo/LCM_Dreamshaper_v7",
-        controlnet: "lllyasviel/control_v11p_sd15_canny",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
-    },
-    {
-        slug: "lcm-dreamshaper-depth", family: "SD 1.5 - ControlNet",
-        label: "LCM Dreamshaper + Depth", type: "sd15",
-        model: "SimianLuo/LCM_Dreamshaper_v7",
-        controlnet: "lllyasviel/control_v11f1p_sd15_depth",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
-    },
-    {
-        slug: "lcm-dreamshaper-openpose", family: "SD 1.5 - ControlNet",
-        label: "LCM Dreamshaper + OpenPose", type: "sd15",
-        model: "SimianLuo/LCM_Dreamshaper_v7",
-        controlnet: "lllyasviel/control_v11p_sd15_openpose",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
-    },
-    {
-        slug: "lcm-dreamshaper-softedge", family: "SD 1.5 - ControlNet",
-        label: "LCM Dreamshaper + SoftEdge", type: "sd15",
-        model: "SimianLuo/LCM_Dreamshaper_v7",
-        controlnet: "lllyasviel/control_v11p_sd15_softedge",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
-    },
+var presets = []
+var _loaded = false
 
-    // ---- SD 1.5 base ---------------------------------------------------------
-    {
-        slug: "sd-turbo", family: "SD 1.5",
-        label: "SD-Turbo 512", type: "sd15",
-        model: "stabilityai/sd-turbo",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        // Turbo is a 1-step model: a batch profile above 1 only enlarges the
-        // engine and its memory pool for a batch the pipeline never submits.
-        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1-2"
-    },
-    {
-        slug: "sd-turbo-768", family: "SD 1.5",
-        label: "SD-Turbo 768", type: "sd15",
-        model: "stabilityai/sd-turbo",
-        minRes: 768, maxRes: 768, optWidth: 768, optHeight: 768,
-        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1"
-    },
-    {
-        slug: "sd-turbo-512x768", family: "SD 1.5",
-        label: "SD-Turbo 512x768", type: "sd15",
-        model: "stabilityai/sd-turbo",
-        minRes: 512, maxRes: 768, optWidth: 512, optHeight: 768,
-        minWidth: 512, maxWidth: 512, minHeight: 768, maxHeight: 768,
-        minBatch: 1, optBatch: 1, maxBatch: 1,
-        steps: "1", note: "Portrait geometry is baked per-axis, not a runtime knob."
-    },
-    {
-        slug: "sd-turbo-768x512", family: "SD 1.5",
-        label: "SD-Turbo 768x512", type: "sd15",
-        model: "stabilityai/sd-turbo",
-        minRes: 512, maxRes: 768, optWidth: 768, optHeight: 512,
-        minWidth: 768, maxWidth: 768, minHeight: 512, maxHeight: 512,
-        minBatch: 1, optBatch: 1, maxBatch: 1,
-        steps: "1", note: "Landscape counterpart of the above; a separate engine."
-    },
-    {
-        slug: "sdxs", family: "SD 1.5",
-        label: "SDXS 512", type: "sd15",
-        model: "IDKiro/sdxs-512-dreamshaper",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1"
-    },
-    {
-        slug: "lcm-dreamshaper", family: "SD 1.5",
-        label: "LCM Dreamshaper v7", type: "sd15",
-        model: "SimianLuo/LCM_Dreamshaper_v7",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
-    },
-    {
-        slug: "lcm-dreamshaper-4step", family: "SD 1.5",
-        label: "LCM Dreamshaper v7 (4 steps)", type: "sd15",
-        model: "SimianLuo/LCM_Dreamshaper_v7",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 4, maxBatch: 4,
-        steps: "1-4", note: "Same weights as above, batch 4 so 4 steps fit."
-    },
-    {
-        slug: "dreamshaper-8-lcm", family: "SD 1.5",
-        label: "Dreamshaper 8 LCM", type: "sd15",
-        model: "Lykon/dreamshaper-8-lcm",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
-    },
-    {
-        slug: "sd15-lcm-lora", family: "SD 1.5",
-        label: "SD 1.5 + LCM-LoRA", type: "sd15",
-        model: "runwayml/stable-diffusion-v1-5",
-        loras: [{ path: "latent-consistency/lcm-lora-sdv1-5" }],
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
-    },
-    {
-        slug: "hyper-sd15-1step", family: "SD 1.5",
-        label: "SD 1.5 Hyper-SD 1-step", type: "sd15",
-        model: "runwayml/stable-diffusion-v1-5",
-        loras: [{ path: "ByteDance/Hyper-SD|Hyper-SD15-1step-lora.safetensors" }],
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1"
-    },
-    {
-        slug: "hyper-sd15-2step", family: "SD 1.5",
-        label: "SD 1.5 Hyper-SD 2-step", type: "sd15",
-        model: "runwayml/stable-diffusion-v1-5",
-        loras: [{ path: "ByteDance/Hyper-SD|Hyper-SD15-2steps-lora.safetensors" }],
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "2"
-    },
-    {
-        slug: "hyper-sd15", family: "SD 1.5",
-        label: "SD 1.5 Hyper-SD 4-step", type: "sd15",
-        model: "runwayml/stable-diffusion-v1-5",
-        loras: [{ path: "ByteDance/Hyper-SD|Hyper-SD15-4steps-lora.safetensors" }],
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 4, steps: "4"
-    },
-    {
-        slug: "sd21-base-1step", family: "SD 1.5",
-        label: "SD 2.1 base 1-step", type: "sd15",
-        model: "sd-research/stable-diffusion-2-1-base",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 1, maxBatch: 1,
-        steps: "1", note: "SD 2.1 exports through the sd15 path (1024-dim CLIP)."
-    },
-    {
-        slug: "sd21-base-4step", family: "SD 1.5",
-        label: "SD 2.1 base 4-step", type: "sd15",
-        model: "sd-research/stable-diffusion-2-1-base",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 4, steps: "4"
-    },
+// Fields without which a card cannot be drawn or a build started. Everything
+// else is optional, and absence is meaningful: see extraArgs.
+var _REQUIRED_TEXT = ["slug", "family", "label", "type", "model"]
+var _REQUIRED_NUMBERS = ["minRes", "maxRes", "optWidth", "optHeight",
+                         "minBatch", "optBatch", "maxBatch"]
 
-    // ---- SD 1.5 IP-Adapter ---------------------------------------------------
-    // --ipadapter also exports clip_image_encoder.engine + ip_image_proj.engine,
-    // without which the node silently ignores the Control/Style texture.
-    {
-        slug: "lcm-dreamshaper-ip", family: "SD 1.5 - IP-Adapter",
-        label: "LCM Dreamshaper + IP-Adapter", type: "sd15",
-        model: "SimianLuo/LCM_Dreamshaper_v7",
-        ipadapterNeeded: true, ipadapterHint: "h94/IP-Adapter models/ip-adapter_sd15.bin",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2",
-        requires: "a local ip-adapter_sd15.bin: train-lora.py loads the checkpoint "
-                + "from disk, so fill in the IP-Adapter field before building",
-        note: "Not available for sdxs: its attention differs."
-    },
+// The catalogue, read once per engine. Score's Util has to be handed in: a
+// .pragma library sees no QML context, and XMLHttpRequest is no way out either,
+// since it cannot list a directory and Qt refuses GET on a local file unless
+// QML_XHR_ALLOW_FILE_READ is set.
+function all(Util) {
+    if (!_loaded)
+        _load(Util)
+    return presets
+}
 
-    // ---- SDXL ----------------------------------------------------------------
-    {
-        slug: "sdxl-turbo", family: "SDXL",
-        label: "SDXL-Turbo 1024", type: "sdxl",
-        model: "stabilityai/sdxl-turbo",
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        // Turbo is a 1-step model: see sd-turbo above.
-        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1-2"
-    },
-    {
-        slug: "sdxl-turbo-512", family: "SDXL",
-        label: "SDXL-Turbo 512", type: "sdxl",
-        model: "stabilityai/sdxl-turbo",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1"
-    },
-    {
-        slug: "sdxl-base", family: "SDXL",
-        label: "SDXL base 1.0", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 2,
-        steps: "many", note: "Undistilled: needs many steps. Prefer a turbo/LCM variant."
-    },
-    {
-        slug: "sdxl-lcm-lora", family: "SDXL",
-        label: "SDXL + LCM-LoRA", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        loras: [{ path: "latent-consistency/lcm-lora-sdxl" }],
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 4, steps: "2-4"
-    },
-    {
-        slug: "hyper-sdxl", family: "SDXL",
-        label: "SDXL Hyper-SD 4-step", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        loras: [{ path: "ByteDance/Hyper-SD|Hyper-SDXL-4steps-lora.safetensors" }],
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 4, steps: "4"
-    },
-    {
-        slug: "sdxl-lightning", family: "SDXL",
-        label: "SDXL Lightning 4-step", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        loras: [{ path: "ByteDance/SDXL-Lightning|sdxl_lightning_4step_lora.safetensors" }],
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 4, steps: "4"
-    },
-    {
-        slug: "vega-rt", family: "SDXL",
-        label: "Segmind VegaRT", type: "sdxl",
-        model: "segmind/Segmind-Vega",
-        loras: [{ path: "segmind/Segmind-VegaRT" }],
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "2"
-    },
-    {
-        slug: "sdxl-lcm-crayon", family: "SDXL",
-        label: "SDXL LCM + crayon style", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        loras: [
-            { path: "latent-consistency/lcm-lora-sdxl" },
-            { path: "ostris/crayon_style_lora_sdxl|crayons_v1_sdxl.safetensors" }
-        ],
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 4,
-        steps: "2-4", note: "Stacked LoRAs, both fused at export."
-    },
-    {
-        slug: "crayon-rt", family: "SDXL",
-        label: "SDXL + crayon (runtime LoRA)", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        loras: [{ path: "ostris/crayon_style_lora_sdxl|crayons_v1_sdxl.safetensors", runtime: true }],
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 2,
-        steps: "2", note: "Unfused: the node's LoRA-scale knob drives it live. Costs ~2%."
-    },
-
-    // ---- SDXL with a replacement UNet ---------------------------------------
-    // --unet swaps the UNet weights only; the rest of the pipeline stays SDXL
-    // base. DMD2 is CC-BY-NC-4.0.
-    {
-        slug: "dmd2-sdxl-1step", family: "SDXL - distilled UNet",
-        label: "SDXL DMD2 1-step", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        unet: "tianweiy/DMD2|dmd2_sdxl_1step_unet_fp16.bin",
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 1, maxBatch: 1,
-        steps: "1", note: "txt2img only. CC-BY-NC-4.0."
-    },
-    {
-        slug: "dmd2-sdxl-4step", family: "SDXL - distilled UNet",
-        label: "SDXL DMD2 4-step", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        unet: "tianweiy/DMD2|dmd2_sdxl_4step_unet_fp16.bin",
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 4, maxBatch: 4,
-        steps: "1-4", note: "CC-BY-NC-4.0."
-    },
-    {
-        slug: "nitrosd-realism", family: "SDXL - distilled UNet",
-        label: "SDXL NitroSD Realism", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        unet: "ChenDY/NitroFusion|nitrosd-realism_unet.safetensors",
-        unetTimestepScale: 0.25,
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
-    },
-    {
-        slug: "nitrosd-vibrant", family: "SDXL - distilled UNet",
-        label: "SDXL NitroSD Vibrant", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        unet: "ChenDY/NitroFusion|nitrosd-vibrant_unet.safetensors",
-        unetTimestepScale: 0.5,
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
-    },
-
-    // ---- SDXL ControlNet -----------------------------------------------------
-    {
-        slug: "sdxl-lcm-lora-canny", family: "SDXL - ControlNet",
-        label: "SDXL LCM + Canny", type: "sdxl",
-        model: "stabilityai/stable-diffusion-xl-base-1.0",
-        loras: [{ path: "latent-consistency/lcm-lora-sdxl" }],
-        controlnet: "diffusers/controlnet-canny-sdxl-1.0",
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 4, steps: "2-4"
-    },
-    {
-        slug: "sdxl-turbo-ip", family: "SDXL - IP-Adapter",
-        label: "SDXL-Turbo + IP-Adapter", type: "sdxl",
-        model: "stabilityai/sdxl-turbo",
-        ipadapterNeeded: true, ipadapterHint: "h94/IP-Adapter sdxl_models/ip-adapter_sdxl_vit-h.bin",
-        minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        // Turbo is a 1-step model: see sd-turbo above.
-        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1-2",
-        requires: "a local ip-adapter_sdxl_vit-h.bin: train-lora.py loads the checkpoint "
-                + "from disk, so fill in the IP-Adapter field before building"
-    },
-
-    // ---- img2img-turbo -------------------------------------------------------
-    // A separate C++ node path: a skip-VAE pix2pix-turbo pipeline, not SD.
-    {
-        slug: "img2img-turbo", family: "img2img-turbo",
-        label: "img2img-turbo edge2image", type: "img2img-turbo",
-        model: "edge_to_image",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1"
-    },
-    {
-        slug: "img2img-turbo-sketch", family: "img2img-turbo",
-        label: "img2img-turbo sketch2image", type: "img2img-turbo",
-        model: "sketch_to_image_stochastic",
-        minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1"
-    },
-
-    // ---- FLUX.2-klein -------------------------------------------------------
-    // train-lora.py does NOT download klein: it looks the snapshot up in the HF
-    // cache and exits if it is absent. Native geometry is 320x576 unless an
-    // explicit --opt-width/--opt-height is passed. RIFE always ships.
-    {
-        slug: "klein", family: "FLUX.2-klein",
-        label: "FLUX.2-klein 320x576", type: "klein",
-        model: "black-forest-labs/FLUX.2-klein-4B",
-        minRes: 320, maxRes: 576, optWidth: 320, optHeight: 576,
-        minBatch: 1, optBatch: 1, maxBatch: 1, kleinQuality: "both",
-        steps: "2",
-        requires: "the FLUX.2-klein-4B snapshot in the model cache "
-                + "(hf download black-forest-labs/FLUX.2-klein-4B --exclude flux-2-klein-4b.safetensors)",
-        note: "~18 GB bundle. 'both' builds the bf16 and fp8 pair; fp8 needs SM 8.9+."
-    },
-    {
-        slug: "klein-landscape", family: "FLUX.2-klein",
-        label: "FLUX.2-klein 576x320", type: "klein",
-        model: "black-forest-labs/FLUX.2-klein-4B",
-        minRes: 320, maxRes: 576, optWidth: 576, optHeight: 320,
-        minBatch: 1, optBatch: 1, maxBatch: 1, kleinQuality: "both",
-        steps: "2",
-        requires: "the FLUX.2-klein-4B snapshot in the model cache",
-        note: "Landscape needs its own VAE pair, so it is a separate bundle."
-    },
-    {
-        slug: "klein-sprint", family: "FLUX.2-klein",
-        label: "FLUX.2-klein Sana-Sprint", type: "klein",
-        model: "black-forest-labs/FLUX.2-klein-4B",
-        loras: [{ path: "radames/FLUX.2-klein-Sana-Sprint" }],
-        minRes: 320, maxRes: 576, optWidth: 320, optHeight: 576,
-        minBatch: 1, optBatch: 1, maxBatch: 1, kleinQuality: "both",
-        // --lora is accepted by every builder, but a builder without the klein
-        // fusion path ignores it and emits a plain klein bundle under this name.
-        needsBuilderSymbol: "klein_fuse_loras",
-        needsBuilderLabel: "LoRA fusion for klein",
-        steps: "1-2",
-        requires: "the FLUX.2-klein-4B snapshot in the model cache",
-        note: "The LoRA is fused into a transformer-only copy first."
+function _load(Util) {
+    _loaded = true
+    if (!Util || !Util.listFiles) {
+        console.warn("[BuildPresets] no Util.listFiles: the catalogue cannot be read")
+        return
     }
-]
+    var dir = Util.urlToLocalFile("" + Qt.resolvedUrl("../BuildPresets"))
+    var files = Util.listFiles(dir, "*.json")
+    // Sorted here rather than taken on trust from listFiles: the NNN prefix is
+    // the catalogue order, and order is load-bearing.
+    files.sort()
+    for (var i = 0; i < files.length; i++) {
+        var p = _parse(Util, files[i])
+        if (p)
+            presets.push(p)
+    }
+    if (presets.length === 0)
+        console.warn("[BuildPresets] no usable preset in " + dir)
+}
 
-// Menu order; anything not listed is appended after.
-var familyOrder = [
-    "SD 1.5 - ControlNet", "SD 1.5", "SD 1.5 - IP-Adapter",
-    "SDXL", "SDXL - distilled UNet", "SDXL - ControlNet", "SDXL - IP-Adapter",
-    "img2img-turbo", "FLUX.2-klein"
-]
+// A recipe is a file now, so a broken one costs its own card and nothing else.
+function _parse(Util, path) {
+    try {
+        var p = JSON.parse(String(Util.readFile(path)))
+        for (var i = 0; i < _REQUIRED_TEXT.length; i++)
+            if (!p[_REQUIRED_TEXT[i]] || typeof p[_REQUIRED_TEXT[i]] !== "string")
+                throw new Error("no " + _REQUIRED_TEXT[i])
+        for (var j = 0; j < _REQUIRED_NUMBERS.length; j++)
+            if (typeof p[_REQUIRED_NUMBERS[j]] !== "number")
+                throw new Error("no " + _REQUIRED_NUMBERS[j])
+        return p
+    } catch (e) {
+        console.warn("[BuildPresets] skipping " + path + ": " + e)
+        return null
+    }
+}
 
-function byFamily() {
+// Cards grouped into sections, families in the order they first appear.
+function byFamily(list) {
     var grp = ({}), order = []
-    for (var i = 0; i < presets.length; i++) {
-        var f = presets[i].family
+    for (var i = 0; i < list.length; i++) {
+        var f = list[i].family
         if (!grp[f]) { grp[f] = []; order.push(f) }
-        grp[f].push(presets[i])
+        grp[f].push(list[i])
     }
-    order.sort(function(a, b) {
-        var ia = familyOrder.indexOf(a); if (ia < 0) ia = 999
-        var ib = familyOrder.indexOf(b); if (ib < 0) ib = 999
-        return ia - ib
-    })
     return { groups: grp, order: order }
 }
 
-function find(slug) {
-    for (var i = 0; i < presets.length; i++)
-        if (presets[i].slug === slug) return presets[i]
+function find(list, slug) {
+    for (var i = 0; i < list.length; i++)
+        if (list[i].slug === slug) return list[i]
     return null
 }
 
@@ -430,11 +101,13 @@ function loraArg(l) {
 }
 
 // The flags that have no widget of their own in ModelView. Everything here is
-// carried by the preset alone, so a preset is the only way to reach --unet,
+// carried by the preset alone, so a preset is the only way to reach --unet
+// (which swaps the UNet weights only, leaving the rest of the pipeline alone),
 // --ipadapter, --hw-compat, --klein-quality, the per-axis geometry flags and a
 // :runtime LoRA.
 function extraArgs(p) {
     var a = []
+    if (!p) return a
     if (p.unet) a.push("--unet", p.unet)
     if (p.unetTimestepScale !== undefined)
         a.push("--unet-timestep-scale", p.unetTimestepScale.toString())
@@ -462,6 +135,7 @@ function requiredFlags(p) {
 // One-line human summary of extraArgs, for the builder to show what a preset
 // adds beyond the visible fields.
 function extraSummary(p) {
+    if (!p) return ""
     var a = extraArgs(p)
     var loras = (p.loras || []).map(loraArg)
     var parts = []

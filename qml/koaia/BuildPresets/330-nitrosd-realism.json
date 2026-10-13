@@ -1,0 +1,17 @@
+{
+  "slug": "nitrosd-realism",
+  "family": "SDXL - distilled UNet",
+  "label": "SDXL NitroSD Realism",
+  "type": "sdxl",
+  "model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "unet": "ChenDY/NitroFusion|nitrosd-realism_unet.safetensors",
+  "unetTimestepScale": 0.25,
+  "minRes": 1024,
+  "maxRes": 1024,
+  "optWidth": 1024,
+  "optHeight": 1024,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 2,
+  "steps": "1-2"
+}

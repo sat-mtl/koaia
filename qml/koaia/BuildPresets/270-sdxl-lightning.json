@@ -1,0 +1,20 @@
+{
+  "slug": "sdxl-lightning",
+  "family": "SDXL",
+  "label": "SDXL Lightning 4-step",
+  "type": "sdxl",
+  "model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "loras": [
+    {
+      "path": "ByteDance/SDXL-Lightning|sdxl_lightning_4step_lora.safetensors"
+    }
+  ],
+  "minRes": 1024,
+  "maxRes": 1024,
+  "optWidth": 1024,
+  "optHeight": 1024,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 4,
+  "steps": "4"
+}

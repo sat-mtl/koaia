@@ -1,0 +1,18 @@
+{
+  "comment": "First and default: the 512x512 ControlNet pipeline koaia is built around. sdxs needs its NATIVE sketch ControlNet: the exported UNet/ControlNet pair must agree on residual count (7 here), and a generic SD 1.5 ControlNet (13) will not bind.",
+  "slug": "sdxs-sketch",
+  "family": "SD 1.5 - ControlNet",
+  "label": "SDXS-sketch 512",
+  "type": "sd15",
+  "model": "IDKiro/sdxs-512-dreamshaper",
+  "controlnet": "IDKiro/sdxs-512-dreamshaper-sketch",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1",
+  "note": "koaia's default. Native sketch ControlNet."
+}

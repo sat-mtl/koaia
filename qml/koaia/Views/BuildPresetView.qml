@@ -38,7 +38,9 @@ Pane {
     readonly property string enginesRoot:
         enginesRootField.text !== "" ? enginesRootField.text : defaultEnginesRoot
 
-    readonly property var grouped: BuildPresets.byFamily()
+    // The shipped catalogue, read from qml/koaia/BuildPresets on first use.
+    readonly property var presets: BuildPresets.all(Util)
+    readonly property var grouped: BuildPresets.byFamily(presetView.presets)
 
     function urlToLocalPath(u) {
         var s = "" + u
@@ -61,8 +63,8 @@ Pane {
 
     function builtCount() {
         var n = 0
-        for (var i = 0; i < BuildPresets.presets.length; i++)
-            if (isBuilt(BuildPresets.presets[i])) n++
+        for (var i = 0; i < presetView.presets.length; i++)
+            if (isBuilt(presetView.presets[i])) n++
         return n
     }
 
@@ -156,7 +158,7 @@ Pane {
                 color: appStyle.textColorSecondary
                 text: {
                     presetView.refreshKey
-                    return presetView.builtCount() + " / " + BuildPresets.presets.length
+                    return presetView.builtCount() + " / " + presetView.presets.length
                         + " bundles built under this folder. Each preset builds into its own "
                         + "subfolder, so they do not overwrite each other."
                 }

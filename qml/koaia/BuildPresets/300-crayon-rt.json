@@ -1,0 +1,22 @@
+{
+  "slug": "crayon-rt",
+  "family": "SDXL",
+  "label": "SDXL + crayon (runtime LoRA)",
+  "type": "sdxl",
+  "model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "loras": [
+    {
+      "path": "ostris/crayon_style_lora_sdxl|crayons_v1_sdxl.safetensors",
+      "runtime": true
+    }
+  ],
+  "minRes": 1024,
+  "maxRes": 1024,
+  "optWidth": 1024,
+  "optHeight": 1024,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 2,
+  "steps": "2",
+  "note": "Unfused: the node's LoRA-scale knob drives it live. Costs ~2%."
+}

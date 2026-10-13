@@ -1,0 +1,24 @@
+{
+  "slug": "sdxl-lcm-crayon",
+  "family": "SDXL",
+  "label": "SDXL LCM + crayon style",
+  "type": "sdxl",
+  "model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "loras": [
+    {
+      "path": "latent-consistency/lcm-lora-sdxl"
+    },
+    {
+      "path": "ostris/crayon_style_lora_sdxl|crayons_v1_sdxl.safetensors"
+    }
+  ],
+  "minRes": 1024,
+  "maxRes": 1024,
+  "optWidth": 1024,
+  "optHeight": 1024,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 4,
+  "steps": "2-4",
+  "note": "Stacked LoRAs, both fused at export."
+}

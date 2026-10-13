@@ -1,0 +1,18 @@
+{
+  "slug": "sdxs-sketch-portable",
+  "family": "SD 1.5 - ControlNet",
+  "label": "SDXS-sketch 512 (portable)",
+  "type": "sd15",
+  "model": "IDKiro/sdxs-512-dreamshaper",
+  "controlnet": "IDKiro/sdxs-512-dreamshaper-sketch",
+  "hwCompat": "ampere_plus",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1",
+  "note": "Runs on any Ampere-or-newer GPU, not just this one."
+}

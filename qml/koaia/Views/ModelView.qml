@@ -84,31 +84,34 @@ Pane {
         return decodeURIComponent(s)
     }
 
-    // The validated train-lora.py invocations, shared with BuildPresetView. SDXS-sketch
-    // is first and the default: it is the 512x512 ControlNet pipeline koaia is built
-    // around. Its ControlNet has to be the model's *native* one, because the exported
-    // pair has to agree on geometry -- this bundle loads as "control-aware UNet geometry
-    // = 6 down residuals, factors {1,1,2,2,4,4}" against "ControlNet engine SD1.5,
-    // 6 down residuals", and a ControlNet with a different count will not bind.
+    // The validated train-lora.py invocations, one file per bundle under
+    // qml/koaia/BuildPresets, shared with BuildPresetView. The first of them,
+    // SDXS-sketch, is the default: it is the 512x512 ControlNet pipeline koaia is
+    // built around. Its ControlNet has to be the model's *native* one, because the
+    // exported pair has to agree on geometry -- this bundle loads as "control-aware
+    // UNet geometry = 6 down residuals, factors {1,1,2,2,4,4}" against "ControlNet
+    // engine SD1.5, 6 down residuals", and a ControlNet with a different count will
+    // not bind.
     // Declared on the root because a Section's children resolve names against the
     // file's root object, not against the enclosing Section instance.
+    readonly property var buildPresets: BuildPresets.all(Util)
 
     // The preset the visible fields were last filled from. --type, --unet,
     // --hw-compat, --klein-quality, the per-axis geometry flags and :runtime LoRAs
-    // have no widget of their own, so they are carried from here.
-    property var activePreset: BuildPresets.presets[0]
+    // have no widget of their own, so they are carried from here. Null only if the
+    // catalogue could not be read at all.
+    property var activePreset: modelView.buildPresets[0] || null
 
     // The flags with no widget of their own, as an editable line. Filled from the
     // preset by applyBuildPreset and passed to train-lora.py verbatim, so what is
     // shown is what runs. Split on whitespace: a path containing a space has to go
     // in the field it belongs to, not here.
-    property string customFlags: BuildPresets.extraSummary(BuildPresets.presets[0])
+    property string customFlags: BuildPresets.extraSummary(modelView.buildPresets[0])
 
     // train-lora.py is staged from the 3rdparty/librediffusion pin, which can lag
-    // the recipes in BuildPresets.js -- as it does today, by the two commits that
-    // added --unet and --rife. An unknown flag surfaces as argparse "unrecognized
-    // arguments" a minute into a run that looked like it had started, so read the
-    // script once and check up front. An unreadable script blocks nothing.
+    // the recipes under BuildPresets/. An unknown flag surfaces as argparse
+    // "unrecognized arguments" a minute into a run that looked like it had started,
+    // so read the script once and check up front. An unreadable script blocks nothing.
     readonly property string _builderSource:
         Util.fileExists(scriptPath) ? String(Util.readFile(scriptPath)) : ""
 
@@ -137,6 +140,10 @@ Pane {
     function applyBuildPreset(preset, outputDir) {
         if (_applyingPreset)
             return
+        if (!preset) {
+            log("[Preset] nothing to apply: no readable preset under BuildPresets/")
+            return
+        }
         _applyingPreset = true
         activePreset = preset
         // Refill the custom-flags line from the preset. Edits are kept until the
@@ -198,7 +205,7 @@ Pane {
         modelCacheField.text = buildSettings.modelCacheDir
         // Fill the fields from the default preset. Without this they would start
         // on train-lora.py's own 1024 defaults, which match no preset.
-        applyBuildPreset(BuildPresets.presets[0])
+        applyBuildPreset(modelView.buildPresets[0])
         loadLog()
     }
 
@@ -1272,6 +1279,10 @@ Pane {
     // Called after successful sync
     function runBuildProcess() {
         var p = activePreset;
+        if (!p) {
+            log("[Build] no active preset: nothing to pass --type");
+            return;
+        }
         // --env-file is the only way to hand HF_HOME to train-lora.py: Score.UI.Process
         // exposes program/arguments/workingDirectory and no environment.
         var args = ["--cache-dir", uvCacheDir,

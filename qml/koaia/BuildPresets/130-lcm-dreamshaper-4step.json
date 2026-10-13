@@ -1,0 +1,16 @@
+{
+  "slug": "lcm-dreamshaper-4step",
+  "family": "SD 1.5",
+  "label": "LCM Dreamshaper v7 (4 steps)",
+  "type": "sd15",
+  "model": "SimianLuo/LCM_Dreamshaper_v7",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 4,
+  "maxBatch": 4,
+  "steps": "1-4",
+  "note": "Same weights as above, batch 4 so 4 steps fit."
+}

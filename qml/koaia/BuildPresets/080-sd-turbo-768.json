@@ -1,0 +1,15 @@
+{
+  "slug": "sd-turbo-768",
+  "family": "SD 1.5",
+  "label": "SD-Turbo 768",
+  "type": "sd15",
+  "model": "stabilityai/sd-turbo",
+  "minRes": 768,
+  "maxRes": 768,
+  "optWidth": 768,
+  "optHeight": 768,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1"
+}

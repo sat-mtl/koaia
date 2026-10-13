@@ -1,0 +1,15 @@
+{
+  "slug": "sdxs",
+  "family": "SD 1.5",
+  "label": "SDXS 512",
+  "type": "sd15",
+  "model": "IDKiro/sdxs-512-dreamshaper",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1"
+}

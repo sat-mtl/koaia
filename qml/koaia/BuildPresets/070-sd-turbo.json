@@ -1,0 +1,16 @@
+{
+  "comment": "Turbo is a 1-step model: a batch profile above 1 only enlarges the engine and its memory pool for a batch the pipeline never submits.",
+  "slug": "sd-turbo",
+  "family": "SD 1.5",
+  "label": "SD-Turbo 512",
+  "type": "sd15",
+  "model": "stabilityai/sd-turbo",
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 1,
+  "maxBatch": 1,
+  "steps": "1-2"
+}

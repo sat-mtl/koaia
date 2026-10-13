@@ -1,0 +1,20 @@
+{
+  "slug": "hyper-sd15-2step",
+  "family": "SD 1.5",
+  "label": "SD 1.5 Hyper-SD 2-step",
+  "type": "sd15",
+  "model": "runwayml/stable-diffusion-v1-5",
+  "loras": [
+    {
+      "path": "ByteDance/Hyper-SD|Hyper-SD15-2steps-lora.safetensors"
+    }
+  ],
+  "minRes": 512,
+  "maxRes": 512,
+  "optWidth": 512,
+  "optHeight": 512,
+  "minBatch": 1,
+  "optBatch": 2,
+  "maxBatch": 2,
+  "steps": "2"
+}

@@ -1,0 +1,17 @@
+{
+  "slug": "dmd2-sdxl-4step",
+  "family": "SDXL - distilled UNet",
+  "label": "SDXL DMD2 4-step",
+  "type": "sdxl",
+  "model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "unet": "tianweiy/DMD2|dmd2_sdxl_4step_unet_fp16.bin",
+  "minRes": 1024,
+  "maxRes": 1024,
+  "optWidth": 1024,
+  "optHeight": 1024,
+  "minBatch": 1,
+  "optBatch": 4,
+  "maxBatch": 4,
+  "steps": "1-4",
+  "note": "CC-BY-NC-4.0."
+}

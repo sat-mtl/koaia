@@ -75,7 +75,9 @@ var presets = [
         label: "SD-Turbo 512", type: "sd15",
         model: "stabilityai/sd-turbo",
         minRes: 512, maxRes: 512, optWidth: 512, optHeight: 512,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
+        // Turbo is a 1-step model: a batch profile above 1 only enlarges the
+        // engine and its memory pool for a batch the pipeline never submits.
+        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1-2"
     },
     {
         slug: "sd-turbo-768", family: "SD 1.5",
@@ -200,7 +202,8 @@ var presets = [
         label: "SDXL-Turbo 1024", type: "sdxl",
         model: "stabilityai/sdxl-turbo",
         minRes: 1024, maxRes: 1024, optWidth: 1024, optHeight: 1024,
-        minBatch: 1, optBatch: 2, maxBatch: 2, steps: "1-2"
+        // Turbo is a 1-step model: see sd-turbo above.
+        minBatch: 1, optBatch: 1, maxBatch: 1, steps: "1-2"
     },
     {
         slug: "sdxl-turbo-512", family: "SDXL",

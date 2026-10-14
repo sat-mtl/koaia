@@ -39,7 +39,7 @@ Rectangle {
                     width: 8
                     height: 8
                     radius: 4
-                    color: modelData.slider.value > 0.01 ? "#4CD964" : "#444444"
+                    color: modelData.slider.enabled && modelData.slider.value > 0.01 ? "#4CD964" : "#444444"
                 }
                 Text { 
                     text: modelData.name

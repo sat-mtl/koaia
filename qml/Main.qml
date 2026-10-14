@@ -53,7 +53,7 @@ ApplicationWindow {
         // Interactive elements
         button: appStyle.buttonBgInactive
         highlight: appStyle.primaryColor
-        highlightedText: appStyle.textColorOnAccent
+        highlightedText: appStyle.textColor
         
         // Links
         link: appStyle.primaryColor
